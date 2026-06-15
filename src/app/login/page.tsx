@@ -27,15 +27,14 @@ export default function LoginPage() {
         redirect: false,
       })
 
-      if (result?.error) {
+      if (!result?.ok || result?.error) {
         setError(result.error)
+        setLoading(false)
       } else {
-        router.push('/admin/dashboard')
-        router.refresh()
+        window.location.href = '/admin/dashboard'
       }
     } catch {
       setError('Une erreur est survenue. Veuillez réessayer.')
-    } finally {
       setLoading(false)
     }
   }
