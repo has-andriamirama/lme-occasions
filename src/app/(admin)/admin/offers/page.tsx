@@ -11,7 +11,14 @@ export default async function OffersPage() {
   const now = new Date()
   const [offers, cars] = await Promise.all([
     prisma.offer.findMany({
-      include: { cars: { include: { car: { select: { id: true, title: true, brand: true } } } } },
+      include: {
+        cars: {
+          include: {
+            car: { select: { id: true, title: true, brand: true, model: true, year: true } }
+            //                                                    ↑ ajout ici ↑
+          }
+        }
+      },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.car.findMany({
