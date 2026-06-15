@@ -15,7 +15,7 @@ export async function createCheckoutSession({
   clientEmail,
   clientPhone,
   installmentType,
-  reservationId, // ← NOUVEAU paramètre
+  reservationId,
   successUrl,
   cancelUrl,
 }: {
@@ -27,7 +27,7 @@ export async function createCheckoutSession({
   clientEmail:     string
   clientPhone:     string
   installmentType: 'FULL' | 'THREE_TIMES' | 'FOUR_TIMES'
-  reservationId:   string  // ← NOUVEAU : identifiant direct de la réservation
+  reservationId:   string
   successUrl:      string
   cancelUrl:       string
 }) {
@@ -50,7 +50,7 @@ export async function createCheckoutSession({
       },
     ],
     metadata: {
-      reservationId, // ← NOUVEAU : le webhook peut retrouver la réservation directement
+      reservationId,
       carId,
       clientName,
       clientEmail,
