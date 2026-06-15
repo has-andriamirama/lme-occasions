@@ -28,7 +28,7 @@ export default function LoginPage() {
       })
 
       if (!result?.ok || result?.error) {
-        setError(result.error)
+        setError(result?.error ?? 'Identifiant ou mot de passe incorrect')
         setLoading(false)
       } else {
         window.location.href = '/admin/dashboard'
