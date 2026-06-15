@@ -1,0 +1,80 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
+  theme: {
+    extend: {
+      colors: {
+        brand: {
+          DEFAULT: '#D4AF37',
+          50:  '#FDF8E7',
+          100: '#FBEFC0',
+          200: '#F7DE80',
+          300: '#F0CA47',
+          400: '#E4B82A',
+          500: '#D4AF37',
+          600: '#B8962B',
+          700: '#8E731E',
+          800: '#654F12',
+          900: '#3D2F07',
+        },
+        dark: {
+          50:  '#F5F5F6',
+          100: '#E4E4E6',
+          200: '#C5C5C9',
+          300: '#9C9CA3',
+          400: '#72727B',
+          500: '#555560',
+          600: '#3E3E4A',
+          700: '#2A2A35',
+          800: '#141418',
+          900: '#0A0A0B',
+          950: '#050506',
+        },
+      },
+      fontFamily: {
+        display: ['var(--font-syne)', 'sans-serif'],
+        body: ['var(--font-outfit)', 'sans-serif'],
+        mono: ['var(--font-jetbrains-mono)', 'monospace'],
+      },
+      animation: {
+        'fade-in':      'fadeIn 0.5s ease-out forwards',
+        'slide-up':     'slideUp 0.5s ease-out forwards',
+        'slide-down':   'slideDown 0.3s ease-out forwards',
+        'scale-in':     'scaleIn 0.3s ease-out forwards',
+        'shimmer':      'shimmer 2s infinite linear',
+        'pulse-slow':   'pulse 3s ease-in-out infinite',
+        'spin-slow':    'spin 3s linear infinite',
+        'glow':         'glow 2s ease-in-out infinite alternate',
+      },
+      keyframes: {
+        fadeIn:   { from: { opacity: '0' }, to: { opacity: '1' } },
+        slideUp:  { from: { opacity: '0', transform: 'translateY(20px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+        slideDown:{ from: { opacity: '0', transform: 'translateY(-10px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+        scaleIn:  { from: { opacity: '0', transform: 'scale(0.95)' }, to: { opacity: '1', transform: 'scale(1)' } },
+        shimmer:  { '0%': { backgroundPosition: '-200% 0' }, '100%': { backgroundPosition: '200% 0' } },
+        glow:     { from: { boxShadow: '0 0 10px rgba(212,175,55,0.2)' }, to: { boxShadow: '0 0 30px rgba(212,175,55,0.5)' } },
+      },
+      backgroundImage: {
+        'gradient-brand':  'linear-gradient(135deg, #D4AF37 0%, #B8962B 100%)',
+        'gradient-dark':   'linear-gradient(135deg, #141418 0%, #0A0A0B 100%)',
+        'gradient-glass':  'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
+        'shimmer-gradient':'linear-gradient(90deg, transparent 0%, rgba(212,175,55,0.15) 50%, transparent 100%)',
+      },
+      boxShadow: {
+        'brand':   '0 0 30px rgba(212,175,55,0.3)',
+        'brand-lg':'0 0 60px rgba(212,175,55,0.4)',
+        'card':    '0 4px 24px rgba(0,0,0,0.4)',
+        'card-lg': '0 8px 40px rgba(0,0,0,0.6)',
+        'glow':    '0 0 20px rgba(212,175,55,0.25)',
+        'inner-brand': 'inset 0 0 20px rgba(212,175,55,0.1)',
+      },
+      borderColor: {
+        brand: '#D4AF37',
+      },
+      backdropBlur: {
+        xs: '2px',
+      },
+    },
+  },
+  plugins: [],
+}
