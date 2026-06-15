@@ -83,7 +83,7 @@ export default function LoginPage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="admin"
-                  className={cn('input-base pl-10', error && 'border-red-500/50')}
+                  className={cn('input-base pl-9', error && 'border-red-500/50')}
                   disabled={loading}
                   required
                 />
@@ -103,7 +103,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className={cn('input-base pl-10 pr-10', error && 'border-red-500/50')}
+                  className={cn('input-base pl-9 pr-9', error && 'border-red-500/50')}
                   disabled={loading}
                   required
                 />
