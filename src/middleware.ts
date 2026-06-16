@@ -7,6 +7,10 @@ export default withAuth(
     const { pathname } = req.nextUrl
     const token = req.nextauth.token
 
+    if (pathname === '/login' && token) {
+      return NextResponse.redirect(new URL('/admin/dashboard', req.url))
+    }
+
     // Redirect to change-password if mustChangePassword
     if (
       token?.mustChangePassword &&
@@ -42,5 +46,5 @@ export default withAuth(
 )
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/login'],
 }
