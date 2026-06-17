@@ -7,25 +7,12 @@ import Link from 'next/link'
 import { cn } from '@/lib/utils'
 
 // ── Types ─────────────────────────────────────────────────────────────────
-interface Offer {
-	id: string
-	name: string
-	description?: string | null
-	type: 'PERCENTAGE' | 'FIXED_AMOUNT'
-	value: number
-	startDate: string
-	endDate: string
-	isActive: boolean
-	appliedToAll: boolean
-	cars: Array<{ car: { id: string; title: string; brand: string; mainImage: string } }>
-}
-
-interface Meta {
+/*interface Meta {
 	total: number
 	page: number
 	totalPages: number
 	limit: number
-}
+}*/
 
 // ── Filter options ─────────────────────────────────────────────────────────
 const STATUS_OPTIONS = [

@@ -4,6 +4,20 @@ import Link from 'next/link'
 import { Tag, Clock, CheckCircle2, XCircle } from 'lucide-react'
 import { cn, formatDate } from '@/lib/utils'
 
+// ── Types ─────────────────────────────────────────────────────────────────
+interface Offer {
+	id: string
+	name: string
+	description?: string | null
+	type: 'PERCENTAGE' | 'FIXED_AMOUNT'
+	value: number
+	startDate: string
+	endDate: string
+	isActive: boolean
+	appliedToAll: boolean
+	cars: Array<{ car: { id: string; title: string; brand: string; mainImage: string } }>
+}
+
 export default function OfferCard({ offer }: { offer: Offer }) {
 	const active   = isOfferCurrentlyActive(offer)
 	const daysLeft = getDaysLeft(offer.endDate)
