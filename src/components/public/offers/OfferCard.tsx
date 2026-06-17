@@ -18,6 +18,12 @@ interface Offer {
 	cars: Array<{ car: { id: string; title: string; brand: string; mainImage: string } }>
 }
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+function isOfferCurrentlyActive(offer: Offer): boolean {
+	const now = new Date()
+	return offer.isActive && new Date(offer.startDate) <= now && new Date(offer.endDate) >= now
+}
+
 export default function OfferCard({ offer }: { offer: Offer }) {
 	const active   = isOfferCurrentlyActive(offer)
 	const daysLeft = getDaysLeft(offer.endDate)

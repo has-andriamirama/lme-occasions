@@ -37,19 +37,11 @@ const SORT_OPTIONS = [
 const PAGE_SIZE = 9
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-function isOfferCurrentlyActive(offer: Offer): boolean {
-	const now = new Date()
-	return offer.isActive && new Date(offer.startDate) <= now && new Date(offer.endDate) >= now
-}
-
 function getDaysLeft(endDate: string): number {
 	const now = new Date()
 	const end = new Date(endDate)
 	return Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
 }
-
-// ── Offer Card ─────────────────────────────────────────────────────────────
-
 
 // ── Main Component ─────────────────────────────────────────────────────────
 export default function OffersPageClient() {
@@ -135,7 +127,6 @@ export default function OffersPageClient() {
 	const totalPages  = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
 	const paginated   = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
-	const activeCount = allOffers.filter(isOfferCurrentlyActive).length
 	const hasFilters  = search || status !== 'ALL' || type || sortBy !== 'newest'
 
 	const reset = () => {
