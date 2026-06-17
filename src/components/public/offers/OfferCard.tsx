@@ -3,9 +3,10 @@
 import Link from 'next/link'
 import { Tag, Clock, CheckCircle2, XCircle } from 'lucide-react'
 import { cn, formatDate } from '@/lib/utils'
+import type { Offer } from '@prisma/client'
 
 // ── Types ─────────────────────────────────────────────────────────────────
-interface Offer {
+/*interface Offer {
 	id: string
 	name: string
 	description?: string | null
@@ -16,10 +17,14 @@ interface Offer {
 	isActive: boolean
 	appliedToAll: boolean
 	cars: Array<{ car: { id: string; title: string; brand: string; mainImage: string } }>
+}*/
+
+type OfferWithCars = Offer & {
+  cars: Array<{ car: Car }>
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-function isOfferCurrentlyActive(offer: Offer): boolean {
+function isOfferCurrentlyActive(offer: OfferWithCars): boolean {
 	const now = new Date()
 	return offer.isActive && new Date(offer.startDate) <= now && new Date(offer.endDate) >= now
 }
@@ -30,7 +35,7 @@ function getDaysLeft(endDate: string): number {
 	return Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
 }
 
-export default function OfferCard({ offer }: { offer: Offer }) {
+export default function OfferCard({ offer }: { offer: OfferWithCars }) {
 	const active   = isOfferCurrentlyActive(offer)
 	const daysLeft = getDaysLeft(offer.endDate)
 
