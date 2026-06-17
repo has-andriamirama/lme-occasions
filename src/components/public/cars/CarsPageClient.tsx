@@ -1,6 +1,7 @@
 // src/components/public/cars/CarsPageClient.tsx
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Search, SlidersHorizontal, X, ChevronDown } from 'lucide-react'
 import CarCard from './CarCard'
 import { useCarStatusUpdates } from '@/hooks/useCarStatusUpdates'
@@ -31,16 +32,22 @@ const STATUS_OPTIONS = [
 interface Filters {
   search: string; brand: string; status: string; fuelType: string;
   transmission: string; minPrice: string; maxPrice: string;
-  minYear: string; maxYear: string; maxMileage: string; sortBy: string;
+  minYear: string; maxYear: string; maxMileage: string; sortBy: string; offerId: string;
 }
 
 const INIT_FILTERS: Filters = {
   search: '', brand: '', status: 'ALL', fuelType: '', transmission: '',
-  minPrice: '', maxPrice: '', minYear: '', maxYear: '', maxMileage: '', sortBy: 'newest',
+  minPrice: '', maxPrice: '', minYear: '', maxYear: '', maxMileage: '', sortBy: 'newest', offerId: '',
 }
 
 export default function CarsPageClient({ brands }: { brands: string[] }) {
-  const [filters, setFilters]     = useState<Filters>(INIT_FILTERS)
+  const searchParams = useSearchParams()
+
+  const [filters, setFilters]     = useState<Filters>(() => ({
+    ...INIT_FILTERS,
+    offerId:  searchParams.get('offerId')  ?? '',
+  }))
+
   const [cars, setCars]           = useState<any[]>([])
   const [meta, setMeta]           = useState({ total: 0, page: 1, totalPages: 1 })
   const [loading, setLoading]     = useState(true)
@@ -68,6 +75,7 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
       if (f.minYear)      params.set('minYear', f.minYear)
       if (f.maxYear)      params.set('maxYear', f.maxYear)
       if (f.maxMileage)   params.set('maxMileage', f.maxMileage)
+      if (f.offerId)      params.set('offerId',    f.offerId)
       params.set('sortBy', f.sortBy)
 
       const res  = await fetch(`/api/cars?${params}`)
