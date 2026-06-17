@@ -47,11 +47,6 @@ export function OffersSection({ offers }: { offers: any[] }) {
                     Applicable sur {offer.appliedToAll ? 'tous les véhicules' : `${offer.cars.length} véhicule(s)`}
                   </p>
                 )}
-
-                <div className="mt-4 flex items-center gap-1 text-xs text-brand-400 font-semibold
-                                opacity-0 group-hover:opacity-100 transition-opacity">
-                  Voir les véhicules →
-                </div>
               </div>
             </Link>
           ))}
