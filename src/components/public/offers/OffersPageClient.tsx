@@ -95,11 +95,11 @@ export default function OffersPageClient() {
 		// Status filter
 		if (status === 'ACTIVE') {
 			result = result.filter(
-				(o) => o.isActive && new Date(o.startDate) <= now && new Date(o.endDate) >= now,
+				(o) => o.isActive && o.startDate <= now && o.endDate >= now,
 			)
 		} else if (status === 'INACTIVE') {
 			result = result.filter(
-				(o) => !o.isActive || new Date(o.endDate) < now,
+				(o) => !o.isActive || o.endDate < now,
 			)
 		}
 
