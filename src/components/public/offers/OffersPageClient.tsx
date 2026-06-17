@@ -51,8 +51,8 @@ const PAGE_SIZE = 9
 
 // ── Main Component ─────────────────────────────────────────────────────────
 export default function OffersPageClient() {
-	const [allOffers, setAllOffers]     = useState<Offer[]>([])
-	const [filtered, setFiltered]       = useState<Offer[]>([])
+	const [allOffers, setAllOffers]     = useState<any[]>([])
+	const [filtered, setFiltered]       = useState<any[]>([])
 	const [loading, setLoading]         = useState(true)
 	const [search, setSearch]           = useState('')
 	const [status, setStatus]           = useState('ALL')
