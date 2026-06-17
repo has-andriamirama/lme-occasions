@@ -9,10 +9,6 @@ import {
 } from '@/lib/utils'
 import type { Car, Offer, CarOffer, CarWithOffers } from '@/types'
 
-/*type CarWithOffers = Car & {
-  offers: Array<{ offer: Offer }>
-}*/
-
 export default function CarCard({ car }: { car: CarWithOffers }) {
   const activeOffer = car.offers[0]?.offer ?? null
   const finalPrice  = activeOffer
@@ -102,10 +98,10 @@ export default function CarCard({ car }: { car: CarWithOffers }) {
         {/* Specs row */}
         <div className="grid grid-cols-2 gap-2 mb-4">
           {[
-            { icon: Gauge,    label: formatMileage(car.mileage) },
-            { icon: Fuel,     label: getFuelLabel(car.fuelType) },
+            { icon: Gauge,     label: formatMileage(car.mileage) },
+            { icon: Fuel,      label: getFuelLabel(car.fuelType) },
             { icon: Settings2, label: getTransmissionLabel(car.transmission) },
-            { icon: Calendar, label: `${car.year}` },
+            { icon: Calendar,  label: `${car.year}` },
           ].map(({ icon: Icon, label }) => (
             <div key={label} className="flex items-center gap-1.5 text-xs text-dark-400">
               <Icon className="w-3.5 h-3.5 text-dark-500 shrink-0" />
