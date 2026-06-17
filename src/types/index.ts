@@ -5,9 +5,7 @@ export type { Car, Offer, Reservation, Admin, Contact }
 
 // ── Extended types ─────────────────────────────────────────────────────────
 export type CarWithOffers = Car & {
-  offers: Array<{
-    offer: Offer
-  }>
+  offers: Array<{ offer: Offer }>
   _count?: { reservations: number }
 }
 

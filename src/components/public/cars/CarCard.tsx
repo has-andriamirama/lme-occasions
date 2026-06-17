@@ -8,10 +8,11 @@ import {
   getTransmissionLabel, getFuelLabel, calculateDiscountedPrice, cn
 } from '@/lib/utils'
 import type { Car, Offer, CarOffer } from '@prisma/client'
+import type { CarWithOffers } from '@/types/index'
 
-type CarWithOffers = Car & {
+/*type CarWithOffers = Car & {
   offers: Array<{ offer: Offer }>
-}
+}*/
 
 export default function CarCard({ car }: { car: CarWithOffers }) {
   const activeOffer = car.offers[0]?.offer ?? null

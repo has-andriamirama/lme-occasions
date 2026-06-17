@@ -6,27 +6,6 @@ import OfferCard from './OfferCard'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 
-// ── Types ─────────────────────────────────────────────────────────────────
-/*interface Meta {
-	total: number
-	page: number
-	totalPages: number
-	limit: number
-}*/
-
-/*interface Offer {
-	id: string
-	name: string
-	description?: string | null
-	type: 'PERCENTAGE' | 'FIXED_AMOUNT'
-	value: number
-	startDate: string
-	endDate: string
-	isActive: boolean
-	appliedToAll: boolean
-	cars: Array<{ car: { id: string; title: string; brand: string; mainImage: string } }>
-}*/
-
 // ── Filter options ─────────────────────────────────────────────────────────
 const STATUS_OPTIONS = [
 	{ value: 'ALL',      label: 'Toutes' },
@@ -41,8 +20,8 @@ const TYPE_OPTIONS = [
 ]
 
 const SORT_OPTIONS = [
-	{ value: 'newest',   label: 'Plus récentes' },
-	{ value: 'ending',   label: 'Expire bientôt' },
+	{ value: 'newest',     label: 'Plus récentes' },
+	{ value: 'ending',     label: 'Expire bientôt' },
 	{ value: 'value_desc', label: 'Réduction (haute)' },
 	{ value: 'value_asc',  label: 'Réduction (basse)' },
 ]
