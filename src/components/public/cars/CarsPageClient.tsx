@@ -45,14 +45,14 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
 
   const [filters, setFilters]     = useState<Filters>(() => ({
     ...INIT_FILTERS,
-    offerId:  searchParams.get('offerId')  ?? '',
+    offerId: searchParams.get('offerId')  ?? '',
   }))
-
-  const [cars, setCars]           = useState<any[]>([])
-  const [meta, setMeta]           = useState({ total: 0, page: 1, totalPages: 1 })
-  const [loading, setLoading]     = useState(true)
+ 
+  const [cars, setCars]               = useState<any[]>([])
+  const [meta, setMeta]               = useState({ total: 0, page: 1, totalPages: 1 })
+  const [loading, setLoading]         = useState(true)
   const [showFilters, setShowFilters] = useState(false)
-  const [page, setPage]           = useState(1)
+  const [page, setPage]               = useState(1)
 
   // Real-time: update car status in list when another user reserves
   useCarStatusUpdates((carId, newStatus) => {
