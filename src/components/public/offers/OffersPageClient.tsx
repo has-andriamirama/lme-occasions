@@ -14,6 +14,19 @@ import { cn } from '@/lib/utils'
 	limit: number
 }*/
 
+interface Offer {
+	id: string
+	name: string
+	description?: string | null
+	type: 'PERCENTAGE' | 'FIXED_AMOUNT'
+	value: number
+	startDate: string
+	endDate: string
+	isActive: boolean
+	appliedToAll: boolean
+	cars: Array<{ car: { id: string; title: string; brand: string; mainImage: string } }>
+}
+
 // ── Filter options ─────────────────────────────────────────────────────────
 const STATUS_OPTIONS = [
 	{ value: 'ALL',      label: 'Toutes' },
