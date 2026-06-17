@@ -1,6 +1,7 @@
 // src/components/public/cars/CarsPageClient.tsx
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Search, SlidersHorizontal, X, ChevronDown, Tag, Clock, ArrowLeft } from 'lucide-react'
 import CarCard from './CarCard'
