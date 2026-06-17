@@ -7,7 +7,7 @@ import {
   formatPrice, formatMileage, getStatusLabel, getStatusColor,
   getTransmissionLabel, getFuelLabel, calculateDiscountedPrice, cn
 } from '@/lib/utils'
-import type { Car, Offer, CarOffer, CarWithOffers } from '@/types/index'
+import type { Car, Offer, CarOffer, CarWithOffers } from '@/types'
 
 /*type CarWithOffers = Car & {
   offers: Array<{ offer: Offer }>

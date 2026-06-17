@@ -1,7 +1,7 @@
 // src/types/index.ts
-import type { Car, Offer, Reservation, Admin, Contact } from '@prisma/client'
+import type { Car, Offer, Reservation, Admin, Contact, CarOffer } from '@prisma/client'
 
-export type { Car, Offer, Reservation, Admin, Contact }
+export type { Car, Offer, Reservation, Admin, Contact, CarOffer }
 
 // ── Extended types ─────────────────────────────────────────────────────────
 export type CarWithOffers = Car & {
