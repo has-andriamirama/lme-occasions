@@ -1,5 +1,6 @@
 // src/app/(public)/cars/page.tsx
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import prisma from '@/lib/db'
 import CarsPageClient from '@/components/public/cars/CarsPageClient'
 
@@ -15,5 +16,9 @@ async function getBrands() {
 
 export default async function CarsPage() {
   const brands = await getBrands()
-  return <CarsPageClient brands={brands} />
+  return (
+    <Suspense fallback={<div className="pt-24 text-center text-dark-400">Chargement…</div>}>
+      <CarsPageClient brands={brands} />
+    </Suspense>
+  )
 }
