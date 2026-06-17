@@ -184,18 +184,11 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
                     </div>
                   </div>
 
-                  {/* Reset button */}
                   <div className="flex-shrink-0">
-                    <button
-                      onClick={reset}
-                      className="inline-flex items-center gap-2 font-semibold text-sm
-                                 bg-dark-700 hover:bg-dark-600 text-white border border-dark-600
-                                 hover:border-brand-500/40 rounded-xl px-5 py-2.5 transition-all duration-200
-                                 active:scale-95"
-                    >
+                    <Link href="/offers" className="btn-secondary text-sm shrink-0">
                       <ArrowLeft className="w-4 h-4" />
                       Voir toutes les offres
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </div>
