@@ -107,7 +107,7 @@ export default function OfferCard({ offer }: { offer: OfferWithCars }) {
 						: `${offer.cars.length} véhicule${offer.cars.length !== 1 ? 's' : ''}`}
         </div>
         {active && (
-          <span className="text-xs font-semibold text-brand-400 border border-brand-500/30
+          <span className="shrink-0 text-xs font-semibold text-brand-400 border border-brand-500/30
                            bg-brand-500/10 px-3 py-1.5 rounded-lg group-hover:bg-brand-500/20 transition-colors">
             Voir <ArrowRight className="w-4 h-4" />
           </span>
