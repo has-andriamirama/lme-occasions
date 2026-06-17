@@ -46,21 +46,10 @@ const INIT_FILTERS: Filters = {
   minPrice: '', maxPrice: '', minYear: '', maxYear: '', maxMileage: '', sortBy: 'newest', offerId: '',
 }
 
-/*interface OfferDetails {
-  id: string
-  name: string
-  description?: string | null
-  type: 'PERCENTAGE' | 'FIXED_AMOUNT'
-  value: number
-  endDate: string
-  appliedToAll: boolean
-  cars: Array<{ car: { id: string } }>
-}*/
-
 export default function CarsPageClient({ brands }: { brands: string[] }) {
   const searchParams = useSearchParams()
 
-  const [filters, setFilters]         = useState<Filters>(() => ({
+  const [filters, setFilters] = useState<Filters>(() => ({
     ...INIT_FILTERS,
     offerId: searchParams.get('offerId') ?? '',
   }))
@@ -205,7 +194,7 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
                                  active:scale-95"
                     >
                       <ArrowLeft className="w-4 h-4" />
-                      Voir tout le catalogue
+                      Voir toutes les offres
                     </button>
                   </div>
                 </div>

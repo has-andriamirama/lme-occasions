@@ -5,10 +5,6 @@ import { Tag, Clock, CheckCircle2, XCircle } from 'lucide-react'
 import { cn, formatDate } from '@/lib/utils'
 import type { Car, Offer, OfferWithCars } from '@/types'
 
-/*type OfferWithCars = Offer & {
-  cars: Array<{ car: Car }>
-}*/
-
 // ── Helpers ────────────────────────────────────────────────────────────────
 function isOfferCurrentlyActive(offer: OfferWithCars): boolean {
 	const now = new Date()
