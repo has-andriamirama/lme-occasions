@@ -29,9 +29,9 @@ function isOfferCurrentlyActive(offer: OfferWithCars): boolean {
 	return offer.isActive && new Date(offer.startDate) <= now && new Date(offer.endDate) >= now
 }
 
-function getDaysLeft(endDate: string): number {
+function getDaysLeft(endDate: Date): number {
 	const now = new Date()
-	const end = new Date(endDate)
+	const end = endDate
 	return Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
 }
 
