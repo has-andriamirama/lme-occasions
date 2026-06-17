@@ -26,11 +26,13 @@ export default function OfferCard({ offer }: { offer: OfferWithCars }) {
 	const daysLeft = getDaysLeft(offer.endDate)
 
 	return (
-		<div className={cn(
-			'relative bg-dark-800 border rounded-2xl p-6 overflow-hidden flex flex-col gap-4 transition-all duration-300',
-			active
-				? 'border-brand-500/30 hover:border-brand-500/50 hover:shadow-brand'
-				: 'border-dark-700 opacity-70 hover:opacity-90',
+		<Link
+			href={`/cars?offerId=${offer.id}`}
+			className={cn(
+				'relative bg-dark-800 border rounded-2xl p-6 overflow-hidden flex flex-col gap-4 transition-all duration-300',
+				active
+					? 'border-brand-500/30 hover:border-brand-500/50 hover:shadow-brand'
+					: 'border-dark-700 opacity-70 hover:opacity-90',
 		)}>
 			{/* Glow */}
 			{active && (
@@ -103,15 +105,19 @@ export default function OfferCard({ offer }: { offer: OfferWithCars }) {
 				</div>
 			</div>
 
-			{/* CTA */}
-			{active && (
-				<Link
-					href={`/cars?offerId=${offer.id}`}
-					className="btn-primary w-full text-center mt-1"
-				>
-					Voir les véhicules →
-				</Link>
-			)}
-		</div>
+			<div className="flex items-end justify-between mt-auto pt-4 border-t border-dark-700">
+        <div>
+          {offer.appliedToAll
+						? 'Applicable sur tous les véhicules'
+						: `Applicable sur ${offer.cars.length} véhicule${offer.cars.length !== 1 ? 's' : ''}`}
+        </div>
+        {!active && (
+          <span className="text-xs font-semibold text-brand-400 border border-brand-500/30
+                           bg-brand-500/10 px-3 py-1.5 rounded-lg group-hover:bg-brand-500/20 transition-colors">
+            Voir →
+          </span>
+        )}
+      </div>
+		</Link>
 	)
 }
