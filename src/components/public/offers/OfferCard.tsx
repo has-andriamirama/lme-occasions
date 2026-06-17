@@ -99,7 +99,7 @@ export default function OfferCard({ offer }: { offer: OfferWithCars }) {
 				<div>
 					{offer.appliedToAll
 						? 'Applicable sur tous les véhicules'
-						: `${offer.cars.length} véhicule(s) éligible(s)`}
+						: `Applicable sur ${offer.cars.length} véhicule(s)`}
 				</div>
 			</div>
 
