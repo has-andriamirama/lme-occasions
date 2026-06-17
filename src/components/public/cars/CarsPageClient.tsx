@@ -215,11 +215,12 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
 
         {/* ── Header ────────────────────────────────────────────── */}
         <div className="mb-8">
+        	<p className="text-xs font-bold text-brand-400 uppercase tracking-widest mb-2">Notre sélection</p>
           <h1 className="font-display font-black text-3xl sm:text-4xl text-white mb-2">
             {filters.offerId && offerDetails ? `Véhicules — ${offerDetails.name}` : 'Notre catalogue'}
           </h1>
           <p className="text-dark-400 text-sm">
-            {meta.total} véhicule{meta.total !== 1 ? 's' : ''} trouvé{meta.total !== 1 ? 's' : ''}
+            {loading ? 'Chargement...' : `${meta.total} véhicule${meta.total !== 1 ? 's' : ''} trouvé${meta.total !== 1 ? 's' : ''}`}
           </p>
         </div>
 

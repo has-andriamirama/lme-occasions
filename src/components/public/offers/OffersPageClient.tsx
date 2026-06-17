@@ -254,19 +254,14 @@ export default function OffersPageClient() {
 		<div className="pt-24 pb-20 min-h-screen">
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-				{/* ── Hero header ────────────────────────────────────────── */}
-				<div className="mb-10">
+				{/* ── Header ────────────────────────────────────────── */}
+				<div className="mb-8">
 					<p className="text-xs font-bold text-brand-400 uppercase tracking-widest mb-2">Promotions</p>
-					<h1 className="font-display font-black text-3xl sm:text-4xl text-white mb-3">
+					<h1 className="font-display font-black text-3xl sm:text-4xl text-white mb-2">
 						Toutes nos offres
 					</h1>
-					<p className="text-dark-400 max-w-xl">
-						Retrouvez l'ensemble de nos promotions passées et en cours.
-						{activeCount > 0 && (
-							<span className="ml-1 text-brand-400 font-semibold">
-								{activeCount} offre{activeCount > 1 ? 's' : ''} actuellement active{activeCount > 1 ? 's' : ''}.
-							</span>
-						)}
+					<p className="text-dark-400 text-sm">
+						{loading ? 'Chargement...' : `${filtered.length} offre${filtered.length !== 1 ? 's' : ''} trouvée${filtered.length !== 1 ? 's' : ''}`}
 					</p>
 				</div>
 
@@ -277,7 +272,7 @@ export default function OffersPageClient() {
 						<input
 							value={search}
 							onChange={(e) => setSearch(e.target.value)}
-							placeholder="Rechercher une offre…"
+							placeholder="Rechercher une offre..."
 							className="input-base pl-10"
 						/>
 					</div>
@@ -333,11 +328,6 @@ export default function OffersPageClient() {
 						)}
 					</div>
 				)}
-
-				{/* ── Results count ──────────────────────────────────────── */}
-				<p className="text-dark-400 text-sm mb-6">
-					{loading ? 'Chargement…' : `${filtered.length} offre${filtered.length !== 1 ? 's' : ''} trouvée${filtered.length !== 1 ? 's' : ''}`}
-				</p>
 
 				{/* ── Grid ──────────────────────────────────────────────── */}
 				{loading ? (
