@@ -36,13 +36,6 @@ const SORT_OPTIONS = [
 
 const PAGE_SIZE = 9
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-function getDaysLeft(endDate: string): number {
-	const now = new Date()
-	const end = new Date(endDate)
-	return Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
-}
-
 // ── Main Component ─────────────────────────────────────────────────────────
 export default function OffersPageClient() {
 	const [allOffers, setAllOffers]     = useState<Offer[]>([])

@@ -24,6 +24,12 @@ function isOfferCurrentlyActive(offer: Offer): boolean {
 	return offer.isActive && new Date(offer.startDate) <= now && new Date(offer.endDate) >= now
 }
 
+function getDaysLeft(endDate: string): number {
+	const now = new Date()
+	const end = new Date(endDate)
+	return Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+}
+
 export default function OfferCard({ offer }: { offer: Offer }) {
 	const active   = isOfferCurrentlyActive(offer)
 	const daysLeft = getDaysLeft(offer.endDate)
