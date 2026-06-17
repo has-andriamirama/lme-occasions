@@ -6,7 +6,7 @@ import { Search, SlidersHorizontal, X, ChevronDown, Tag, Clock, ArrowLeft } from
 import CarCard from './CarCard'
 import { useCarStatusUpdates } from '@/hooks/useCarStatusUpdates'
 import { cn, formatDate } from '@/lib/utils'
-import type { Offer } from '@/types'
+import type { OfferWithCars } from '@/types'
 
 const SORT_OPTIONS = [
   { value: 'newest',      label: 'Plus récents' },
@@ -70,7 +70,7 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
   const [loading, setLoading]           = useState(true)
   const [showFilters, setShowFilters]   = useState(false)
   const [page, setPage]                 = useState(1)
-  const [offer, setOffer]               = useState<Offer | null>(null)
+  const [offer, setOffer]               = useState<OfferWithCars | null>(null)
   const [loadingOffer, setLoadingOffer] = useState(false)
 
   // Real-time: update car status in list when another user reserves
@@ -89,7 +89,7 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
       .then((r) => r.json())
       .then((data) => {
         if (data.success && data.data?.length > 0) {
-          const found = data.data.find((o: Offer) => o.id === filters.offerId)
+          const found = data.data.find((o: OfferWithCars) => o.id === filters.offerId)
           setOffer(found ?? null)
         } else {
           setOffer(null)

@@ -9,6 +9,10 @@ export type CarWithOffers = Car & {
   _count?: { reservations: number }
 }
 
+export type OfferWithCars = Offer & {
+  cars: Array<{ car: Car }>
+}
+
 export type ReservationWithCar = Reservation & {
   car: Car
 }
