@@ -1,7 +1,7 @@
 // src/components/public/offers/OfferCard.tsx
 'use client'
 import Link from 'next/link'
-import { Tag, Clock, CheckCircle2, XCircle } from 'lucide-react'
+import { Tag, Clock, CheckCircle2, XCircle, ArrowRight } from 'lucide-react'
 import { cn, formatDate } from '@/lib/utils'
 import type { Car, Offer } from '@prisma/client'
 
@@ -87,12 +87,12 @@ export default function OfferCard({ offer }: { offer: OfferWithCars }) {
 			{/* Meta */}
 			<div className="space-y-1.5 text-xs text-dark-500">
 				<div className="flex items-center gap-2">
-					<Clock className="w-3.5 h-3.5 flex-shrink-0" />
+					<Clock className="w-3.5 h-3.5 text-brand-500/70 flex-shrink-0" />
 					{active
 						? <span>Expire le <span className="text-dark-300">{formatDate(offer.endDate)}</span>
 								{daysLeft <= 7 && (
 									<span className="ml-1.5 text-amber-400 font-semibold">
-										({daysLeft === 0 ? 'Aujourd\'hui !' : `J-${daysLeft}`})
+										({daysLeft === 0 ? 'Aujourd\'hui' : `J-${daysLeft}`})
 									</span>
 								)}
 							</span>
@@ -109,7 +109,7 @@ export default function OfferCard({ offer }: { offer: OfferWithCars }) {
         {active && (
           <span className="text-xs font-semibold text-brand-400 border border-brand-500/30
                            bg-brand-500/10 px-3 py-1.5 rounded-lg group-hover:bg-brand-500/20 transition-colors">
-            Voir →
+            Voir <ArrowRight className="w-4 h-4" />
           </span>
         )}
       </div>

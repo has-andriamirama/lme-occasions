@@ -184,12 +184,12 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
                     <div className="flex flex-wrap items-center gap-4 text-xs text-dark-500">
                       <span className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5 text-brand-500/70" />
-                        Expire le {formatDate(offerDetails.endDate)}
+                        Expiré le {formatDate(offerDetails.endDate)}
                       </span>
                       <span>
                         {offerDetails.appliedToAll
                           ? 'Applicable sur tous les véhicules'
-                          : `${offerDetails.cars.length} véhicule(s) éligible(s)`}
+                          : `Applicable sur ${offerDetails.cars.length} véhicule${offerDetails.cars.length !== 1 ? 's' : ''}`}
                       </span>
                     </div>
                   </div>
