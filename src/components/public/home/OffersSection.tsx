@@ -1,7 +1,7 @@
 // src/components/public/home/OffersSection.tsx
 import { Tag, Clock } from 'lucide-react'
 import Link from 'next/link'
-import { OfferCard } from '@/components/public/offers/OfferCard'
+import OfferCard from '@/components/public/offers/OfferCard'
 import { formatDate } from '@/lib/utils'
 
 export function OffersSection({ offers }: { offers: any[] }) {
