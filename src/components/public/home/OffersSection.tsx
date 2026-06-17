@@ -15,9 +15,8 @@ export function OffersSection({ offers }: { offers: any[] }) {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {offers.map((offer) => (
-            <div key={offer.id}
-              className="relative bg-dark-800 border border-brand-500/20 rounded-2xl p-6 overflow-hidden group
-                         hover:border-brand-500/40 hover:shadow-brand transition-all duration-300">
+            <Link key={offer.id} href={`/cars?offerId=${offer.id}`}
+                  className="relative bg-dark-800 border border-brand-500/20 rounded-2xl p-6 overflow-hidden group hover:border-brand-500/40 hover:shadow-brand transition-all duration-300 block cursor-pointer">
               {/* Background glow */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-brand-500/10 rounded-full blur-2xl -translate-y-8 translate-x-8" />
 
@@ -48,7 +47,7 @@ export function OffersSection({ offers }: { offers: any[] }) {
                   </p>
                 )}
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 
