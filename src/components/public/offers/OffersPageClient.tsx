@@ -95,11 +95,11 @@ export default function OffersPageClient() {
 		// Status filter
 		if (status === 'ACTIVE') {
 			result = result.filter(
-				(o) => o.isActive && o.startDate <= now && o.endDate >= now,
+				(o) => o.isActive && new Date(o.startDate) <= now && new Date(o.endDate) >= now,
 			)
 		} else if (status === 'INACTIVE') {
 			result = result.filter(
-				(o) => !o.isActive || o.endDate < now,
+				(o) => !o.isActive || new Date(o.endDate) < now,
 			)
 		}
 
@@ -111,7 +111,7 @@ export default function OffersPageClient() {
 		// Sort
 		switch (sortBy) {
 			case 'ending':
-				result.sort((a, b) => a.endDate.getTime() - b.endDate.getTime())
+				result.sort((a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime())
 				break
 			case 'value_desc':
 				result.sort((a, b) => {
@@ -123,7 +123,7 @@ export default function OffersPageClient() {
 				result.sort((a, b) => a.value - b.value)
 				break
 			default: // newest
-				result.sort((a, b) => b.startDate.getTime() - a.startDate.getTime())
+				result.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
 		}
 
 		setFiltered(result)
