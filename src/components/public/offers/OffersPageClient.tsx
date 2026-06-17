@@ -111,7 +111,7 @@ export default function OffersPageClient() {
 		// Sort
 		switch (sortBy) {
 			case 'ending':
-				result.sort((a, b) => new a.endDate.getTime() - b.endDate.getTime())
+				result.sort((a, b) => a.endDate.getTime() - b.endDate.getTime())
 				break
 			case 'value_desc':
 				result.sort((a, b) => {
