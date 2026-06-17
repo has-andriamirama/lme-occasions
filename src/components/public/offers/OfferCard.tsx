@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { Tag, Clock, CheckCircle2, XCircle } from 'lucide-react'
 import { cn, formatDate } from '@/lib/utils'
-import type { Offer } from '@prisma/client'
+import type { Car, Offer } from '@prisma/client'
 
 // ── Types ─────────────────────────────────────────────────────────────────
 /*interface Offer {
