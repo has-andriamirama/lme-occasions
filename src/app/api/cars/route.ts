@@ -46,6 +46,7 @@ export async function GET(req: NextRequest) {
     const maxYear    = searchParams.get('maxYear')  ? Number(searchParams.get('maxYear'))  : undefined
     const maxMileage = searchParams.get('maxMileage') ? Number(searchParams.get('maxMileage')) : undefined
     const isFeatured = searchParams.get('isFeatured') === 'true' ? true : undefined
+    const offerId    = searchParams.get('offerId') ?? ''
     const sortBy     = searchParams.get('sortBy') ?? 'newest'
 
     const where: Record<string, unknown> = {}
@@ -63,6 +64,20 @@ export async function GET(req: NextRequest) {
     if (fuelType)     where.fuelType    = fuelType
     if (transmission) where.transmission = transmission
     if (isFeatured !== undefined) where.isFeatured = isFeatured
+
+    if (offerId) {
+      where.offers = {
+        some: {
+          offerId: offerId,
+          offer: {
+            isActive:  true,
+            startDate: { lte: new Date() },
+            endDate:   { gte: new Date() },
+          },
+        },
+      }
+    }
+
     if (minPrice || maxPrice) {
       where.price = {}
       if (minPrice) (where.price as any).gte = minPrice
