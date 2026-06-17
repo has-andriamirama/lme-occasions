@@ -6,6 +6,7 @@ import { Search, SlidersHorizontal, X, ChevronDown, Tag, Clock, ArrowLeft } from
 import CarCard from './CarCard'
 import { useCarStatusUpdates } from '@/hooks/useCarStatusUpdates'
 import { cn, formatDate } from '@/lib/utils'
+import type { Offer } from '@/types'
 
 const SORT_OPTIONS = [
   { value: 'newest',      label: 'Plus récents' },
@@ -45,7 +46,7 @@ const INIT_FILTERS: Filters = {
   minPrice: '', maxPrice: '', minYear: '', maxYear: '', maxMileage: '', sortBy: 'newest', offerId: '',
 }
 
-interface OfferDetails {
+/*interface OfferDetails {
   id: string
   name: string
   description?: string | null
@@ -54,7 +55,7 @@ interface OfferDetails {
   endDate: string
   appliedToAll: boolean
   cars: Array<{ car: { id: string } }>
-}
+}*/
 
 export default function CarsPageClient({ brands }: { brands: string[] }) {
   const searchParams = useSearchParams()
@@ -64,12 +65,12 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
     offerId: searchParams.get('offerId') ?? '',
   }))
 
-  const [cars, setCars]               = useState<any[]>([])
-  const [meta, setMeta]               = useState({ total: 0, page: 1, totalPages: 1 })
-  const [loading, setLoading]         = useState(true)
-  const [showFilters, setShowFilters] = useState(false)
-  const [page, setPage]               = useState(1)
-  const [offerDetails, setOfferDetails] = useState<OfferDetails | null>(null)
+  const [cars, setCars]                 = useState<any[]>([])
+  const [meta, setMeta]                 = useState({ total: 0, page: 1, totalPages: 1 })
+  const [loading, setLoading]           = useState(true)
+  const [showFilters, setShowFilters]   = useState(false)
+  const [page, setPage]                 = useState(1)
+  const [offer, setOffer]               = useState<Offer | null>(null)
   const [loadingOffer, setLoadingOffer] = useState(false)
 
   // Real-time: update car status in list when another user reserves
@@ -80,7 +81,7 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
   // Fetch offer details when offerId changes
   useEffect(() => {
     if (!filters.offerId) {
-      setOfferDetails(null)
+      setOffer(null)
       return
     }
     setLoadingOffer(true)
@@ -88,13 +89,13 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
       .then((r) => r.json())
       .then((data) => {
         if (data.success && data.data?.length > 0) {
-          const found = data.data.find((o: OfferDetails) => o.id === filters.offerId)
-          setOfferDetails(found ?? null)
+          const found = data.data.find((o: Offer) => o.id === filters.offerId)
+          setOffer(found ?? null)
         } else {
-          setOfferDetails(null)
+          setOffer(null)
         }
       })
-      .catch(() => setOfferDetails(null))
+      .catch(() => setOffer(null))
       .finally(() => setLoadingOffer(false))
   }, [filters.offerId])
 
@@ -149,7 +150,7 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
                 <div className="h-5 w-1/3 shimmer rounded mb-3" />
                 <div className="h-4 w-1/2 shimmer rounded" />
               </div>
-            ) : offerDetails ? (
+            ) : offer ? (
               <div className="relative rounded-2xl bg-dark-800 border border-brand-500/30 overflow-hidden shadow-brand">
                 {/* Gold glow top-right */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl -translate-y-16 translate-x-16 pointer-events-none" />
@@ -167,29 +168,29 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-bold text-brand-400 uppercase tracking-widest">Offre active</span>
                       <span className="inline-flex items-center gap-1 bg-brand-500 text-dark-950 font-black text-sm px-2.5 py-0.5 rounded-lg">
-                        {offerDetails.type === 'PERCENTAGE'
-                          ? `-${offerDetails.value}%`
-                          : `-${offerDetails.value.toLocaleString('fr-FR')} €`}
+                        {offer.type === 'PERCENTAGE'
+                          ? `-${offer.value}%`
+                          : `-${offer.value.toLocaleString('fr-FR')} €`}
                       </span>
                     </div>
 
                     <h2 className="font-display font-black text-xl sm:text-2xl text-white mb-1 truncate">
-                      {offerDetails.name}
+                      {offer.name}
                     </h2>
 
-                    {offerDetails.description && (
-                      <p className="text-sm text-dark-400 line-clamp-2 mb-2">{offerDetails.description}</p>
+                    {offer.description && (
+                      <p className="text-sm text-dark-400 line-clamp-2 mb-2">{offer.description}</p>
                     )}
 
                     <div className="flex flex-wrap items-center gap-4 text-xs text-dark-500">
                       <span className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5 text-brand-500/70" />
-                        Expiré le {formatDate(offerDetails.endDate)}
+                        Expiré le {formatDate(offer.endDate)}
                       </span>
                       <span>
-                        {offerDetails.appliedToAll
+                        {offer.appliedToAll
                           ? 'Applicable sur tous les véhicules'
-                          : `Applicable sur ${offerDetails.cars.length} véhicule${offerDetails.cars.length !== 1 ? 's' : ''}`}
+                          : `Applicable sur ${offer.cars.length} véhicule${offer.cars.length !== 1 ? 's' : ''}`}
                       </span>
                     </div>
                   </div>
@@ -217,7 +218,7 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
         <div className="mb-8">
         	<p className="text-xs font-bold text-brand-400 uppercase tracking-widest mb-2">Notre sélection</p>
           <h1 className="font-display font-black text-3xl sm:text-4xl text-white mb-2">
-            {filters.offerId && offerDetails ? `Véhicules — ${offerDetails.name}` : 'Notre catalogue'}
+            {filters.offerId && offer ? `Véhicules — ${offer.name}` : 'Notre catalogue'}
           </h1>
           <p className="text-dark-400 text-sm">
             {loading ? 'Chargement...' : `${meta.total} véhicule${meta.total !== 1 ? 's' : ''} trouvé${meta.total !== 1 ? 's' : ''}`}
