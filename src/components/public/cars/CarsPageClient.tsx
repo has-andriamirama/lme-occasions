@@ -172,9 +172,9 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
 										)}
 
 										<div className="flex flex-wrap items-center gap-4 text-xs text-dark-500">
-											<span className="flex items-center gap-1.5">
+											<span className="flex items-center gap-2">
 												<Clock className="w-3.5 h-3.5 text-brand-500/70" />
-												Expire le <span className="text-dark-300">{formatDate(offer.endDate)}</span>
+												<span>Expire le <span className="text-dark-300">{formatDate(offer.endDate)}</span></span>
 											</span>
 											<span>
 												{offer.appliedToAll
