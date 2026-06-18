@@ -20,6 +20,80 @@ const offerSchema = z.object({
 export async function GET(req: NextRequest) {
 	try {
 		const { searchParams } = req.nextUrl
+		const page   = Math.max(1, Number(searchParams.get('page') ?? 1))
+    const limit  = Math.min(24, Math.max(1, Number(searchParams.get('limit') ?? 12)))
+    const skip   = (page - 1) * limit
+		const search = searchParams.get('search') ?? ''
+		const status = searchParams.get('status') ?? ''
+		const type   = searchParams.get('type') ?? ''
+		const sortBy = searchParams.get('sortBy') ?? 'newest'
+
+		const now = new Date()
+		const where: Record<string, unknown> = {}
+
+		if (search) {
+			where.OR = [
+				{ name:        { contains: search, mode: 'insensitive' } },
+				{ description: { contains: search, mode: 'insensitive' } },
+			]
+		}
+		if (status && status !== 'ALL') where.status = status
+		if (status === 'ACTIVE') {
+			where.isActive =  true
+			where.startDate = { lte: now }
+			where.endDate =   { gte: now }
+		}
+		if (status === 'INACTIVE') {
+			where.OR = [
+				{ isActive: false },
+				{ endDate: { lt: now } },
+			]
+		}
+		if (type) where.type = type
+
+		const orderBy: Record<string, 'asc' | 'desc'>
+
+		switch (sortBy) {
+			case 'ending':
+				orderBy = { endDate: 'asc' }
+				break
+
+			case 'value_desc':
+				orderBy = { value: 'desc' }
+				break
+
+			case 'value_asc':
+				orderBy = { value: 'asc' }
+				break
+
+			default:
+				orderBy = { createdAt: 'desc' }
+		}
+
+		const [offers, total] = await Promise.all([
+			prisma.offer.findMany({
+				where,
+				include: {
+					cars: {
+						include: {
+							car: { select: { id: true, title: true, brand: true, model: true, mainImage: true } },
+						},
+					},
+				},
+				orderBy,
+				skip,
+				take: limit,
+			}),
+			prisma.offer.count({ where }),
+		])
+
+		return NextResponse.json({
+      success: true,
+      data: offers,
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    })
+
+		/*const { searchParams } = req.nextUrl
 		const isAdmin   = searchParams.get('admin') === 'true'
 		// `all=true`    → toutes les offres (actives ou non), sans auth — pour la page publique /offers
 		const showAll   = searchParams.get('all') === 'true'
@@ -57,8 +131,9 @@ export async function GET(req: NextRequest) {
 			orderBy: { createdAt: 'desc' },
 		})
 
-		return NextResponse.json({ success: true, data: offers })
+		return NextResponse.json({ success: true, data: offers })*/
 	} catch (err) {
+		console.error('[GET /api/offers]', err)
 		return NextResponse.json({ success: false, error: 'Erreur serveur' }, { status: 500 })
 	}
 }

@@ -14,9 +14,9 @@ const STATUS_OPTIONS = [
 ]
 
 const TYPE_OPTIONS = [
-	{ value: '',               label: 'Tous types' },
-	{ value: 'PERCENTAGE',     label: 'Pourcentage (%)' },
-	{ value: 'FIXED_AMOUNT',   label: 'Montant fixe (€)' },
+	{ value: '',             label: 'Tous types' },
+	{ value: 'PERCENTAGE',   label: 'Pourcentage (%)' },
+	{ value: 'FIXED_AMOUNT', label: 'Montant fixe (€)' },
 ]
 
 const SORT_OPTIONS = [
@@ -26,11 +26,69 @@ const SORT_OPTIONS = [
 	{ value: 'value_asc',  label: 'Réduction (basse)' },
 ]
 
-const PAGE_SIZE = 9
+interface Filters { search: string; status: string; type: string; sortBy: string }
+
+const INIT_FILTERS: Filters = { search: '', status: 'ALL', type: '', sortBy: 'newest' }
 
 // ── Main Component ─────────────────────────────────────────────────────────
 export default function OffersPageClient() {
-	const [allOffers, setAllOffers]     = useState<any[]>([])
+	const searchParams = useSearchParams()
+
+	const [filters, setFilters] = useState<Filters>(() => ({
+		...INIT_FILTERS,
+	}))
+
+	const [offers, setOffers]           = useState<any[]>([])
+	const [meta, setMeta]               = useState({ total: 0, page: 1, totalPages: 1 })
+	const [loading, setLoading]         = useState(true)
+	const [showFilters, setShowFilters] = useState(false)
+	const [page, setPage]               = useState(1)
+
+	// Real-time: update car status in list when another user reserves
+
+	//
+	const fetchOffers = useCallback(async (f: Filters, p: number) => {
+		setLoading(true)
+		try {
+			const params = new URLSearchParams()
+			params.set('page', p.toString())
+			params.set('limit', '12')
+			if (f.search)                       params.set('search', f.search)
+			if (f.status && f.status !== 'ALL') params.set('status', f.status)
+			if (f.type)                         params.set('type', f.type)
+			params.set('sortBy', f.sortBy)
+
+			const res  = await fetch(`/api/offers?${params}`)
+			const data = await res.json()
+			if (data.success) { setOffers(data.data); setMeta(data.meta) }
+		} finally {
+			setLoading(false)
+		}
+	}, [])
+
+	useEffect(() => { fetchOffers(filters, page) }, [filters, page, fetchOffers])
+
+	const set = (key: keyof Filters, value: string) => {
+    setPage(1)
+    setFilters((f) => ({ ...f, [key]: value }))
+  }
+
+  const reset = () => { setFilters(INIT_FILTERS); setPage(1) }
+  const activeFiltersCount = Object.entries(filters).filter(
+    ([k, v]) => v && v !== 'ALL' && v !== 'newest' && k !== 'sortBy'
+  ).length
+
+
+
+
+
+
+
+
+
+
+
+	/*const [allOffers, setAllOffers]     = useState<any[]>([])
 	const [filtered, setFiltered]       = useState<any[]>([])
 	const [loading, setLoading]         = useState(true)
 	const [search, setSearch]           = useState('')
@@ -119,7 +177,7 @@ export default function OffersPageClient() {
 		setStatus('ALL')
 		setType('')
 		setSortBy('newest')
-	}
+	}*/
 
 	return (
 		<div className="pt-24 pb-20 min-h-screen">
@@ -132,7 +190,7 @@ export default function OffersPageClient() {
 						Toutes nos offres
 					</h1>
 					<p className="text-dark-400 text-sm">
-						{loading ? 'Chargement...' : `${filtered.length} offre${filtered.length !== 1 ? 's' : ''} trouvée${filtered.length !== 1 ? 's' : ''}`}
+						{loading ? 'Chargement...' : `${meta.total} offre${meta.total !== 1 ? 's' : ''} trouvée${meta.total !== 1 ? 's' : ''}`}
 					</p>
 				</div>
 
@@ -141,8 +199,8 @@ export default function OffersPageClient() {
 					<div className="relative flex-1">
 						<Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-400" />
 						<input
-							value={search}
-							onChange={(e) => setSearch(e.target.value)}
+							value={filters.search}
+							onChange={(e) => set('search', e.target.value)}
 							placeholder="Rechercher une offre..."
 							className="input-base pl-10"
 						/>
@@ -150,22 +208,22 @@ export default function OffersPageClient() {
 
 					<button
 						onClick={() => setShowFilters((v) => !v)}
-						className={cn('btn-secondary gap-2', hasFilters && 'border-brand-500/50 text-brand-400')}
+						className={cn('btn-secondary gap-2', activeFiltersCount && 'border-brand-500/50 text-brand-400')}
 					>
 						<SlidersHorizontal className="w-4 h-4" />
 						Filtres
-						{hasFilters && (
+						{activeFiltersCount && (
 							<span className="w-5 h-5 rounded-full bg-brand-500 text-dark-950 text-xs font-black flex items-center justify-center">
-								!
+								{activeFiltersCount}
 							</span>
 						)}
 					</button>
 
 					<div className="relative">
 						<select
-							value={sortBy}
-							onChange={(e) => setSortBy(e.target.value)}
-							className="input-base pr-8 appearance-none cursor-pointer min-w-[170px]"
+							value={filters.sortBy}
+							onChange={(e) => set('sortBy', e.target.value)}
+							className="input-base pr-8 appearance-none cursor-pointer min-w-[160px]"
 						>
 							{SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
 						</select>
@@ -180,19 +238,19 @@ export default function OffersPageClient() {
 							{/* Status */}
 							<div>
 								<label className="text-xs text-dark-400 font-semibold uppercase tracking-wider block mb-1.5">Statut</label>
-								<select value={status} onChange={(e) => setStatus(e.target.value)} className="input-base text-sm">
+								<select value={filters.status} onChange={(e) => set('status', e.target.value)} className="input-base text-sm">
 									{STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
 								</select>
 							</div>
 							{/* Type */}
 							<div>
 								<label className="text-xs text-dark-400 font-semibold uppercase tracking-wider block mb-1.5">Type de réduction</label>
-								<select value={type} onChange={(e) => setType(e.target.value)} className="input-base text-sm">
+								<select value={filters.type} onChange={(e) => set('type', e.target.value)} className="input-base text-sm">
 									{TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
 								</select>
 							</div>
 						</div>
-						{hasFilters && (
+						{activeFiltersCount && (
 							<button onClick={reset} className="btn-ghost text-xs text-red-400 hover:text-red-300">
 								<X className="w-3.5 h-3.5" /> Réinitialiser les filtres
 							</button>
@@ -212,11 +270,11 @@ export default function OffersPageClient() {
 							</div>
 						))}
 					</div>
-				) : paginated.length === 0 ? (
+				) : offers.length === 0 ? (
 					<div className="text-center py-20">
 						<Tag className="w-12 h-12 text-dark-600 mx-auto mb-4" />
 						<p className="text-dark-400 text-lg mb-2">Aucune offre trouvée</p>
-						{hasFilters && (
+						{activeFiltersCount && (
 							<button onClick={reset} className="btn-secondary mt-4">
 								Réinitialiser les filtres
 							</button>
@@ -225,15 +283,13 @@ export default function OffersPageClient() {
 				) : (
 					<>
 						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 stagger">
-							{paginated.map((offer) => (
-								<OfferCard key={offer.id} offer={offer} />
-							))}
+							{offers.map((offer) => <OfferCard key={offer.id} offer={offer} />)}
 						</div>
 
 						{/* Pagination */}
-						{totalPages > 1 && (
+						{meta.totalPages > 1 && (
 							<div className="flex items-center justify-center gap-2 mt-10 flex-wrap">
-								{Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+								{Array.from({ length: meta.totalPages }, (_, i) => i + 1).map((p) => (
 									<button
 										key={p}
 										onClick={() => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }}

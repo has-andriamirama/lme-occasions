@@ -23,7 +23,7 @@ export default function OfferCard({ offer }: { offer: OfferWithCars }) {
 
 	return (
 		<Link
-			href={`/cars?offerId=${offer.id}`}
+			href={`/offers/${offer.id}`}
 			className={cn(
 				'relative bg-dark-800 border rounded-2xl p-6 overflow-hidden flex flex-col gap-4 transition-all duration-300',
 				active

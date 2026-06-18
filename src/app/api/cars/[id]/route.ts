@@ -87,11 +87,11 @@ export async function PATCH(
     if (parsed.data.status && parsed.data.status !== existing.status) {
       try {
         await broadcastCarStatus(updated.id, updated.status, updated.title)
-        console.log('[PATCH /api/cars/:id] ✅ Pusher broadcast OK :', updated.status)
+        console.log('[PATCH /api/cars/:id] Pusher broadcast OK :', updated.status)
       } catch (pusherErr) {
         // Pusher a échoué → on logge mais la réponse reste 200
         // Les clients verront la mise à jour au prochain refresh
-        console.error('[PATCH /api/cars/:id] ⚠️ Pusher broadcast échoué (non-critique) :', pusherErr)
+        console.error('[PATCH /api/cars/:id] Pusher broadcast échoué (non-critique) :', pusherErr)
       }
     }
 
