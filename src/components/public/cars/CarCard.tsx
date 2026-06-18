@@ -121,9 +121,9 @@ export default function CarCard({ car }: { car: CarWithOffers }) {
             </p>
           </div>
           {!isUnavailable && (
-            <span className="text-xs font-semibold text-brand-400 border border-brand-500/30
-                             bg-brand-500/10 px-3 py-1.5 rounded-lg group-hover:bg-brand-500/20 transition-colors">
-              Voir →
+            <span className="text-sm font-semibold text-white bg-brand-500/20 border border-brand-500/30
+                             px-4 py-2 rounded-lg group-hover:bg-brand-500/30 transition-colors flex items-center gap-2">
+              Voir <ArrowRight className="w-4 h-4" />
             </span>
           )}
         </div>
