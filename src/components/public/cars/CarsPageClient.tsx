@@ -79,8 +79,6 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
 			.then((r) => r.json())
 			.then((data) => {
 				if (data.success && data.offer) {
-					//const found = data.data.find((o: OfferWithCars) => o.id === filters.offerId)
-					//setOffer(found ?? null)
 					setOffer(data.offer ?? null)
 				} else {
 					setOffer(null)

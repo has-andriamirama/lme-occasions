@@ -209,11 +209,11 @@ export default function OffersPageClient() {
 
 					<button
 						onClick={() => setShowFilters((v) => !v)}
-						className={cn('btn-secondary gap-2', activeFiltersCount && 'border-brand-500/50 text-brand-400')}
+						className={cn('btn-secondary gap-2', activeFiltersCount > 0 && 'border-brand-500/50 text-brand-400')}
 					>
 						<SlidersHorizontal className="w-4 h-4" />
 						Filtres
-						{activeFiltersCount && (
+						{activeFiltersCount > 0 && (
 							<span className="w-5 h-5 rounded-full bg-brand-500 text-dark-950 text-xs font-black flex items-center justify-center">
 								{activeFiltersCount}
 							</span>
@@ -251,7 +251,7 @@ export default function OffersPageClient() {
 								</select>
 							</div>
 						</div>
-						{activeFiltersCount && (
+						{activeFiltersCount > 0 && (
 							<button onClick={reset} className="btn-ghost text-xs text-red-400 hover:text-red-300">
 								<X className="w-3.5 h-3.5" /> Réinitialiser les filtres
 							</button>
