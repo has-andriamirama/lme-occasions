@@ -97,11 +97,11 @@ export default function OfferCard({ offer }: { offer: OfferWithCars }) {
 			</div>
 
 			<div className="flex items-end justify-between mt-auto pt-4 border-t border-dark-700">
-        <div>
+        <p className="text-dark-400 text-sm">
           {offer.appliedToAll
 						? 'Tous les véhicules'
 						: `${offer.cars.length} véhicule${offer.cars.length !== 1 ? 's' : ''}`}
-        </div>
+        </p>
         {active && (
           <span className="text-xs font-semibold text-brand-400 border border-brand-500/30
                            bg-brand-500/10 px-3 py-1.5 rounded-lg group-hover:bg-brand-500/20 transition-colors">
