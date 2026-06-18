@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
 		}
 		if (type) where.type = type
 
-		const orderBy: Record<string, 'asc' | 'desc'>
+		let orderBy: Record<string, 'asc' | 'desc'>
 
 		switch (sortBy) {
 			case 'ending':
