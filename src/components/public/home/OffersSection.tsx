@@ -21,8 +21,8 @@ export function OffersSection({ offers }: { offers: any[] }) {
 				</div>
 
 				<div className="text-center mt-10">
-					<Link href="/offers" className="btn-secondary">
-						Voir toutes les offres →
+					<Link href="/offers" className="btn-secondary text-sm">
+						Voir toutes les offres <ArrowRight className="w-4 h-4" />
 					</Link>
 				</div>
 			</div>
