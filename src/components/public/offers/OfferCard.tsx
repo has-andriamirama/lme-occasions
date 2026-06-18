@@ -96,7 +96,7 @@ export default function OfferCard({ offer }: { offer: OfferWithCars }) {
 				</div>
 			</div>
 
-			<div className="flex items-end justify-between mt-auto pt-4 border-t border-dark-700">
+			<div className="flex items-center justify-between mt-auto pt-4 border-t border-dark-700">
         <p className="text-dark-400 text-sm">
           {offer.appliedToAll
 						? 'Tous les véhicules'
