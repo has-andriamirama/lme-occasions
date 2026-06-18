@@ -22,7 +22,7 @@ export async function GET(
 			},
 		})
 		if (!offer) return NextResponse.json({ success: false, error: 'Offre introuvable' }, { status: 404 })
-		return NextResponse.json({ success: true, data: offer })
+		return NextResponse.json({ success: true, offer: offer })
 	} catch (err) {
 		console.error('[GET /api/offers/:id]', err)
 		return NextResponse.json({ success: false, error: 'Erreur serveur' }, { status: 500 })
