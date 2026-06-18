@@ -1,5 +1,5 @@
 // src/components/public/home/OffersSection.tsx
-import { Tag, Clock } from 'lucide-react'
+import { Tag, Clock, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import OfferCard from '@/components/public/offers/OfferCard'
 import { formatDate } from '@/lib/utils'

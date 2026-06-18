@@ -29,7 +29,7 @@ export default function FeaturedCars({ cars: initialCars }: { cars: CarWithOffer
 						<Star className="w-4 h-4 text-brand-400" fill="currentColor" />
 					</div>
 					<div>
-						<p className="text-xs font-bold text-brand-400 uppercase tracking-widest">Sélection</p>
+						<p className="text-xs font-bold text-brand-400 uppercase tracking-widest mb-2">Sélection</p>
 						<h2 className="font-display font-black text-2xl text-white">Véhicules vedettes</h2>
 					</div>
 				</div>
