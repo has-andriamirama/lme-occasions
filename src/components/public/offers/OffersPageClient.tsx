@@ -1,9 +1,10 @@
 // src/components/public/offers/OffersPageClient.tsx
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { Tag, Clock, Search, SlidersHorizontal, X, ChevronDown } from 'lucide-react'
 import OfferCard from './OfferCard'
-import Link from 'next/link'
 import { cn } from '@/lib/utils'
 
 // ── Filter options ─────────────────────────────────────────────────────────
