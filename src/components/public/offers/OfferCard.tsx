@@ -85,14 +85,14 @@ export default function OfferCard({ offer }: { offer: OfferWithCars }) {
 				<div className="flex items-center gap-2">
 					<Clock className="w-3.5 h-3.5 text-brand-500/70 flex-shrink-0" />
 					{active
-						? <span>Expiré le <span className="text-dark-300">{formatDate(offer.endDate)}</span>
+						? <span>Expire le <span className="text-dark-300">{formatDate(offer.endDate)}</span>
 								{daysLeft <= 7 && (
 									<span className="ml-1.5 text-amber-400 font-semibold">
 										({daysLeft === 0 ? 'Aujourd\'hui' : `J-${daysLeft}`})
 									</span>
 								)}
 							</span>
-						: <span>Expiré le {formatDate(offer.endDate)}</span>}
+						: <span>Expire le {formatDate(offer.endDate)}</span>}
 				</div>
 			</div>
 

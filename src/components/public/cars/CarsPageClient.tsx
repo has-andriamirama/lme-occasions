@@ -149,7 +149,7 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
 									{/* Icon */}
 									<div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-brand-500/15 border border-brand-500/30
 																	flex items-center justify-center">
-										<Tag className="w-7 h-7 text-brand-400" />
+										<Tag className="w-6 h-6 text-brand-400" />
 									</div>
 
 									{/* Content */}
@@ -174,7 +174,7 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
 										<div className="flex flex-wrap items-center gap-4 text-xs text-dark-500">
 											<span className="flex items-center gap-1.5">
 												<Clock className="w-3.5 h-3.5 text-brand-500/70" />
-												Expiré le {formatDate(offer.endDate)}
+												Expire le <span className="text-dark-300">{formatDate(offer.endDate)}</span>
 											</span>
 											<span>
 												{offer.appliedToAll
