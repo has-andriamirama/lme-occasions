@@ -2,7 +2,7 @@
 'use client'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Gauge, Calendar, Fuel, Settings2, Star } from 'lucide-react'
+import { Gauge, Calendar, Fuel, Settings2, Star, ArrowRight } from 'lucide-react'
 import {
   formatPrice, formatMileage, getStatusLabel, getStatusColor,
   getTransmissionLabel, getFuelLabel, calculateDiscountedPrice, cn
