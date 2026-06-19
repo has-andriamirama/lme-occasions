@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
 			data: {
 				...offerData,
 				startDate: new Date(offerData.startDate),
-				endDate:   new Date(offerData.endDate),
+				endDate: new Date(offerData.endDate),
 				cars: carIds.length
 					? { create: carIds.map((carId) => ({ carId })) }
 					: undefined,

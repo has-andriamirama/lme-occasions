@@ -59,9 +59,58 @@ export function getDaysRemaining(expiresAt: Date | string): number {
 	return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
 }
 
-export function isOfferActive(offer: { startDate: Date; endDate: Date; isActive: boolean }): boolean {
-	const now = new Date()
-	return offer.isActive && new Date(offer.startDate) <= now && new Date(offer.endDate) >= now
+// ── Offer status (derived from isActive + startDate/endDate) ────────────────
+// Même principe que CarStatus (AVAILABLE/RESERVED/SOLD) mais calculé à la volée
+// à partir de la fenêtre de dates + du flag isActive (utilisé par l'action "pause").
+export type OfferStatusComputed = 'ACTIVE' | 'PAUSED' | 'SCHEDULED' | 'EXPIRED'
+
+export function getOfferStatus(
+	offer: { startDate: Date | string; endDate: Date | string; isActive: boolean },
+	now: Date | string = new Date()
+): OfferStatusComputed {
+	const start = new Date(offer.startDate)
+	const end   = new Date(offer.endDate)
+	const at    = new Date(now)
+
+	if (end < at) return 'EXPIRED'
+	if (!offer.isActive) return 'PAUSED'
+	if (start > at) return 'SCHEDULED'
+	return 'ACTIVE'
+}
+
+export function getOfferStatusLabel(status: OfferStatusComputed): string {
+	const labels: Record<OfferStatusComputed, string> = {
+		ACTIVE:    'Active',
+		PAUSED:    'En pause',
+		SCHEDULED: 'Programmée',
+		EXPIRED:   'Expirée',
+	}
+	return labels[status]
+}
+
+export function getOfferStatusColor(status: OfferStatusComputed): string {
+	const colors: Record<OfferStatusComputed, string> = {
+		ACTIVE:    'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+		PAUSED:    'bg-amber-500/20 text-amber-400 border-amber-500/30',
+		SCHEDULED: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+		EXPIRED:   'bg-red-500/20 text-red-400 border-red-500/30',
+	}
+	return colors[status]
+}
+
+export function getOfferStatusDot(status: OfferStatusComputed): string {
+	const dots: Record<OfferStatusComputed, string> = {
+		ACTIVE:    'bg-emerald-400',
+		PAUSED:    'bg-amber-400',
+		SCHEDULED: 'bg-blue-400',
+		EXPIRED:   'bg-red-400',
+	}
+	return dots[status]
+}
+
+// Conservé pour compatibilité avec le code existant (CarCard, CarDetailClient...)
+export function isOfferActive(offer: { startDate: Date | string; endDate: Date | string; isActive: boolean }): boolean {
+	return getOfferStatus(offer) === 'ACTIVE'
 }
 
 export function slugify(text: string): string {
@@ -120,5 +169,5 @@ export function getFuelLabel(f: string): string {
 
 export function truncate(str: string, maxLen: number): string {
 	if (str.length <= maxLen) return str
-	return str.slice(0, maxLen).trimEnd() + '…'
+	return str.slice(0, maxLen).trimEnd() + '...'
 }
