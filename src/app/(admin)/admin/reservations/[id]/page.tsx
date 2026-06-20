@@ -13,6 +13,7 @@ import {
 	Calendar,
 	BadgeInfo,
 	FileText,
+	ArrowRight,
 } from 'lucide-react'
 import prisma from '@/lib/db'
 import { formatPrice, formatDateTime } from '@/lib/utils'
@@ -53,9 +54,6 @@ export default async function ReservationDetailPage({
 	const statusMeta = STATUS_META[reservation.status] ?? STATUS_META.CANCELLED
 	const isEditable = ['PENDING', 'CONFIRMED'].includes(reservation.status)
 
-	// ── Sérialisation pour le composant client ──────────────────────────────
-	// Les dates Prisma (Date) doivent être converties en strings ISO pour
-	// traverser la frontière Server→Client sans erreur de sérialisation.
 	const installmentsSerialized = reservation.paymentInstallments.map((i) => ({
 		id:                i.id,
 		installmentNumber: i.installmentNumber,
@@ -169,10 +167,10 @@ export default async function ReservationDetailPage({
 								{reservation.car.brand} {reservation.car.model} · {reservation.car.year}
 							</p>
 							<Link
-								href={`/admin/cars/${reservation.car.id}`}
+								href={`/cars/${reservation.car.id}`}
 								className="text-xs text-brand-400 hover:text-brand-300 transition-colors"
 							>
-								Voir la fiche →
+								Voir la fiche <ArrowRight className="w-3 h-3" />
 							</Link>
 						</div>
 					</div>

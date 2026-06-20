@@ -10,9 +10,6 @@ import {
 import type { Car, Offer, CarOffer, CarWithOffers } from '@/types'
 
 export default function CarCard({ car, now }: { car: CarWithOffers; now?: Date }) {
-	// Recalcul défensif côté client : même si `car.offers` vient d'un fetch initial,
-	// on revérifie que l'offre est toujours dans sa fenêtre de validité ET active
-	// (pause / expiration peuvent survenir pendant la session sans nouveau fetch).
 	const rawOffer    = car.offers[0]?.offer ?? null
 	const activeOffer = rawOffer && getOfferStatus(rawOffer, now) === 'ACTIVE' ? rawOffer : null
 	const finalPrice  = activeOffer
