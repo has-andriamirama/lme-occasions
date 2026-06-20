@@ -137,7 +137,7 @@ export default async function OffersPage({
 											{/* Period */}
 											<td className="px-4 py-3 hidden md:table-cell">
 												<span className="text-sm text-dark-300 whitespace-nowrap">
-													{formatDate(offer.startDate)} → {formatDate(offer.endDate)}
+													{formatDate(offer.startDate)} - {formatDate(offer.endDate)}
 												</span>
 											</td>
 											{/* Cars */}

@@ -89,7 +89,7 @@ export default function OfferCard({ offer, now }: { offer: OfferWithCars; now?: 
 					{active
 						? <span>Expire le <span className="text-dark-300">{formatDate(offer.endDate)}</span>
 								{daysLeft <= 7 && (
-									<span className="ml-1.5 text-amber-400 font-semibold">
+									<span className="ml-1 text-amber-400 font-semibold">
 										({daysLeft === 0 ? 'Aujourd\'hui' : `J-${daysLeft}`})
 									</span>
 								)}
