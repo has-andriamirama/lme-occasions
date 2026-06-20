@@ -4,17 +4,74 @@ import prisma from '@/lib/db'
 import Image from 'next/image'
 import { formatPrice, formatDateTime, getDaysRemaining } from '@/lib/utils'
 import ReservationActions from '@/components/admin/reservations/ReservationActions'
-import { Clock, CheckCircle2, XCircle, AlertTriangle, Plus, Pencil } from 'lucide-react'
+import {
+	Clock,
+	CheckCircle2,
+	XCircle,
+	AlertTriangle,
+	Plus,
+	Pencil,
+	Eye,
+} from 'lucide-react'
 import Link from 'next/link'
 
 export const metadata: Metadata = { title: 'Réservations' }
 
 const STATUS_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-	PENDING:   { label: 'En attente',  color: 'bg-amber-500/10 text-amber-400 border-amber-500/20',   icon: <Clock className="w-3.5 h-3.5" /> },
+	PENDING:   { label: 'En attente',  color: 'bg-amber-500/10 text-amber-400 border-amber-500/20',    icon: <Clock className="w-3.5 h-3.5" /> },
 	CONFIRMED: { label: 'Confirmée',   color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
-	COMPLETED: { label: 'Finalisée',   color: 'bg-brand-500/10 text-brand-400 border-brand-500/20',   icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
-	EXPIRED:   { label: 'Expirée',     color: 'bg-red-500/10 text-red-400 border-red-500/20',         icon: <XCircle className="w-3.5 h-3.5" /> },
-	CANCELLED: { label: 'Annulée',     color: 'bg-dark-600/30 text-dark-400 border-dark-600/20',      icon: <XCircle className="w-3.5 h-3.5" /> },
+	COMPLETED: { label: 'Finalisée',   color: 'bg-brand-500/10 text-brand-400 border-brand-500/20',    icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
+	EXPIRED:   { label: 'Expirée',     color: 'bg-red-500/10 text-red-400 border-red-500/20',          icon: <XCircle className="w-3.5 h-3.5" /> },
+	CANCELLED: { label: 'Annulée',     color: 'bg-dark-600/30 text-dark-400 border-dark-600/20',       icon: <XCircle className="w-3.5 h-3.5" /> },
+}
+
+// ── Helper : afficher la progression des paiements ───────────────────────────
+function PaymentProgress({
+	status,
+	installments,
+	depositAmount,
+	totalPrice,
+}: {
+	status:      string
+	installments: { paidAmount: number | null }[]
+	depositAmount: number
+	totalPrice:   number
+}) {
+	if (['EXPIRED', 'CANCELLED'].includes(status)) {
+		return <span className="text-xs text-dark-600">—</span>
+	}
+
+	if (status === 'COMPLETED') {
+		return (
+			<span className="flex items-center gap-1 text-xs font-medium text-brand-400">
+				<CheckCircle2 className="w-3.5 h-3.5" />
+				Réglé
+			</span>
+		)
+	}
+
+	if (installments.length === 0) {
+		return <span className="text-xs text-dark-500">—</span>
+	}
+
+	const paidCount  = installments.filter((i) => i.paidAmount !== null).length
+	const totalCount = installments.length
+	const totalPaid  = depositAmount + installments.reduce((s, i) => s + (i.paidAmount ?? 0), 0)
+	const percent    = Math.min(100, Math.round((totalPaid / totalPrice) * 100))
+
+	return (
+		<div className="space-y-1">
+			<span className="text-xs text-dark-300">
+				{paidCount}/{totalCount} tranche{totalCount > 1 ? 's' : ''}
+			</span>
+			<div className="h-1 w-16 bg-dark-700 rounded-full overflow-hidden">
+				<div
+					className={`h-full rounded-full ${paidCount === totalCount ? 'bg-emerald-500' : 'bg-brand-500'}`}
+					style={{ width: `${percent}%` }}
+				/>
+			</div>
+		</div>
+	)
 }
 
 export default async function ReservationsPage({
@@ -32,7 +89,11 @@ export default async function ReservationsPage({
 	const [reservations, total, stats] = await Promise.all([
 		prisma.reservation.findMany({
 			where,
-			include: { car: { select: { id: true, title: true, brand: true, model: true, mainImage: true } } },
+			include: {
+				car: { select: { id: true, title: true, brand: true, model: true, mainImage: true } },
+				// ── NOUVEAU : inclure les tranches pour la colonne "Paiements" ──
+				paymentInstallments: { select: { paidAmount: true } },
+			},
 			orderBy: { reservedAt: 'desc' },
 			skip:    (page - 1) * limit,
 			take:    limit,
@@ -42,7 +103,10 @@ export default async function ReservationsPage({
 			prisma.reservation.count({ where: { status: 'CONFIRMED' } }),
 			prisma.reservation.count({ where: { status: 'COMPLETED' } }),
 			prisma.reservation.count({ where: { status: 'EXPIRED' } }),
-			prisma.reservation.aggregate({ where: { status: { in: ['CONFIRMED','COMPLETED'] } }, _sum: { depositAmount: true } }),
+			prisma.reservation.aggregate({
+				where: { status: { in: ['CONFIRMED', 'COMPLETED'] } },
+				_sum:  { depositAmount: true },
+			}),
 		]),
 	])
 
@@ -62,12 +126,12 @@ export default async function ReservationsPage({
 				</Link>
 			</div>
 
-			{/* Summary cards */}
+			{/* Cartes récap */}
 			<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 				{[
-					{ label: 'Actives',     value: active,    color: 'text-emerald-400' },
-					{ label: 'Finalisées',  value: completed, color: 'text-brand-400' },
-					{ label: 'Expirées',    value: expired,   color: 'text-red-400' },
+					{ label: 'Actives',           value: active,    color: 'text-emerald-400' },
+					{ label: 'Finalisées',         value: completed, color: 'text-brand-400' },
+					{ label: 'Expirées',           value: expired,   color: 'text-red-400' },
 					{ label: 'Revenus (acomptes)', value: formatPrice(revenueAgg._sum.depositAmount ?? 0), color: 'text-white', isText: true },
 				].map(({ label, value, color, isText }) => (
 					<div key={label} className="card p-5">
@@ -77,7 +141,7 @@ export default async function ReservationsPage({
 				))}
 			</div>
 
-			{/* Filters */}
+			{/* Filtres */}
 			<div className="flex flex-wrap gap-2">
 				{[
 					{ label: 'Toutes',     value: '' },
@@ -97,7 +161,7 @@ export default async function ReservationsPage({
 				))}
 			</div>
 
-			{/* Table */}
+			{/* Tableau */}
 			<div className="card overflow-hidden">
 				{reservations.length === 0 ? (
 					<div className="text-center py-12">
@@ -116,20 +180,25 @@ export default async function ReservationsPage({
 									<th className="text-left px-4 py-3 font-medium">Véhicule</th>
 									<th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Client</th>
 									<th className="text-right px-4 py-3 font-medium hidden md:table-cell">Acompte</th>
+									{/* ── NOUVELLE colonne Paiements ── */}
+									<th className="text-center px-4 py-3 font-medium hidden lg:table-cell">Paiements</th>
 									<th className="text-center px-4 py-3 font-medium hidden lg:table-cell">Expiration</th>
 									<th className="text-center px-4 py-3 font-medium">Statut</th>
-									<th className="text-center px-4 py-3 font-medium w-24">Actions</th>
+									<th className="text-center px-4 py-3 font-medium w-28">Actions</th>
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-dark-800">
 								{reservations.map((r) => {
-									const meta       = STATUS_META[r.status] ?? STATUS_META.CANCELLED
-									const daysLeft   = getDaysRemaining(r.expiresAt)
-									const isUrgent   = r.status === 'CONFIRMED' && daysLeft <= 1
+									const meta     = STATUS_META[r.status] ?? STATUS_META.CANCELLED
+									const daysLeft = getDaysRemaining(r.expiresAt)
+									const isUrgent = r.status === 'CONFIRMED' && daysLeft <= 1
 
 									return (
-										<tr key={r.id} className={`hover:bg-dark-800/30 transition-colors ${isUrgent ? 'bg-amber-500/5' : ''}`}>
-											{/* Car */}
+										<tr
+											key={r.id}
+											className={`hover:bg-dark-800/30 transition-colors ${isUrgent ? 'bg-amber-500/5' : ''}`}
+										>
+											{/* Véhicule */}
 											<td className="px-4 py-3">
 												<div className="flex items-center gap-3">
 													<div className="w-10 h-8 rounded-lg bg-dark-700 overflow-hidden shrink-0">
@@ -144,17 +213,30 @@ export default async function ReservationsPage({
 													</div>
 												</div>
 											</td>
+
 											{/* Client */}
 											<td className="px-4 py-3 hidden sm:table-cell">
 												<p className="text-sm text-white">{r.clientName}</p>
 												<p className="text-xs text-dark-400">{r.clientEmail}</p>
 											</td>
-											{/* Amount */}
+
+											{/* Acompte */}
 											<td className="px-4 py-3 text-right hidden md:table-cell">
 												<p className="text-sm font-bold text-brand-400">{formatPrice(r.depositAmount)}</p>
 												<p className="text-xs text-dark-500">/ {formatPrice(r.totalPrice)}</p>
 											</td>
-											{/* Expiry */}
+
+											{/* ── NOUVEAU : progression des paiements ── */}
+											<td className="px-4 py-3 text-center hidden lg:table-cell">
+												<PaymentProgress
+													status={r.status}
+													installments={r.paymentInstallments}
+													depositAmount={r.depositAmount}
+													totalPrice={r.totalPrice}
+												/>
+											</td>
+
+											{/* Expiration */}
 											<td className="px-4 py-3 text-center hidden lg:table-cell">
 												{r.status === 'CONFIRMED' ? (
 													<div className={`flex items-center justify-center gap-1 text-xs font-medium
@@ -166,21 +248,36 @@ export default async function ReservationsPage({
 													<span className="text-xs text-dark-600">—</span>
 												)}
 											</td>
-											{/* Status */}
+
+											{/* Statut */}
 											<td className="px-4 py-3 text-center">
 												<span className={`badge ${meta.color}`}>
 													{meta.icon}{meta.label}
 												</span>
 											</td>
+
 											{/* Actions */}
 											<td className="px-4 py-3 text-center">
 												<div className="flex items-center justify-center gap-1">
+													{/* ── NOUVEAU : bouton Voir (toujours visible) ── */}
+													<Link
+														href={`/admin/reservations/${r.id}`}
+														title="Voir le détail"
+														className="p-1.5 text-dark-400 hover:text-white rounded-lg hover:bg-dark-700 transition-all"
+													>
+														<Eye className="w-4 h-4" />
+													</Link>
+
 													{(r.status === 'CONFIRMED' || r.status === 'PENDING') && (
 														<>
-															<Link href={`/admin/reservations/${r.id}/edit`} title="Modifier"
-																className="p-1.5 text-dark-400 hover:text-brand-400 rounded-lg hover:bg-dark-700 transition-all">
+															<Link
+																href={`/admin/reservations/${r.id}/edit`}
+																title="Modifier"
+																className="p-1.5 text-dark-400 hover:text-brand-400 rounded-lg hover:bg-dark-700 transition-all"
+															>
 																<Pencil className="w-4 h-4" />
 															</Link>
+															{/* ── ReservationActions = bouton Annuler uniquement ── */}
 															<ReservationActions reservationId={r.id} />
 														</>
 													)}

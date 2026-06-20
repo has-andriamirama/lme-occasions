@@ -1,216 +1,242 @@
 // prisma/schema.prisma
 generator client {
-  provider = "prisma-client-js"
+	provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+	provider = "postgresql"
+	url      = env("DATABASE_URL")
 }
 
 // ─── ADMINS ───────────────────────────────────────────────
 model Admin {
-  id                String       @id @default(cuid())
-  username          String       @unique
-  email             String       @unique
-  password          String
-  role              AdminRole    @default(ADMIN)
-  mustChangePassword Boolean     @default(true)
-  isActive          Boolean      @default(true)
-  lastLoginAt       DateTime?
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
+	id                String       @id @default(cuid())
+	username          String       @unique
+	email             String       @unique
+	password          String
+	role              AdminRole    @default(ADMIN)
+	mustChangePassword Boolean     @default(true)
+	isActive          Boolean      @default(true)
+	lastLoginAt       DateTime?
+	createdAt         DateTime     @default(now())
+	updatedAt         DateTime     @updatedAt
 
-  auditLogs         AuditLog[]
-  loginAttempts     LoginAttempt[]
+	auditLogs         AuditLog[]
+	loginAttempts     LoginAttempt[]
 
-  @@map("admins")
+	@@map("admins")
 }
 
 enum AdminRole {
-  SUPER_ADMIN
-  ADMIN
+	SUPER_ADMIN
+	ADMIN
 }
 
 // ─── CARS ─────────────────────────────────────────────────
 model Car {
-  id              String      @id @default(cuid())
-  title           String
-  brand           String
-  model           String
-  year            Int
-  mileage         Int
-  price           Float
-  description     String      @db.Text
-  mainImage       String
-  images          String[]    @default([])
-  equipments      String[]    @default([])
-  status          CarStatus   @default(AVAILABLE)
-  isFeatured      Boolean     @default(false)
-  transmission    Transmission @default(MANUAL)
-  fuelType        FuelType    @default(GASOLINE)
-  color           String?
-  engineSize      String?
-  seats           Int?        @default(5)
-  doors           Int?        @default(4)
-  condition       String?
-  allowInstallment Boolean    @default(false)
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+	id              String      @id @default(cuid())
+	title           String
+	brand           String
+	model           String
+	year            Int
+	mileage         Int
+	price           Float
+	description     String      @db.Text
+	mainImage       String
+	images          String[]    @default([])
+	equipments      String[]    @default([])
+	status          CarStatus   @default(AVAILABLE)
+	isFeatured      Boolean     @default(false)
+	transmission    Transmission @default(MANUAL)
+	fuelType        FuelType    @default(GASOLINE)
+	color           String?
+	engineSize      String?
+	seats           Int?        @default(5)
+	doors           Int?        @default(4)
+	condition       String?
+	allowInstallment Boolean    @default(false)
+	createdAt       DateTime    @default(now())
+	updatedAt       DateTime    @updatedAt
 
-  offers          CarOffer[]
-  reservations    Reservation[]
+	offers          CarOffer[]
+	reservations    Reservation[]
 
-  @@map("cars")
+	@@map("cars")
 }
 
 enum CarStatus {
-  AVAILABLE
-  RESERVED
-  SOLD
+	AVAILABLE
+	RESERVED
+	SOLD
 }
 
 enum Transmission {
-  MANUAL
-  AUTOMATIC
-  SEMI_AUTOMATIC
+	MANUAL
+	AUTOMATIC
+	SEMI_AUTOMATIC
 }
 
 enum FuelType {
-  GASOLINE
-  DIESEL
-  ELECTRIC
-  HYBRID
-  GPL
+	GASOLINE
+	DIESEL
+	ELECTRIC
+	HYBRID
+	GPL
 }
 
 // ─── OFFERS / PROMOTIONS ──────────────────────────────────
 model Offer {
-  id            String      @id @default(cuid())
-  name          String
-  description   String?     @db.Text
-  type          OfferType
-  value         Float
-  startDate     DateTime
-  endDate       DateTime
-  isActive      Boolean     @default(true)
-  appliedToAll  Boolean     @default(false)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+	id            String      @id @default(cuid())
+	name          String
+	description   String?     @db.Text
+	type          OfferType
+	value         Float
+	startDate     DateTime
+	endDate       DateTime
+	isActive      Boolean     @default(true)
+	appliedToAll  Boolean     @default(false)
+	createdAt     DateTime    @default(now())
+	updatedAt     DateTime    @updatedAt
 
-  cars          CarOffer[]
+	cars          CarOffer[]
 
-  @@map("offers")
+	@@map("offers")
 }
 
 enum OfferType {
-  PERCENTAGE
-  FIXED_AMOUNT
+	PERCENTAGE
+	FIXED_AMOUNT
 }
 
 model CarOffer {
-  id      String  @id @default(cuid())
-  carId   String
-  offerId String
+	id      String  @id @default(cuid())
+	carId   String
+	offerId String
 
-  car     Car     @relation(fields: [carId], references: [id], onDelete: Cascade)
-  offer   Offer   @relation(fields: [offerId], references: [id], onDelete: Cascade)
+	car     Car     @relation(fields: [carId], references: [id], onDelete: Cascade)
+	offer   Offer   @relation(fields: [offerId], references: [id], onDelete: Cascade)
 
-  @@unique([carId, offerId])
-  @@map("car_offers")
+	@@unique([carId, offerId])
+	@@map("car_offers")
 }
 
 // ─── RESERVATIONS ─────────────────────────────────────────
 model Reservation {
-  id                  String            @id @default(cuid())
-  carId               String
-  clientName          String
-  clientEmail         String
-  clientPhone         String
-  depositAmount       Float
-  totalPrice          Float
-  paymentIntentId     String?           @unique
-  paymentSessionId    String?           @unique
-  installmentType     InstallmentType?
-  status              ReservationStatus @default(PENDING)
-  reservedAt          DateTime          @default(now())
-  expiresAt           DateTime
-  completedAt         DateTime?
-  expiredAt           DateTime?
-  emailSentToAdmin    Boolean           @default(false)
-  emailSentToClient   Boolean           @default(false)
-  expiredEmailSent    Boolean           @default(false)
-  notes               String?           @db.Text
+	id                  String            @id @default(cuid())
+	carId               String
+	clientName          String
+	clientEmail         String
+	clientPhone         String
+	depositAmount       Float
+	totalPrice          Float
+	paymentIntentId     String?           @unique
+	paymentSessionId    String?           @unique
+	installmentType     InstallmentType?
+	status              ReservationStatus @default(PENDING)
+	reservedAt          DateTime          @default(now())
+	expiresAt           DateTime
+	completedAt         DateTime?
+	expiredAt           DateTime?
+	emailSentToAdmin    Boolean           @default(false)
+	emailSentToClient   Boolean           @default(false)
+	expiredEmailSent    Boolean           @default(false)
+	notes               String?           @db.Text
 
-  car                 Car               @relation(fields: [carId], references: [id])
+	car                 Car               @relation(fields: [carId], references: [id])
+	// ── NOUVEAU : tranches de paiement ───────────────────────
+	paymentInstallments PaymentInstallment[]
 
-  @@map("reservations")
+	@@map("reservations")
 }
 
 enum ReservationStatus {
-  PENDING
-  CONFIRMED
-  COMPLETED
-  EXPIRED
-  CANCELLED
+	PENDING
+	CONFIRMED
+	COMPLETED
+	EXPIRED
+	CANCELLED
 }
 
 enum InstallmentType {
-  FULL
-  THREE_TIMES
-  FOUR_TIMES
+	FULL
+	THREE_TIMES
+	FOUR_TIMES
+}
+
+// ─── PAYMENT INSTALLMENTS (NOUVEAU) ───────────────────────
+// Chaque ligne représente une tranche de paiement DU SOLDE (hors acompte).
+// Nombre de lignes = 1 (FULL) | 3 (THREE_TIMES) | 4 (FOUR_TIMES).
+// paidAmount = null  → tranche pas encore encaissée
+// paidAmount = Float → montant réellement reçu (peut différer de expectedAmount)
+// La clôture automatique est déclenchée par l'API quand :
+//   depositAmount + Σ(paidAmount) >= totalPrice
+model PaymentInstallment {
+	id                String      @id @default(cuid())
+	reservationId     String
+	installmentNumber Int                        // 1, 2, 3 ou 4
+	expectedAmount    Float                      // montant suggéré = solde / N tranches
+	paidAmount        Float?                     // montant réel encaissé (null = impayé)
+	paidAt            DateTime?                  // date enregistrée par l'admin
+	notes             String?     @db.Text
+	createdAt         DateTime    @default(now())
+	updatedAt         DateTime    @updatedAt
+
+	reservation       Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+	@@unique([reservationId, installmentNumber])
+	@@map("payment_installments")
 }
 
 // ─── CONTACTS ─────────────────────────────────────────────
 model Contact {
-  id        String    @id @default(cuid())
-  name      String
-  email     String
-  phone     String?
-  subject   String?
-  message   String    @db.Text
-  isRead    Boolean   @default(false)
-  createdAt DateTime  @default(now())
+	id        String    @id @default(cuid())
+	name      String
+	email     String
+	phone     String?
+	subject   String?
+	message   String    @db.Text
+	isRead    Boolean   @default(false)
+	createdAt DateTime  @default(now())
 
-  @@map("contacts")
+	@@map("contacts")
 }
 
 // ─── NEWSLETTER ───────────────────────────────────────────
 model Newsletter {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  subscribedAt DateTime @default(now())
-  isActive     Boolean  @default(true)
+	id           String   @id @default(cuid())
+	email        String   @unique
+	subscribedAt DateTime @default(now())
+	isActive     Boolean  @default(true)
 
-  @@map("newsletters")
+	@@map("newsletters")
 }
 
 // ─── AUDIT LOG ────────────────────────────────────────────
 model AuditLog {
-  id        String   @id @default(cuid())
-  adminId   String?
-  action    String
-  entity    String
-  entityId  String?
-  details   Json?
-  ipAddress String?
-  createdAt DateTime @default(now())
+	id        String   @id @default(cuid())
+	adminId   String?
+	action    String
+	entity    String
+	entityId  String?
+	details   Json?
+	ipAddress String?
+	createdAt DateTime @default(now())
 
-  admin     Admin?   @relation(fields: [adminId], references: [id], onDelete: SetNull)
+	admin     Admin?   @relation(fields: [adminId], references: [id], onDelete: SetNull)
 
-  @@map("audit_logs")
+	@@map("audit_logs")
 }
 
 // ─── LOGIN ATTEMPTS ───────────────────────────────────────
 model LoginAttempt {
-  id        String   @id @default(cuid())
-  username  String
-  ip        String?
-  success   Boolean
-  adminId   String?
-  createdAt DateTime @default(now())
+	id        String   @id @default(cuid())
+	username  String
+	ip        String?
+	success   Boolean
+	adminId   String?
+	createdAt DateTime @default(now())
 
-  admin     Admin?   @relation(fields: [adminId], references: [id], onDelete: SetNull)
+	admin     Admin?   @relation(fields: [adminId], references: [id], onDelete: SetNull)
 
-  @@map("login_attempts")
+	@@map("login_attempts")
 }

@@ -9,13 +9,9 @@ import {
 	sendReservationNotificationToAdmin,
 } from '@/lib/mail'
 import { z } from 'zod'
+import type { PrismaClient } from '@prisma/client'
 
 // ── Création manuelle d'une réservation par un admin (client venu en agence) ──
-// Même principe que /api/payments/create-checkout, mais sans passer par Stripe :
-// l'acompte a déjà été réglé physiquement (espèces / CB en agence), donc la
-// réservation est créée directement au statut CONFIRMED et la voiture passe
-// immédiatement en RESERVED. Les emails de confirmation (client + admin) sont
-// envoyés exactement comme pour une réservation en ligne.
 const createReservationSchema = z.object({
 	carId:           z.string().cuid(),
 	clientName:      z.string().min(2).max(100),
@@ -30,6 +26,40 @@ const createReservationSchema = z.object({
 	message: 'L\'acompte ne peut pas dépasser le prix total',
 	path:    ['depositAmount'],
 })
+
+// ── Helper : nombre de tranches selon le type ────────────────────────────────
+function getInstallmentCount(type: string): number {
+	switch (type) {
+		case 'THREE_TIMES': return 3
+		case 'FOUR_TIMES':  return 4
+		default:            return 1  // FULL
+	}
+}
+
+// ── Helper : créer les tranches dans une transaction ─────────────────────────
+// Arrondit l'expectedAmount à 2 décimales.
+// Toutes les tranches sont créées avec paidAmount = null (impayées).
+type TransactionClient = Parameters<Parameters<PrismaClient['$transaction']>[0]>[0]
+
+async function createInstallments(
+	tx:              TransactionClient,
+	reservationId:   string,
+	totalPrice:      number,
+	depositAmount:   number,
+	installmentType: string,
+) {
+	const count          = getInstallmentCount(installmentType)
+	const balance        = totalPrice - depositAmount
+	const expectedAmount = Math.round((balance / count) * 100) / 100
+
+	const installments = Array.from({ length: count }, (_, i) => ({
+		reservationId,
+		installmentNumber: i + 1,
+		expectedAmount,
+	}))
+
+	await tx.paymentInstallment.createMany({ data: installments })
+}
 
 export async function POST(req: NextRequest) {
 	try {
@@ -48,9 +78,9 @@ export async function POST(req: NextRequest) {
 		} = parsed.data
 
 		// ── Vérification atomique de disponibilité + création ────────────────
-		// Même garde-fou que la réservation publique : on relit le statut du
-		// véhicule À L'INTÉRIEUR de la transaction pour éviter qu'un admin ne
-		// réserve par erreur une voiture déjà prise par un client en ligne.
+		// Les tranches de paiement sont créées dans la même transaction pour
+		// garantir la cohérence : si la création de tranches échoue, la
+		// réservation est annulée (rollback automatique).
 		let result
 		try {
 			result = await prisma.$transaction(async (tx) => {
@@ -80,13 +110,17 @@ export async function POST(req: NextRequest) {
 
 				await tx.car.update({ where: { id: carId }, data: { status: 'RESERVED' } })
 
+				// ── NOUVEAU : créer les tranches dans la même transaction ────
+				await createInstallments(tx, reservation.id, totalPrice, depositAmount, installmentType)
+
 				return { car, reservation }
 			})
-		} catch (txErr: any) {
-			if (txErr.message === 'CAR_NOT_FOUND') {
+		} catch (txErr: unknown) {
+			const msg = txErr instanceof Error ? txErr.message : ''
+			if (msg === 'CAR_NOT_FOUND') {
 				return NextResponse.json({ success: false, error: 'Véhicule introuvable' }, { status: 404 })
 			}
-			if (txErr.message === 'CAR_NOT_AVAILABLE') {
+			if (msg === 'CAR_NOT_AVAILABLE') {
 				return NextResponse.json(
 					{ success: false, error: 'Ce véhicule n\'est plus disponible (déjà réservé ou vendu).' },
 					{ status: 409 },
@@ -103,11 +137,11 @@ export async function POST(req: NextRequest) {
 				action:   'CREATE',
 				entity:   'Reservation',
 				entityId: reservation.id,
-				details:  { carId, clientName, depositAmount, totalPrice, manual: true },
+				details:  { carId, clientName, depositAmount, totalPrice, installmentType, manual: true },
 			},
 		})
 
-		// ── Broadcast Pusher (NON-CRITIQUE : n'empêche pas la réussite de la création) ──
+		// ── Broadcast Pusher (NON-CRITIQUE) ──────────────────────────────────
 		try {
 			await broadcastCarStatus(carId, 'RESERVED', car.title)
 			await broadcastAdminNotification(EVENTS.newReservation, {
@@ -120,7 +154,7 @@ export async function POST(req: NextRequest) {
 			console.error('[POST /api/reservations] Pusher broadcast échoué (non-critique) :', pusherErr)
 		}
 
-		// ── Emails (NON-CRITIQUE) — même principe que le webhook Stripe ──────
+		// ── Emails (NON-CRITIQUE) ─────────────────────────────────────────────
 		await Promise.all([
 			sendReservationConfirmationToClient({
 				clientName,
@@ -174,7 +208,10 @@ export async function GET(req: NextRequest) {
 		const [reservations, total] = await Promise.all([
 			prisma.reservation.findMany({
 				where,
-				include: { car: { select: { id: true, title: true, brand: true, model: true, mainImage: true } } },
+				include: {
+					car: { select: { id: true, title: true, brand: true, model: true, mainImage: true } },
+					paymentInstallments: { select: { paidAmount: true } },
+				},
 				orderBy: { reservedAt: 'desc' },
 				skip:    (page - 1) * limit,
 				take:    limit,
