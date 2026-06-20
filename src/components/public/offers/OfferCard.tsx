@@ -1,25 +1,35 @@
 // src/components/public/offers/OfferCard.tsx
 'use client'
 import Link from 'next/link'
-import { Tag, Clock, CheckCircle2, XCircle, ArrowRight } from 'lucide-react'
-import { cn, formatDate } from '@/lib/utils'
-import type { Car, Offer, OfferWithCars } from '@/types'
+import { Tag, Clock, CheckCircle2, XCircle, PauseCircle, CalendarClock, ArrowRight } from 'lucide-react'
+import { cn, formatDate, getOfferStatus, getOfferStatusLabel } from '@/lib/utils'
+import type { OfferWithCars } from '@/types'
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-function isOfferCurrentlyActive(offer: OfferWithCars): boolean {
-	const now = new Date()
-	return offer.isActive && new Date(offer.startDate) <= now && new Date(offer.endDate) >= now
-}
-
-function getDaysLeft(endDate: Date): number {
+function getDaysLeft(endDate: Date | string): number {
 	const now = new Date()
 	const end = new Date(endDate)
 	return Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
 }
 
-export default function OfferCard({ offer }: { offer: OfferWithCars }) {
-	const active   = isOfferCurrentlyActive(offer)
+const STATUS_ICON = {
+	ACTIVE:    CheckCircle2,
+	PAUSED:    PauseCircle,
+	SCHEDULED: CalendarClock,
+	EXPIRED:   XCircle,
+} as const
+
+const STATUS_BADGE_CLASS = {
+	ACTIVE:    'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+	PAUSED:    'text-amber-400 bg-amber-500/10 border-amber-500/20',
+	SCHEDULED: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+	EXPIRED:   'text-dark-400 bg-dark-700 border-dark-600',
+} as const
+
+export default function OfferCard({ offer, now }: { offer: OfferWithCars; now?: Date }) {
+	const status   = getOfferStatus(offer, now)
+	const active   = status === 'ACTIVE'
 	const daysLeft = getDaysLeft(offer.endDate)
+	const StatusIcon = STATUS_ICON[status]
 
 	return (
 		<Link
@@ -29,7 +39,7 @@ export default function OfferCard({ offer }: { offer: OfferWithCars }) {
 				active
 					? 'border-brand-500/30 hover:border-brand-500/50 hover:shadow-brand'
 					: 'border-dark-700 opacity-70 hover:opacity-90',
-		)}>
+			)}>
 			{/* Glow */}
 			{active && (
 				<div className="absolute top-0 right-0 w-40 h-40 bg-brand-500/8 rounded-full blur-3xl -translate-y-10 translate-x-10 pointer-events-none" />
@@ -48,17 +58,9 @@ export default function OfferCard({ offer }: { offer: OfferWithCars }) {
 
 				{/* Badge status */}
 				<div className="ml-auto flex-shrink-0">
-					{active ? (
-						<span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400
-														 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1">
-							<CheckCircle2 className="w-3 h-3" /> En cours
-						</span>
-					) : (
-						<span className="inline-flex items-center gap-1 text-xs font-semibold text-dark-400
-														 bg-dark-700 border border-dark-600 rounded-full px-2.5 py-1">
-							<XCircle className="w-3 h-3" /> Expirée
-						</span>
-					)}
+					<span className={cn('inline-flex items-center gap-1 text-xs font-semibold rounded-full px-2.5 py-1 border', STATUS_BADGE_CLASS[status])}>
+						<StatusIcon className="w-3 h-3" /> {getOfferStatusLabel(status)}
+					</span>
 				</div>
 			</div>
 
@@ -92,7 +94,9 @@ export default function OfferCard({ offer }: { offer: OfferWithCars }) {
 									</span>
 								)}
 							</span>
-						: <span>Expire le {formatDate(offer.endDate)}</span>}
+						: status === 'SCHEDULED'
+							? <span>Débute le <span className="text-dark-300">{formatDate(offer.startDate)}</span></span>
+							: <span>Expire le {formatDate(offer.endDate)}</span>}
 				</div>
 			</div>
 

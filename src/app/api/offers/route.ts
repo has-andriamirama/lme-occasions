@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/db'
+import { broadcastOfferChange } from '@/lib/pusher'
 import { z } from 'zod'
 
 const offerSchema = z.object({
@@ -21,8 +22,8 @@ export async function GET(req: NextRequest) {
 	try {
 		const { searchParams } = req.nextUrl
 		const page   = Math.max(1, Number(searchParams.get('page') ?? 1))
-    const limit  = Math.min(24, Math.max(1, Number(searchParams.get('limit') ?? 12)))
-    const skip   = (page - 1) * limit
+		const limit  = Math.min(24, Math.max(1, Number(searchParams.get('limit') ?? 12)))
+		const skip   = (page - 1) * limit
 		const search = searchParams.get('search') ?? ''
 		const status = searchParams.get('status') ?? ''
 		const type   = searchParams.get('type') ?? ''
@@ -37,7 +38,6 @@ export async function GET(req: NextRequest) {
 				{ description: { contains: search, mode: 'insensitive' } },
 			]
 		}
-		if (status && status !== 'ALL') where.status = status
 		if (status === 'ACTIVE') {
 			where.isActive =  true
 			where.startDate = { lte: now }
@@ -88,10 +88,10 @@ export async function GET(req: NextRequest) {
 		])
 
 		return NextResponse.json({
-      success: true,
-      data: offers,
-      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
-    })
+			success: true,
+			data: offers,
+			meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+		})
 
 		/*const { searchParams } = req.nextUrl
 		const isAdmin   = searchParams.get('admin') === 'true'
@@ -151,6 +151,10 @@ export async function POST(req: NextRequest) {
 
 		const { carIds, ...offerData } = parsed.data
 
+		if (new Date(offerData.endDate) <= new Date(offerData.startDate)) {
+			return NextResponse.json({ success: false, error: 'La date de fin doit être après la date de début' }, { status: 400 })
+		}
+
 		const offer = await prisma.offer.create({
 			data: {
 				...offerData,
@@ -160,22 +164,42 @@ export async function POST(req: NextRequest) {
 					? { create: carIds.map((carId) => ({ carId })) }
 					: undefined,
 			},
-			include: { cars: true },
 		})
 
-		// If appliedToAll, link all available cars
+		// Si appliedToAll, on lie l'offre à tous les véhicules existants
+		let finalCarIds = carIds
 		if (parsed.data.appliedToAll) {
 			const allCars = await prisma.car.findMany({ select: { id: true } })
 			await prisma.carOffer.createMany({
 				data: allCars
-					.filter((c) => !carIds.includes(c.id))
-					.map((c) => ({ carId: c.id, offerId: offer.id })),
+					.filter((c: { id: string }) => !carIds.includes(c.id))
+					.map((c: { id: string }) => ({ carId: c.id, offerId: offer.id })),
 				skipDuplicates: true,
 			})
+			finalCarIds = allCars.map((c: { id: string }) => c.id)
+		}
+
+		await prisma.auditLog.create({
+			data: {
+				adminId:  session.user.id,
+				action:   'CREATE',
+				entity:   'Offer',
+				entityId: offer.id,
+				details:  { name: offer.name },
+			},
+		})
+
+		// Broadcast Pusher (NON-CRITIQUE : une erreur Pusher ne doit pas faire échouer
+		// la création de l'offre — la DB est déjà à jour avec succès)
+		try {
+			await broadcastOfferChange({ ...offer, carIds: finalCarIds })
+		} catch (pusherErr) {
+			console.error('[POST /api/offers] Pusher broadcast échoué (non-critique) :', pusherErr)
 		}
 
 		return NextResponse.json({ success: true, data: offer }, { status: 201 })
 	} catch (err) {
+		console.error('[POST /api/offers]', err)
 		return NextResponse.json({ success: false, error: 'Erreur serveur' }, { status: 500 })
 	}
 }

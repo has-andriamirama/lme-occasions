@@ -6,6 +6,8 @@ import { useSearchParams } from 'next/navigation'
 import { Tag, Clock, Search, SlidersHorizontal, X, ChevronDown } from 'lucide-react'
 import OfferCard from './OfferCard'
 import { cn } from '@/lib/utils'
+import { useNow } from '@/hooks/useNow'
+import { useOfferUpdates } from '@/hooks/useOfferUpdates'
 
 // ── Filter options ─────────────────────────────────────────────────────────
 const STATUS_OPTIONS = [
@@ -69,15 +71,42 @@ export default function OffersPageClient() {
 
 	useEffect(() => { fetchOffers(filters, page) }, [filters, page, fetchOffers])
 
-	const set = (key: keyof Filters, value: string) => {
-    setPage(1)
-    setFilters((f) => ({ ...f, [key]: value }))
-  }
+	// Horloge qui "tick" toutes les 15s : permet à une offre d'apparaître comme
+	// "Expirée" automatiquement quand sa date de fin est atteinte, sans recharger
+	// la page — même principe que pour le statut des voitures, mais ici la
+	// transition est déclenchée par le temps plutôt que par une action admin.
+	const now = useNow(15000)
 
-  const reset = () => { setFilters(INIT_FILTERS); setPage(1) }
-  const activeFiltersCount = Object.entries(filters).filter(
-    ([k, v]) => v && v !== 'ALL' && v !== 'newest' && k !== 'sortBy'
-  ).length
+	// Pusher : si un admin modifie / met en pause / réactive / supprime une offre,
+	// toutes les sessions ouvertes sur cette page le voient immédiatement.
+	useOfferUpdates({
+		onChange: (offer) => {
+			setOffers((prev) => {
+				const idx = prev.findIndex((o) => o.id === offer.id)
+				if (idx === -1) return prev // offre pas dans la page actuelle : on ignore
+				const next = [...prev]
+				next[idx] = {
+					...next[idx],
+					...offer,
+					cars: offer.carIds.map((id: string) => ({ car: { id } })),
+				}
+				return next
+			})
+		},
+		onDelete: (offerId) => {
+			setOffers((prev) => prev.filter((o) => o.id !== offerId))
+		},
+	})
+
+	const set = (key: keyof Filters, value: string) => {
+		setPage(1)
+		setFilters((f) => ({ ...f, [key]: value }))
+	}
+
+	const reset = () => { setFilters(INIT_FILTERS); setPage(1) }
+	const activeFiltersCount = Object.entries(filters).filter(
+		([k, v]) => v && v !== 'ALL' && v !== 'newest' && k !== 'sortBy'
+	).length
 
 	return (
 		<div className="pt-24 pb-20 min-h-screen">
@@ -183,7 +212,7 @@ export default function OffersPageClient() {
 				) : (
 					<>
 						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 stagger">
-							{offers.map((offer) => <OfferCard key={offer.id} offer={offer} />)}
+							{offers.map((offer) => <OfferCard key={offer.id} offer={offer} now={now} />)}
 						</div>
 
 						{/* Pagination */}
