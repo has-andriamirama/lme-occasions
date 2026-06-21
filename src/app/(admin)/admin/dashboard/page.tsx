@@ -26,12 +26,12 @@ async function getStats() {
 		prisma.car.count({ where: { status: 'RESERVED' } }),
 		prisma.car.count({ where: { status: 'SOLD' } }),
 		prisma.reservation.count(),
-		prisma.reservation.count({ where: { status: { in: ['PAYED', 'CONFIRMED'] } } }),
+		prisma.reservation.count({ where: { status: { in: ['PAID', 'CONFIRMED'] } } }),
 		prisma.contact.count({ where: { isRead: false } }),
-		prisma.reservation.aggregate({ where: { status: { in: ['PAYED', 'CONFIRMED', 'COMPLETED'] } }, _sum: { depositAmount: true } }),
-		prisma.reservation.aggregate({ where: { status: { in: ['PAYED', 'CONFIRMED', 'COMPLETED'] }, reservedAt: { gte: monthStart } }, _sum: { depositAmount: true } }),
+		prisma.reservation.aggregate({ where: { status: { in: ['PAID', 'CONFIRMED', 'COMPLETED'] } }, _sum: { depositAmount: true } }),
+		prisma.reservation.aggregate({ where: { status: { in: ['PAID', 'CONFIRMED', 'COMPLETED'] }, reservedAt: { gte: monthStart } }, _sum: { depositAmount: true } }),
 		prisma.reservation.findMany({
-			where: { status: { in: ['PAYED', 'CONFIRMED', 'COMPLETED', 'EXPIRED'] } },
+			where: { status: { in: ['PAID', 'CONFIRMED', 'COMPLETED', 'EXPIRED'] } },
 			include: { car: { select: { title: true, brand: true, mainImage: true } } },
 			orderBy: { reservedAt: 'desc' },
 			take: 5,
@@ -46,7 +46,7 @@ async function getStats() {
 
 const RESERVATION_STATUS_ICONS: Record<string, React.ReactNode> = {
 	PENDING:   <Clock className="w-4 h-4 text-amber-400" />,
-	PAYED:     <DollarSign className="w-4 h-4 text-blue-400" />,
+	PAID:      <DollarSign className="w-4 h-4 text-blue-400" />,
 	CONFIRMED: <CheckCircle2 className="w-4 h-4 text-emerald-400" />,
 	COMPLETED: <CheckCircle2 className="w-4 h-4 text-brand-400" />,
 	EXPIRED:   <XCircle className="w-4 h-4 text-red-400" />,
