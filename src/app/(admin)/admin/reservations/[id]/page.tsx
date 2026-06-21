@@ -13,7 +13,6 @@ import {
 	Calendar,
 	BadgeInfo,
 	FileText,
-	ArrowRight,
 } from 'lucide-react'
 import prisma from '@/lib/db'
 import { formatPrice, formatDateTime } from '@/lib/utils'
@@ -108,10 +107,8 @@ export default async function ReservationDetailPage({
 				</div>
 			</div>
 
-			{/* ── Grille infos client + véhicule ─────────────────────────────── */}
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-				{/* Client */}
 				<div className="card p-5 space-y-3">
 					<div className="flex items-center gap-2 pb-2 border-b border-dark-800">
 						<User className="w-4 h-4 text-dark-400" />
@@ -143,7 +140,6 @@ export default async function ReservationDetailPage({
 					</div>
 				</div>
 
-				{/* Véhicule */}
 				<div className="card p-5 space-y-3">
 					<div className="flex items-center gap-2 pb-2 border-b border-dark-800">
 						<Car className="w-4 h-4 text-dark-400" />
@@ -170,14 +166,13 @@ export default async function ReservationDetailPage({
 								href={`/cars/${reservation.car.id}`}
 								className="text-xs text-brand-400 hover:text-brand-300 transition-colors"
 							>
-								Voir la fiche <ArrowRight className="w-3 h-3" />
+								Voir la fiche
 							</Link>
 						</div>
 					</div>
 				</div>
 			</div>
 
-			{/* ── Récapitulatif financier ─────────────────────────────────────── */}
 			<div className="card p-5">
 				<div className="flex items-center gap-2 pb-3 mb-4 border-b border-dark-800">
 					<BadgeInfo className="w-4 h-4 text-dark-400" />
@@ -204,7 +199,6 @@ export default async function ReservationDetailPage({
 					</div>
 				</div>
 
-				{/* Dates */}
 				<div className="mt-4 pt-4 border-t border-dark-800 grid grid-cols-2 sm:grid-cols-3 gap-4">
 					<div className="flex items-center gap-2">
 						<Calendar className="w-3.5 h-3.5 text-dark-500 shrink-0" />
@@ -288,7 +282,6 @@ export default async function ReservationDetailPage({
 				installments={installmentsSerialized}
 			/>
 
-			{/* ── Notes ──────────────────────────────────────────────────────── */}
 			{reservation.notes && (
 				<div className="card p-5">
 					<div className="flex items-center gap-2 pb-3 mb-3 border-b border-dark-800">

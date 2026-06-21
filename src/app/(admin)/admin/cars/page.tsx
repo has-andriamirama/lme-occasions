@@ -46,7 +46,6 @@ export default async function AdminCarsPage({
 
   return (
     <div className="space-y-6 max-w-7xl">
-      {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-display font-bold text-white">Véhicules</h1>
@@ -58,7 +57,6 @@ export default async function AdminCarsPage({
         </Link>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-wrap gap-2">
         {[
           { label: 'Tous', value: '' },
@@ -79,7 +77,6 @@ export default async function AdminCarsPage({
         ))}
       </div>
 
-      {/* Table */}
       <div className="card overflow-hidden">
         {cars.length === 0 ? (
           <div className="text-center py-16">
@@ -104,7 +101,6 @@ export default async function AdminCarsPage({
               <tbody className="divide-y divide-dark-800">
                 {cars.map((car) => (
                   <tr key={car.id} className="hover:bg-dark-800/30 transition-colors group">
-                    {/* Image */}
                     <td className="px-4 py-3">
                       <div className="w-12 h-9 rounded-lg bg-dark-700 overflow-hidden">
                         {car.mainImage && (
@@ -113,13 +109,12 @@ export default async function AdminCarsPage({
                         )}
                       </div>
                     </td>
-                    {/* Info */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         {car.isFeatured && (
                           <Star className="w-3.5 h-3.5 text-brand-400 shrink-0" fill="currentColor" />
                         )}
-                        <div>
+                        <div className="flex-1">
                           <p className="text-sm font-medium text-white">{car.title}</p>
                           <p className="text-xs text-dark-400">{car.brand} · {car.year} · {car._count.reservations} rés.</p>
                         </div>
@@ -128,15 +123,12 @@ export default async function AdminCarsPage({
                         )}
                       </div>
                     </td>
-                    {/* Price */}
                     <td className="px-4 py-3 text-right hidden sm:table-cell">
                       <span className="text-sm font-bold text-white">{formatPrice(car.price)}</span>
                     </td>
-                    {/* Mileage */}
                     <td className="px-4 py-3 text-right hidden md:table-cell">
                       <span className="text-sm text-dark-400">{formatMileage(car.mileage)}</span>
                     </td>
-                    {/* Status */}
                     <td className="px-4 py-3 text-center">
                       <span className={`badge ${getStatusColor(car.status)}`}>
                         <span className={`status-dot ${
@@ -146,7 +138,6 @@ export default async function AdminCarsPage({
                         {getStatusLabel(car.status)}
                       </span>
                     </td>
-                    {/* Actions */}
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-1">
                         <Link href={`/cars/${car.id}`} target="_blank"
@@ -168,7 +159,6 @@ export default async function AdminCarsPage({
         )}
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
