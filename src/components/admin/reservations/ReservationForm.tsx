@@ -151,10 +151,7 @@ export default function ReservationForm({ mode, availableCars, defaultExpiresAt,
 					<Info className="w-4 h-4 text-brand-400 mt-0.5 shrink-0" />
 					<p className="text-sm text-brand-200/90">
 						À utiliser quand un client réserve <strong>directement en agence</strong> (acompte déjà réglé sur place,
-						client physiquement présent). La réservation sera créée directement au statut <strong>Confirmée</strong>
-						(contrairement à une réservation en ligne, qui passe d'abord par <strong>Payée</strong> en attendant la
-						présentation du client) — le véhicule passera en <strong>Réservé</strong> et les paiements de tranche
-						(comptant, 3x ou 4x) pourront être saisis immédiatement.
+						client physiquement présent). Les paiements de tranche (comptant, 3x ou 4x) pourront être saisis immédiatement.
 					</p>
 				</div>
 			)}

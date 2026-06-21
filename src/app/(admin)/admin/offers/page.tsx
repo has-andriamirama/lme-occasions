@@ -53,7 +53,6 @@ export default async function OffersPage({
 
 	return (
 		<div className="space-y-6 max-w-7xl">
-			{/* Header */}
 			<div className="flex items-center justify-between gap-4">
 				<div>
 					<h1 className="text-2xl font-display font-bold text-white">Offres & Promotions</h1>
@@ -65,7 +64,6 @@ export default async function OffersPage({
 				</Link>
 			</div>
 
-			{/* Filters */}
 			<div className="flex flex-wrap gap-2">
 				{[
 					{ label: 'Toutes',      value: '' },
@@ -87,7 +85,6 @@ export default async function OffersPage({
 				))}
 			</div>
 
-			{/* Table */}
 			<div className="card overflow-hidden">
 				{offers.length === 0 ? (
 					<div className="text-center py-16">
@@ -115,45 +112,38 @@ export default async function OffersPage({
 									const computed = getOfferStatus(offer, now)
 									return (
 										<tr key={offer.id} className="hover:bg-dark-800/30 transition-colors group">
-											{/* Icon */}
 											<td className="px-4 py-3">
 												<div className="w-9 h-9 rounded-lg bg-brand-500/10 border border-brand-500/20 flex items-center justify-center shrink-0">
 													<Tag className="w-4 h-4 text-brand-400" />
 												</div>
 											</td>
-											{/* Name + description */}
 											<td className="px-4 py-3">
 												<p className="text-sm font-medium text-white">{offer.name}</p>
 												{offer.description && (
 													<p className="text-xs text-dark-400 line-clamp-1 max-w-xs">{offer.description}</p>
 												)}
 											</td>
-											{/* Discount */}
 											<td className="px-4 py-3 text-right hidden sm:table-cell">
 												<span className="badge bg-brand-500/10 text-brand-400 border-brand-500/20 font-bold">
 													{offer.type === 'PERCENTAGE' ? `-${offer.value}%` : `-${formatPrice(offer.value)}`}
 												</span>
 											</td>
-											{/* Period */}
 											<td className="px-4 py-3 hidden md:table-cell">
 												<span className="text-sm text-dark-300 whitespace-nowrap">
-													{formatDate(offer.startDate)} - {formatDate(offer.endDate)}
+													{formatDate(offer.startDate)} — {formatDate(offer.endDate)}
 												</span>
 											</td>
-											{/* Cars */}
 											<td className="px-4 py-3 hidden lg:table-cell">
 												<span className="text-sm text-dark-400">
 													{offer.appliedToAll ? 'Tous les véhicules' : `${offer._count.cars} véhicule${offer._count.cars !== 1 ? 's' : ''}`}
 												</span>
 											</td>
-											{/* Status */}
 											<td className="px-4 py-3 text-center">
 												<span className={`badge ${getOfferStatusColor(computed)}`}>
 													<span className={`status-dot ${getOfferStatusDot(computed)}`} />
 													{getOfferStatusLabel(computed)}
 												</span>
 											</td>
-											{/* Actions */}
 											<td className="px-4 py-3">
 												<AdminOfferActions
 													offerId={offer.id}
@@ -171,7 +161,6 @@ export default async function OffersPage({
 				)}
 			</div>
 
-			{/* Pagination */}
 			{totalPages > 1 && (
 				<div className="flex items-center justify-center gap-2">
 					{Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
