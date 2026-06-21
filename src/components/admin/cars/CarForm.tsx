@@ -35,6 +35,18 @@ interface Props {
   mode: 'create' | 'edit'
 }
 
+function Field({ label, error, required, children }: { label: string; error?: string; required?: boolean; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="text-xs font-semibold text-dark-300 uppercase tracking-wider block mb-1.5">
+        {label}{required && <span className="text-brand-400 ml-1">*</span>}
+      </label>
+      {children}
+      {error && <p className="text-xs text-red-400 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{error}</p>}
+    </div>
+  )
+}
+
 const INITIAL: FormData = {
   title: '', brand: '', model: '', year: new Date().getFullYear(),
   mileage: 0, price: 0, description: '', mainImage: '', images: [],
@@ -137,20 +149,9 @@ export default function CarForm({ initialData, mode }: Props) {
     }
   }
 
-  const Field = ({ label, error, required, children }: { label: string; error?: string; required?: boolean; children: React.ReactNode }) => (
-    <div>
-      <label className="text-xs font-semibold text-dark-300 uppercase tracking-wider block mb-1.5">
-        {label}{required && <span className="text-brand-400 ml-1">*</span>}
-      </label>
-      {children}
-      {error && <p className="text-xs text-red-400 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{error}</p>}
-    </div>
-  )
-
   return (
     <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl">
 
-      {/* ── Section: infos principales ──────────────────────────── */}
       <section className="card p-6 space-y-5">
         <h2 className="font-display font-bold text-white text-sm uppercase tracking-widest border-b border-dark-700 pb-3">
           Informations principales
@@ -193,7 +194,6 @@ export default function CarForm({ initialData, mode }: Props) {
         </Field>
       </section>
 
-      {/* ── Section: caractéristiques ────────────────────────────── */}
       <section className="card p-6 space-y-5">
         <h2 className="font-display font-bold text-white text-sm uppercase tracking-widest border-b border-dark-700 pb-3">
           Caractéristiques techniques
@@ -234,7 +234,6 @@ export default function CarForm({ initialData, mode }: Props) {
         </Field>
       </section>
 
-      {/* ── Section: équipements ─────────────────────────────────── */}
       <section className="card p-6 space-y-4">
         <h2 className="font-display font-bold text-white text-sm uppercase tracking-widest border-b border-dark-700 pb-3">
           Équipements
@@ -263,7 +262,6 @@ export default function CarForm({ initialData, mode }: Props) {
         )}
       </section>
 
-      {/* ── Section: images ──────────────────────────────────────── */}
       <section className="card p-6 space-y-4">
         <h2 className="font-display font-bold text-white text-sm uppercase tracking-widest border-b border-dark-700 pb-3">
           Galerie photos
@@ -311,7 +309,6 @@ export default function CarForm({ initialData, mode }: Props) {
         </Field>
       </section>
 
-      {/* ── Section: statut + options ───────────────────────────── */}
       <section className="card p-6 space-y-5">
         <h2 className="font-display font-bold text-white text-sm uppercase tracking-widest border-b border-dark-700 pb-3">
           Statut & options
@@ -351,7 +348,6 @@ export default function CarForm({ initialData, mode }: Props) {
         </div>
       </section>
 
-      {/* Submit */}
       <div className="flex gap-3">
         <button type="submit" disabled={loading} className="btn-primary px-8">
           {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Enregistrement…</> :

@@ -51,6 +51,18 @@ const INSTALLMENT_OPTIONS = [
 	{ value: 'FOUR_TIMES',  label: 'En 4 fois' },
 ]
 
+function Field({ label, error, required, children }: { label: string; error?: string; required?: boolean; children: React.ReactNode }) {
+	return (
+		<div>
+			<label className="text-xs font-semibold text-dark-300 uppercase tracking-wider block mb-1.5">
+				{label}{required && <span className="text-brand-400 ml-1">*</span>}
+			</label>
+			{children}
+			{error && <p className="text-xs text-red-400 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{error}</p>}
+		</div>
+	)
+}
+
 export default function ReservationForm({ mode, availableCars, defaultExpiresAt, initialData }: Props) {
 	const router  = useRouter()
 	const [form, setForm] = useState<FormData>({
@@ -128,23 +140,12 @@ export default function ReservationForm({ mode, availableCars, defaultExpiresAt,
 		}
 	}
 
-	const Field = ({ label, error, required, children }: { label: string; error?: string; required?: boolean; children: React.ReactNode }) => (
-		<div>
-			<label className="text-xs font-semibold text-dark-300 uppercase tracking-wider block mb-1.5">
-				{label}{required && <span className="text-brand-400 ml-1">*</span>}
-			</label>
-			{children}
-			{error && <p className="text-xs text-red-400 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{error}</p>}
-		</div>
-	)
-
 	const remaining   = Math.max(0, (form.totalPrice || 0) - (form.depositAmount || 0))
 	const selectedCar = mode === 'create' ? availableCars.find((c) => c.id === form.carId) : undefined
 
 	return (
 		<form onSubmit={handleSubmit} className="space-y-8 max-w-4xl">
 
-			{/* ── Info banner ──────────────────────────────────────────── */}
 			{mode === 'create' && (
 				<div className="flex items-start gap-3 rounded-xl border border-brand-500/20 bg-brand-500/10 p-4">
 					<Info className="w-4 h-4 text-brand-400 mt-0.5 shrink-0" />
@@ -195,7 +196,7 @@ export default function ReservationForm({ mode, availableCars, defaultExpiresAt,
 									</p>
 									<p className="text-dark-300 mt-1">
 										Prix catalogue <span className="line-through text-dark-500">{formatPrice(selectedCar.price)}</span>
-										{' '}→ prix proposé <span className="font-bold text-white">{formatPrice(selectedCar.finalPrice ?? selectedCar.price)}</span>.
+										{' '}— prix proposé <span className="font-bold text-white">{formatPrice(selectedCar.finalPrice ?? selectedCar.price)}</span>.
 										{priceAutoFilled && ' Le champ « Prix total » ci-dessous a été pré-rempli avec ce montant — modifiable si besoin.'}
 									</p>
 								</div>
@@ -219,7 +220,6 @@ export default function ReservationForm({ mode, availableCars, defaultExpiresAt,
 				)}
 			</section>
 
-			{/* ── Section: client ─────────────────────────────────────── */}
 			<section className="card p-6 space-y-5">
 				<h2 className="font-display font-bold text-white text-sm uppercase tracking-widest border-b border-dark-700 pb-3">
 					Informations client
@@ -243,7 +243,6 @@ export default function ReservationForm({ mode, availableCars, defaultExpiresAt,
 				</p>
 			</section>
 
-			{/* ── Section: paiement ───────────────────────────────────── */}
 			<section className="card p-6 space-y-5">
 				<h2 className="font-display font-bold text-white text-sm uppercase tracking-widest border-b border-dark-700 pb-3">
 					Paiement
@@ -280,7 +279,6 @@ export default function ReservationForm({ mode, availableCars, defaultExpiresAt,
 				</div>
 			</section>
 
-			{/* ── Section: échéance ───────────────────────────────────── */}
 			<section className="card p-6 space-y-5">
 				<h2 className="font-display font-bold text-white text-sm uppercase tracking-widest border-b border-dark-700 pb-3">
 					Échéance
@@ -297,7 +295,6 @@ export default function ReservationForm({ mode, availableCars, defaultExpiresAt,
 				</p>
 			</section>
 
-			{/* ── Section: notes ──────────────────────────────────────── */}
 			<section className="card p-6 space-y-4">
 				<h2 className="font-display font-bold text-white text-sm uppercase tracking-widest border-b border-dark-700 pb-3">
 					Notes internes
@@ -308,7 +305,6 @@ export default function ReservationForm({ mode, availableCars, defaultExpiresAt,
 					className="input-base resize-none" />
 			</section>
 
-			{/* Submit */}
 			<div className="flex gap-3">
 				<button type="submit" disabled={loading} className="btn-primary px-8">
 					{loading

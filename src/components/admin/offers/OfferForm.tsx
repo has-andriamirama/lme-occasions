@@ -15,8 +15,8 @@ interface FormData {
 	description: string
 	type: 'PERCENTAGE' | 'FIXED_AMOUNT'
 	value: number
-	startDate: string // datetime-local
-	endDate: string   // datetime-local
+	startDate: string
+	endDate: string
 	isActive: boolean
 	appliedToAll: boolean
 	carIds: string[]
@@ -26,6 +26,18 @@ interface Props {
 	initialData?: Partial<FormData> & { id?: string }
 	mode: 'create' | 'edit'
 	availableCars: CarOption[]
+}
+
+function Field({ label, error, required, children }: { label: string; error?: string; required?: boolean; children: React.ReactNode }) {
+	return (
+		<div>
+			<label className="text-xs font-semibold text-dark-300 uppercase tracking-wider block mb-1.5">
+				{label}{required && <span className="text-brand-400 ml-1">*</span>}
+			</label>
+			{children}
+			{error && <p className="text-xs text-red-400 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{error}</p>}
+		</div>
+	)
 }
 
 function toDatetimeLocal(value: Date | string): string {
@@ -105,20 +117,9 @@ export default function OfferForm({ initialData, mode, availableCars }: Props) {
 		}
 	}
 
-	const Field = ({ label, error, required, children }: { label: string; error?: string; required?: boolean; children: React.ReactNode }) => (
-		<div>
-			<label className="text-xs font-semibold text-dark-300 uppercase tracking-wider block mb-1.5">
-				{label}{required && <span className="text-brand-400 ml-1">*</span>}
-			</label>
-			{children}
-			{error && <p className="text-xs text-red-400 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{error}</p>}
-		</div>
-	)
-
 	return (
 		<form onSubmit={handleSubmit} className="space-y-8 max-w-4xl">
 
-			{/* ── Section: infos principales ──────────────────────────── */}
 			<section className="card p-6 space-y-5">
 				<h2 className="font-display font-bold text-white text-sm uppercase tracking-widest border-b border-dark-700 pb-3">
 					Informations principales
@@ -135,7 +136,6 @@ export default function OfferForm({ initialData, mode, availableCars }: Props) {
 				</Field>
 			</section>
 
-			{/* ── Section: réduction ──────────────────────────────────── */}
 			<section className="card p-6 space-y-5">
 				<h2 className="font-display font-bold text-white text-sm uppercase tracking-widest border-b border-dark-700 pb-3">
 					Réduction
@@ -156,7 +156,6 @@ export default function OfferForm({ initialData, mode, availableCars }: Props) {
 				</div>
 			</section>
 
-			{/* ── Section: période ─────────────────────────────────────── */}
 			<section className="card p-6 space-y-5">
 				<h2 className="font-display font-bold text-white text-sm uppercase tracking-widest border-b border-dark-700 pb-3">
 					Période de validité
@@ -178,7 +177,6 @@ export default function OfferForm({ initialData, mode, availableCars }: Props) {
 				</p>
 			</section>
 
-			{/* ── Section: véhicules concernés ─────────────────────────── */}
 			<section className="card p-6 space-y-4">
 				<h2 className="font-display font-bold text-white text-sm uppercase tracking-widest border-b border-dark-700 pb-3">
 					Véhicules concernés
@@ -222,7 +220,6 @@ export default function OfferForm({ initialData, mode, availableCars }: Props) {
 				)}
 			</section>
 
-			{/* ── Section: statut ──────────────────────────────────────── */}
 			<section className="card p-6 space-y-5">
 				<h2 className="font-display font-bold text-white text-sm uppercase tracking-widest border-b border-dark-700 pb-3">
 					Statut
@@ -240,7 +237,6 @@ export default function OfferForm({ initialData, mode, availableCars }: Props) {
 				</label>
 			</section>
 
-			{/* Submit */}
 			<div className="flex gap-3">
 				<button type="submit" disabled={loading} className="btn-primary px-8">
 					{loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Enregistrement…</> :
