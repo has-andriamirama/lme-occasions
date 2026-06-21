@@ -6,7 +6,8 @@ import { useSearchParams } from 'next/navigation'
 import { Search, SlidersHorizontal, X, ChevronDown, Tag, Clock, ArrowLeft } from 'lucide-react'
 import CarCard from './CarCard'
 import { useCarStatusUpdates } from '@/hooks/useCarStatusUpdates'
-import { cn, formatDate } from '@/lib/utils'
+import { useOfferUpdates, type OfferBroadcastPayload } from '@/hooks/useOfferUpdates'
+import { cn, formatDate, getOfferStatus, getOfferStatusLabel } from '@/lib/utils'
 import type { OfferWithCars } from '@/types'
 
 const SORT_OPTIONS = [
@@ -47,6 +48,50 @@ const INIT_FILTERS: Filters = {
 	minPrice: '', maxPrice: '', minYear: '', maxYear: '', maxMileage: '', sortBy: 'newest', offerId: '',
 }
 
+const OFFER_STATUS_COLORS = {
+	ACTIVE:    'text-emerald-400',
+	PAUSED:    'text-amber-400',
+	SCHEDULED: 'text-blue-400',
+	EXPIRED:   'text-red-400',
+} as const
+
+function applyOfferChange(cars: any[], offer: OfferBroadcastPayload): any[] {
+	return cars.map((car) => {
+		const isTargeted  = offer.carIds.includes(car.id)
+		const existingIdx = (car.offers as Array<{ offer: any }>).findIndex((o) => o.offer.id === offer.id)
+
+		if (isTargeted) {
+			const existing = car.offers[existingIdx]?.offer
+			const updatedOffer = {
+				id:           offer.id,
+				name:         offer.name,
+				description:  offer.description,
+				type:         offer.type,
+				value:        offer.value,
+				startDate:    new Date(offer.startDate),
+				endDate:      new Date(offer.endDate),
+				isActive:     offer.isActive,
+				appliedToAll: offer.appliedToAll,
+				createdAt:    existing?.createdAt ?? new Date(),
+				updatedAt:    new Date(),
+			}
+
+			if (existingIdx !== -1) {
+				const updatedOffers = [...car.offers]
+				updatedOffers[existingIdx] = { offer: updatedOffer }
+				return { ...car, offers: updatedOffers }
+			}
+			return { ...car, offers: [...car.offers, { offer: updatedOffer }] }
+		}
+
+		if (existingIdx !== -1) {
+			return { ...car, offers: car.offers.filter((o: any) => o.offer.id !== offer.id) }
+		}
+
+		return car
+	})
+}
+
 export default function CarsPageClient({ brands }: { brands: string[] }) {
 	const searchParams = useSearchParams()
 
@@ -63,12 +108,49 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
 	const [offer, setOffer]               = useState<OfferWithCars | null>(null)
 	const [loadingOffer, setLoadingOffer] = useState(false)
 
-	// Real-time: update car status in list when another user reserves
 	useCarStatusUpdates((carId, newStatus) => {
 		setCars((prev) => prev.map((c) => c.id === carId ? { ...c, status: newStatus } : c))
 	})
 
-	// Fetch offer details when offerId changes
+	useOfferUpdates({
+		onChange: (incoming) => {
+			setCars((prev) => applyOfferChange(prev, incoming))
+
+			if (filters.offerId === incoming.id) {
+				setOffer((prev) =>
+					prev
+						? {
+								...prev,
+								name:         incoming.name,
+								description:  incoming.description,
+								type:         incoming.type as any,
+								value:        incoming.value,
+								startDate:    new Date(incoming.startDate),
+								endDate:      new Date(incoming.endDate),
+								isActive:     incoming.isActive,
+								appliedToAll: incoming.appliedToAll,
+								
+								cars: incoming.appliedToAll
+									? prev.cars
+									: prev.cars.filter((c) => incoming.carIds.includes(c.car.id)),
+							}
+						: null
+				)
+			}
+		},
+		onDelete: (offerId) => {
+			setCars((prev) =>
+				prev.map((car) => ({
+					...car,
+					offers: car.offers.filter((o: any) => o.offer.id !== offerId),
+				}))
+			)
+			if (filters.offerId === offerId) {
+				setOffer(null)
+			}
+		},
+	})
+
 	useEffect(() => {
 		if (!filters.offerId) {
 			setOffer(null)
@@ -131,7 +213,6 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
 		<div className="pt-24 pb-20 min-h-screen">
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-				{/* ── Offer banner ──────────────────────────────────────── */}
 				{filters.offerId && (
 					<div className="mb-8">
 						{loadingOffer ? (
@@ -139,64 +220,69 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
 								<div className="h-5 w-1/3 shimmer rounded mb-3" />
 								<div className="h-4 w-1/2 shimmer rounded" />
 							</div>
-						) : offer ? (
-							<div className="relative rounded-2xl bg-dark-800 border border-brand-500/30 overflow-hidden shadow-brand">
-								{/* Gold glow top-right */}
-								<div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl -translate-y-16 translate-x-16 pointer-events-none" />
-								<div className="absolute bottom-0 left-0 w-48 h-48 bg-brand-500/5 rounded-full blur-2xl translate-y-12 -translate-x-12 pointer-events-none" />
+						) : offer ? (() => {
+							const now           = new Date()
+							const offerStatus   = getOfferStatus(offer, now)
+							const statusLabel   = getOfferStatusLabel(offerStatus)
+							const statusColor   = OFFER_STATUS_COLORS[offerStatus]
 
-								<div className="relative p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center gap-6">
-									{/* Icon */}
-									<div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-brand-500/15 border border-brand-500/30
-																	flex items-center justify-center">
-										<Tag className="w-6 h-6 text-brand-400" />
-									</div>
+							return (
+								<div className="relative rounded-2xl bg-dark-800 border border-brand-500/30 overflow-hidden shadow-brand">
+									<div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl -translate-y-16 translate-x-16 pointer-events-none" />
+									<div className="absolute bottom-0 left-0 w-48 h-48 bg-brand-500/5 rounded-full blur-2xl translate-y-12 -translate-x-12 pointer-events-none" />
 
-									{/* Content */}
-									<div className="flex-1 min-w-0">
-										<div className="flex items-center gap-2 mb-1">
-											<span className="text-xs font-bold text-brand-400 uppercase tracking-widest">Offre active</span>
-											<span className="inline-flex items-center gap-1 bg-brand-500 text-dark-950 font-black text-sm px-2.5 py-0.5 rounded-lg">
-												{offer.type === 'PERCENTAGE'
-													? `-${offer.value}%`
-													: `-${offer.value.toLocaleString('fr-FR')} €`}
-											</span>
+									<div className="relative p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center gap-6">
+										<div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-brand-500/15 border border-brand-500/30
+																		flex items-center justify-center">
+											<Tag className="w-6 h-6 text-brand-400" />
 										</div>
 
-										<h2 className="font-display font-black text-xl sm:text-2xl text-white mb-1 truncate">
-											{offer.name}
-										</h2>
+										<div className="flex-1 min-w-0">
+											<div className="flex items-center gap-2 mb-1">
+												<span className={`text-xs font-bold uppercase tracking-widest ${statusColor}`}>
+													{statusLabel}
+												</span>
+												<span className="inline-flex items-center gap-1 bg-brand-500 text-dark-950 font-black text-sm px-2.5 py-0.5 rounded-lg">
+													{offer.type === 'PERCENTAGE'
+														? `-${offer.value}%`
+														: `-${offer.value.toLocaleString('fr-FR')} €`}
+												</span>
+											</div>
 
-										{offer.description && (
-											<p className="text-sm text-dark-400 line-clamp-2 mb-2">{offer.description}</p>
-										)}
+											<h2 className="font-display font-black text-xl sm:text-2xl text-white mb-1 truncate">
+												{offer.name}
+											</h2>
 
-										<div className="flex flex-wrap items-center gap-4 text-xs text-dark-500">
-											<span className="flex items-center gap-2">
-												<Clock className="w-3.5 h-3.5 text-brand-500/70" />
-												<span>Expire le <span className="text-dark-300">{formatDate(offer.endDate)}</span></span>
-											</span>
-											<span>
-												{offer.appliedToAll
-													? 'Applicable sur tous les véhicules'
-													: `Applicable sur ${offer.cars.length} véhicule${offer.cars.length !== 1 ? 's' : ''}`}
-											</span>
+											{offer.description && (
+												<p className="text-sm text-dark-400 line-clamp-2 mb-2">{offer.description}</p>
+											)}
+
+											<div className="flex flex-wrap items-center gap-4 text-xs text-dark-500">
+												<span className="flex items-center gap-2">
+													<Clock className="w-3.5 h-3.5 text-brand-500/70" />
+													<span>Expire le <span className="text-dark-300">{formatDate(offer.endDate)}</span></span>
+												</span>
+												<span>
+													{offer.appliedToAll
+														? 'Applicable sur tous les véhicules'
+														: `Applicable sur ${offer.cars.length} véhicule${offer.cars.length !== 1 ? 's' : ''}`}
+												</span>
+											</div>
 										</div>
-									</div>
 
-									<div className="flex-shrink-0">
-										<Link href="/offers" className="btn-secondary text-sm shrink-0">
-											<ArrowLeft className="w-4 h-4" />
-											Voir toutes les offres
-										</Link>
+										<div className="flex-shrink-0">
+											<Link href="/offers" className="btn-secondary text-sm shrink-0">
+												<ArrowLeft className="w-4 h-4" />
+												Voir toutes les offres
+											</Link>
+										</div>
 									</div>
 								</div>
-							</div>
-						) : null}
+							)
+						})() : null}
 					</div>
 				)}
 
-				{/* ── Header ────────────────────────────────────────────── */}
 				<div className="mb-8">
 					<p className="text-xs font-bold text-brand-400 uppercase tracking-widest mb-2">Notre sélection</p>
 					<h1 className="font-display font-black text-3xl sm:text-4xl text-white mb-2">
@@ -207,7 +293,6 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
 					</p>
 				</div>
 
-				{/* ── Search + sort row ─────────────────────────────────── */}
 				<div className="flex flex-col sm:flex-row gap-3 mb-4">
 					<div className="relative flex-1">
 						<Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-400" />
@@ -244,11 +329,9 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
 					</div>
 				</div>
 
-				{/* ── Advanced filters panel ────────────────────────────── */}
 				{showFilters && (
 					<div className="card p-5 mb-6 animate-slide-down">
 						<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4">
-							{/* Brand */}
 							<div>
 								<label className="text-xs text-dark-400 font-semibold uppercase tracking-wider block mb-1.5">Marque</label>
 								<select value={filters.brand} onChange={(e) => set('brand', e.target.value)} className="input-base text-sm">
@@ -256,28 +339,24 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
 									{brands.map((b) => <option key={b} value={b}>{b}</option>)}
 								</select>
 							</div>
-							{/* Status */}
 							<div>
 								<label className="text-xs text-dark-400 font-semibold uppercase tracking-wider block mb-1.5">Statut</label>
 								<select value={filters.status} onChange={(e) => set('status', e.target.value)} className="input-base text-sm">
 									{STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
 								</select>
 							</div>
-							{/* Fuel */}
 							<div>
 								<label className="text-xs text-dark-400 font-semibold uppercase tracking-wider block mb-1.5">Carburant</label>
 								<select value={filters.fuelType} onChange={(e) => set('fuelType', e.target.value)} className="input-base text-sm">
 									{FUEL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
 								</select>
 							</div>
-							{/* Transmission */}
 							<div>
 								<label className="text-xs text-dark-400 font-semibold uppercase tracking-wider block mb-1.5">Boîte</label>
 								<select value={filters.transmission} onChange={(e) => set('transmission', e.target.value)} className="input-base text-sm">
 									{TRANS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
 								</select>
 							</div>
-							{/* Max mileage */}
 							<div>
 								<label className="text-xs text-dark-400 font-semibold uppercase tracking-wider block mb-1.5">Km max</label>
 								<input
@@ -286,7 +365,6 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
 									placeholder="200000" className="input-base text-sm" min={0}
 								/>
 							</div>
-							{/* Price */}
 							<div>
 								<label className="text-xs text-dark-400 font-semibold uppercase tracking-wider block mb-1.5">Prix min (€)</label>
 								<input
@@ -303,7 +381,6 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
 									placeholder="100000" className="input-base text-sm" min={0}
 								/>
 							</div>
-							{/* Year */}
 							<div>
 								<label className="text-xs text-dark-400 font-semibold uppercase tracking-wider block mb-1.5">Année min</label>
 								<input
@@ -329,7 +406,6 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
 					</div>
 				)}
 
-				{/* ── Cars grid ─────────────────────────────────────────── */}
 				{loading ? (
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
 						{Array.from({ length: 8 }).map((_, i) => (
@@ -354,7 +430,6 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
 							{cars.map((car) => <CarCard key={car.id} car={car} />)}
 						</div>
 
-						{/* Pagination */}
 						{meta.totalPages > 1 && (
 							<div className="flex items-center justify-center gap-2 mt-10">
 								{Array.from({ length: meta.totalPages }, (_, i) => i + 1).map((p) => (
