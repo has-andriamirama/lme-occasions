@@ -19,6 +19,7 @@ export default function ReservationActions({ reservationId, status }: Props) {
 	const canCancel  = ['PENDING', 'PAID', 'CONFIRMED'].includes(status)
 
 	const handleConfirm = async () => {
+		if (!canConfirm || confirming) return
 		if (!window.confirm('Confirmer cette réservation ? Le client s\'est présenté en agence et la réservation passera au statut « Confirmée ». Les paiements de tranche pourront alors être enregistrés.')) return
 
 		setConfirming(true)
@@ -42,6 +43,7 @@ export default function ReservationActions({ reservationId, status }: Props) {
 	}
 
 	const handleCancel = async () => {
+		if (!canCancel || cancelling) return
 		if (!window.confirm('Annuler cette réservation ? Le véhicule redeviendra disponible.')) return
 
 		setCancelling(true)
@@ -66,30 +68,27 @@ export default function ReservationActions({ reservationId, status }: Props) {
 
 	return (
 		<div className="flex items-center gap-1">
-			{canConfirm && (
-				<button
-					onClick={handleConfirm}
-					disabled={confirming}
-					title="Confirmer la réservation (présentation en agence)"
-					className="p-1.5 text-dark-400 hover:text-emerald-400 rounded-lg hover:bg-dark-700 transition-all disabled:opacity-40"
-				>
-					{confirming
-						? <Loader2 className="w-4 h-4 animate-spin" />
-						: <CheckCircle2 className="w-4 h-4" />}
-				</button>
-			)}
-			{canCancel && (
-				<button
-					onClick={handleCancel}
-					disabled={cancelling}
-					title="Annuler la réservation"
-					className="p-1.5 text-dark-400 hover:text-red-400 rounded-lg hover:bg-dark-700 transition-all disabled:opacity-40"
-				>
-					{cancelling
-						? <Loader2 className="w-4 h-4 animate-spin" />
-						: <XCircle className="w-4 h-4" />}
-				</button>
-			)}
+			<button
+				onClick={handleConfirm}
+				disabled={!canConfirm || confirming}
+				title={canConfirm ? 'Confirmer la réservation (présentation en agence)' : 'Confirmation disponible uniquement pour une réservation payée'}
+				className="p-1.5 text-dark-400 hover:text-emerald-400 rounded-lg hover:bg-dark-700 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-dark-400 disabled:hover:bg-transparent"
+			>
+				{confirming
+					? <Loader2 className="w-4 h-4 animate-spin" />
+					: <CheckCircle2 className="w-4 h-4" />}
+			</button>
+
+			<button
+				onClick={handleCancel}
+				disabled={!canCancel || cancelling}
+				title={canCancel ? 'Annuler la réservation' : 'Annulation indisponible pour ce statut'}
+				className="p-1.5 text-dark-400 hover:text-red-400 rounded-lg hover:bg-dark-700 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-dark-400 disabled:hover:bg-transparent"
+			>
+				{cancelling
+					? <Loader2 className="w-4 h-4 animate-spin" />
+					: <XCircle className="w-4 h-4" />}
+			</button>
 		</div>
 	)
 }

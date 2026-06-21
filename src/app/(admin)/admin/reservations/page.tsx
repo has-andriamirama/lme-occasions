@@ -19,12 +19,12 @@ import Link from 'next/link'
 export const metadata: Metadata = { title: 'Réservations' }
 
 const STATUS_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-	PENDING:   { label: 'En attente',  color: 'bg-amber-500/10 text-amber-400 border-amber-500/20',    icon: <Clock className="w-3.5 h-3.5" /> },
-	PAID:     { label: 'Payée',       color: 'bg-blue-500/10 text-blue-400 border-blue-500/20',       icon: <CreditCard className="w-3.5 h-3.5" /> },
-	CONFIRMED: { label: 'Confirmée',   color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
-	COMPLETED: { label: 'Finalisée',   color: 'bg-brand-500/10 text-brand-400 border-brand-500/20',    icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
-	EXPIRED:   { label: 'Expirée',     color: 'bg-red-500/10 text-red-400 border-red-500/20',          icon: <XCircle className="w-3.5 h-3.5" /> },
-	CANCELLED: { label: 'Annulée',     color: 'bg-dark-600/30 text-dark-400 border-dark-600/20',       icon: <XCircle className="w-3.5 h-3.5" /> },
+	PENDING:   { label: 'En attente', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20',    icon: <Clock className="w-3.5 h-3.5" /> },
+	PAID:      { label: 'Payée',      color: 'bg-blue-500/10 text-blue-400 border-blue-500/20',       icon: <CreditCard className="w-3.5 h-3.5" /> },
+	CONFIRMED: { label: 'Confirmée',  color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
+	COMPLETED: { label: 'Finalisée',  color: 'bg-brand-500/10 text-brand-400 border-brand-500/20',    icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
+	EXPIRED:   { label: 'Expirée',    color: 'bg-red-500/10 text-red-400 border-red-500/20',          icon: <XCircle className="w-3.5 h-3.5" /> },
+	CANCELLED: { label: 'Annulée',    color: 'bg-dark-600/30 text-dark-400 border-dark-600/20',       icon: <XCircle className="w-3.5 h-3.5" /> },
 }
 
 function PaymentProgress({
@@ -126,7 +126,6 @@ export default async function ReservationsPage({
 				</Link>
 			</div>
 
-			{/* Cartes récap */}
 			<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 				{[
 					{ label: 'Payées (à confirmer)', value: payed,     color: 'text-blue-400' },
@@ -141,7 +140,6 @@ export default async function ReservationsPage({
 				))}
 			</div>
 
-			{/* Filtres */}
 			<div className="flex flex-wrap gap-2">
 				{[
 					{ label: 'Toutes',     value: '' },
@@ -162,7 +160,6 @@ export default async function ReservationsPage({
 				))}
 			</div>
 
-			{/* Tableau */}
 			<div className="card overflow-hidden">
 				{reservations.length === 0 ? (
 					<div className="text-center py-12">
@@ -198,7 +195,6 @@ export default async function ReservationsPage({
 											key={r.id}
 											className={`hover:bg-dark-800/30 transition-colors ${isUrgent ? 'bg-amber-500/5' : ''}`}
 										>
-											{/* Véhicule */}
 											<td className="px-4 py-3">
 												<div className="flex items-center gap-3">
 													<div className="w-10 h-8 rounded-lg bg-dark-700 overflow-hidden shrink-0">
@@ -214,13 +210,11 @@ export default async function ReservationsPage({
 												</div>
 											</td>
 
-											{/* Client */}
 											<td className="px-4 py-3 hidden sm:table-cell">
 												<p className="text-sm text-white">{r.clientName}</p>
 												<p className="text-xs text-dark-400">{r.clientEmail}</p>
 											</td>
 
-											{/* Acompte */}
 											<td className="px-4 py-3 text-right hidden md:table-cell">
 												<p className={`text-sm font-bold ${r.status === 'PENDING' ? 'text-dark-500' : 'text-brand-400'}`}>
 													{formatPrice(r.depositAmount)}
@@ -239,7 +233,6 @@ export default async function ReservationsPage({
 												/>
 											</td>
 
-											{/* Expiration */}
 											<td className="px-4 py-3 text-center hidden lg:table-cell">
 												{r.status === 'PAID' ? (
 													<div className={`flex items-center justify-center gap-1 text-xs font-medium
@@ -252,17 +245,14 @@ export default async function ReservationsPage({
 												)}
 											</td>
 
-											{/* Statut */}
 											<td className="px-4 py-3 text-center">
 												<span className={`badge ${meta.color}`}>
 													{meta.icon}{meta.label}
 												</span>
 											</td>
 
-											{/* Actions */}
 											<td className="px-4 py-3 text-center">
 												<div className="flex items-center justify-center gap-1">
-													{/* ── NOUVEAU : bouton Voir (toujours visible) ── */}
 													<Link
 														href={`/admin/reservations/${r.id}`}
 														title="Voir le détail"
@@ -271,18 +261,25 @@ export default async function ReservationsPage({
 														<Eye className="w-4 h-4" />
 													</Link>
 
-													{['PENDING', 'PAID', 'CONFIRMED'].includes(r.status) && (
-														<>
-															<Link
-																href={`/admin/reservations/${r.id}/edit`}
-																title="Modifier"
-																className="p-1.5 text-dark-400 hover:text-brand-400 rounded-lg hover:bg-dark-700 transition-all"
-															>
-																<Pencil className="w-4 h-4" />
-															</Link>
-															<ReservationActions reservationId={r.id} status={r.status} />
-														</>
+													{['PENDING', 'PAID', 'CONFIRMED'].includes(r.status) ? (
+														<Link
+															href={`/admin/reservations/${r.id}/edit`}
+															title="Modifier"
+															className="p-1.5 text-dark-400 hover:text-brand-400 rounded-lg hover:bg-dark-700 transition-all"
+														>
+															<Pencil className="w-4 h-4" />
+														</Link>
+													) : (
+														<span
+															title="Modification indisponible pour ce statut"
+															aria-disabled="true"
+															className="p-1.5 text-dark-400 opacity-30 cursor-not-allowed rounded-lg"
+														>
+															<Pencil className="w-4 h-4" />
+														</span>
 													)}
+
+													<ReservationActions reservationId={r.id} status={r.status} />
 												</div>
 											</td>
 										</tr>
@@ -294,7 +291,6 @@ export default async function ReservationsPage({
 				)}
 			</div>
 
-			{/* Pagination */}
 			{totalPages > 1 && (
 				<div className="flex items-center justify-center gap-2">
 					{Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (

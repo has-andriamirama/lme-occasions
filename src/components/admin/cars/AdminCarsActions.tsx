@@ -59,7 +59,6 @@ export default function AdminCarsActions({ carId, carTitle, carStatus }: Props) 
             </div>
           </div>
         </div>
-        {/* Keep the trash icon rendered behind modal */}
         <button className="p-1.5 text-red-400 rounded-lg bg-red-500/10">
           <Trash2 className="w-4 h-4" />
         </button>
