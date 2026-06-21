@@ -3,14 +3,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/db'
-import { broadcastCarStatus } from '@/lib/pusher'
+import { broadcastCarUpdate } from '@/lib/pusher'
 import { sendReservationConfirmedToClient } from '@/lib/mail'
 import { getInstallmentCount, recreateInstallments } from '@/lib/installments'
 import { z } from 'zod'
 
 const patchSchema = z.object({
 	action: z.enum(['CONFIRM', 'COMPLETE', 'CANCEL']),
-	notes:  z.string().optional(),
+	notes: z.string().optional(),
 })
 
 const updateReservationSchema = z.object({
@@ -204,7 +204,7 @@ export async function PATCH(
 		if (action !== 'CONFIRM') {
 			const newCarStatus = action === 'COMPLETE' ? 'SOLD' : 'AVAILABLE'
 			try {
-				await broadcastCarStatus(reservation.carId, newCarStatus, reservation.car.title)
+				await broadcastCarUpdate({ id: reservation.carId, status: newCarStatus, title: reservation.car.title })
 			} catch (pusherErr) {
 				console.error('[PATCH /api/reservations/:id] Pusher échoué (non-critique) :', pusherErr)
 			}

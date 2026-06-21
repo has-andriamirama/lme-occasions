@@ -8,7 +8,7 @@ import {
 	formatPrice, calculateDiscountedPrice, getStatusLabel, getStatusColor,
 	getOfferStatus, cn,
 } from '@/lib/utils'
-import { useCarStatusUpdates } from '@/hooks/useCarStatusUpdates'
+import { useCarUpdates } from '@/hooks/useCarUpdates'
 import { useOfferUpdates, type OfferBroadcastPayload } from '@/hooks/useOfferUpdates'
 import type { Car, Offer } from '@prisma/client'
 
@@ -58,9 +58,9 @@ function applyOfferChange(
 export default function FeaturedCars({ cars: initialCars }: { cars: CarWithOffers[] }) {
 	const [cars, setCars] = useState(initialCars)
 
-	useCarStatusUpdates((carId, newStatus) => {
+	useCarUpdates((updatedCar) => {
 		setCars((prev) =>
-			prev.map((c) => (c.id === carId ? { ...c, status: newStatus as Car['status'] } : c))
+			prev.map((c) => (c.id === updatedCar.id ? ({ ...c, ...updatedCar } as CarWithOffers) : c))
 		)
 	})
 

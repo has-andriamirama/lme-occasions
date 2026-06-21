@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Search, SlidersHorizontal, X, ChevronDown, Tag, Clock, ArrowLeft } from 'lucide-react'
 import CarCard from './CarCard'
-import { useCarStatusUpdates } from '@/hooks/useCarStatusUpdates'
+import { useCarUpdates } from '@/hooks/useCarUpdates'
 import { useOfferUpdates, type OfferBroadcastPayload } from '@/hooks/useOfferUpdates'
 import { cn, formatDate, getOfferStatus, getOfferStatusLabel } from '@/lib/utils'
 import type { OfferWithCars } from '@/types'
@@ -108,8 +108,8 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
 	const [offer, setOffer]               = useState<OfferWithCars | null>(null)
 	const [loadingOffer, setLoadingOffer] = useState(false)
 
-	useCarStatusUpdates((carId, newStatus) => {
-		setCars((prev) => prev.map((c) => c.id === carId ? { ...c, status: newStatus } : c))
+	useCarUpdates((updatedCar) => {
+		setCars((prev) => prev.map((c) => (c.id === updatedCar.id ? { ...c, ...updatedCar } : c)))
 	})
 
 	useOfferUpdates({

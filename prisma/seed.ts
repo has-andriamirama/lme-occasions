@@ -7,7 +7,6 @@ const prisma = new PrismaClient()
 async function main() {
 	console.log('Seeding database...')
 
-	// Create default super admin
 	const existingAdmin = await prisma.admin.findUnique({
 		where: { username: 'admin' },
 	})
@@ -30,7 +29,6 @@ async function main() {
 		console.log('Default admin already exists, skipping.')
 	}
 
-	// Seed sample cars for demo
 	const carsCount = await prisma.car.count()
 	if (carsCount === 0) {
 		await prisma.car.createMany({

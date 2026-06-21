@@ -2,7 +2,6 @@
 import Pusher from 'pusher'
 import PusherClient from 'pusher-js'
 
-// ── Server-side Pusher ───────────────────────────────────────────────────────
 export const pusherServer = new Pusher({
 	appId:   process.env.PUSHER_APP_ID!,
 	key:     process.env.PUSHER_KEY!,
@@ -11,7 +10,6 @@ export const pusherServer = new Pusher({
 	useTLS:  true,
 })
 
-// ── Client-side Pusher (singleton) ──────────────────────────────────────────
 let pusherClientInstance: PusherClient | null = null
 
 export function getPusherClient(): PusherClient {
@@ -37,27 +35,48 @@ export function getPusherClient(): PusherClient {
 	return pusherClientInstance
 }
 
-// ── Channel / event constants ────────────────────────────────────────────────
 export const CHANNELS = {
-	cars:    'lme-cars',
-	offers:  'lme-offers',
-	admin:   'lme-admin',
+	cars:   'lme-cars',
+	offers: 'lme-offers',
+	admin:  'lme-admin',
 } as const
 
 export const EVENTS = {
-	carStatusChanged: 'car-status-changed',
-	carCreated:       'car-created',
-	carUpdated:       'car-updated',
-	offerChanged:     'offer-changed',
-	offerDeleted:     'offer-deleted',
-	newReservation:   'new-reservation',
-	newContact:       'new-contact',
+	carCreated:     'car-created',
+	carUpdated:     'car-updated',
+	offerChanged:   'offer-changed',
+	offerDeleted:   'offer-deleted',
+	newReservation: 'new-reservation',
+	newContact:     'new-contact',
 } as const
 
-// ── Trigger helpers ──────────────────────────────────────────────────────────
-export async function broadcastCarStatus(carId: string, status: string, title: string) {
-	await pusherServer.trigger(CHANNELS.cars, EVENTS.carStatusChanged, {
-		carId, status, title, timestamp: new Date().toISOString(),
+export interface CarBroadcastPayload {
+	id:                string
+	title?:            string
+	brand?:            string
+	model?:            string
+	year?:             number
+	mileage?:          number
+	price?:            number
+	description?:      string
+	mainImage?:        string
+	images?:           string[]
+	equipments?:       string[]
+	status?:           string
+	isFeatured?:       boolean
+	transmission?:     string
+	fuelType?:         string
+	color?:            string | null
+	engineSize?:       string | null
+	seats?:            number | null
+	doors?:            number | null
+	condition?:        string | null
+	allowInstallment?: boolean
+}
+
+export async function broadcastCarUpdate(payload: CarBroadcastPayload) {
+	await pusherServer.trigger(CHANNELS.cars, EVENTS.carUpdated, {
+		...payload, timestamp: new Date().toISOString(),
 	})
 }
 
@@ -82,7 +101,7 @@ export async function broadcastOfferChange(offer: {
 	const payload: OfferBroadcastPayload = {
 		...offer,
 		startDate: new Date(offer.startDate).toISOString(),
-		endDate:   new Date(offer.endDate).toISOString(),
+		endDate: new Date(offer.endDate).toISOString(),
 	}
 	await pusherServer.trigger(CHANNELS.offers, EVENTS.offerChanged, {
 		offer: payload, timestamp: new Date().toISOString(),

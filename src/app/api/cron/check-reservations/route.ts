@@ -1,7 +1,7 @@
 // src/app/api/cron/check-reservations/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
-import { broadcastCarStatus } from '@/lib/pusher'
+import { broadcastCarUpdate } from '@/lib/pusher'
 import {
 	sendReservationExpiredToAdmin,
 	sendReservationExpiredToClient,
@@ -45,11 +45,11 @@ export async function GET(req: NextRequest) {
 					})
 				})
 
-				await broadcastCarStatus(
-					reservation.carId,
-					'AVAILABLE',
-					reservation.car.title
-				).catch(console.error)
+				await broadcastCarUpdate({
+					id:     reservation.carId,
+					status: 'AVAILABLE',
+					title:  reservation.car.title,
+				}).catch(console.error)
 
 				await Promise.all([
 					sendReservationExpiredToClient({

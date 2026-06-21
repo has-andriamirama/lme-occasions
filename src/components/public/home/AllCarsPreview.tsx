@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import CarCard from '@/components/public/cars/CarCard'
-import { useCarStatusUpdates } from '@/hooks/useCarStatusUpdates'
+import { useCarUpdates } from '@/hooks/useCarUpdates'
 import { useOfferUpdates, type OfferBroadcastPayload } from '@/hooks/useOfferUpdates'
 import { ArrowRight } from 'lucide-react'
 import type { Car, Offer } from '@prisma/client'
@@ -54,9 +54,9 @@ function applyOfferChange(
 export default function AllCarsPreview({ cars: initialCars }: { cars: CarWithOffers[] }) {
 	const [cars, setCars] = useState(initialCars)
 
-	useCarStatusUpdates((carId, newStatus) => {
+	useCarUpdates((updatedCar) => {
 		setCars((prev) =>
-			prev.map((c) => (c.id === carId ? { ...c, status: newStatus as Car['status'] } : c))
+			prev.map((c) => (c.id === updatedCar.id ? ({ ...c, ...updatedCar } as CarWithOffers) : c))
 		)
 	})
 

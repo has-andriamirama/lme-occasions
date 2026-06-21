@@ -13,7 +13,7 @@ import {
 	getTransmissionLabel, getFuelLabel, calculateDiscountedPrice, formatDate,
 	getOfferStatus, cn
 } from '@/lib/utils'
-import { useCarStatusUpdates } from '@/hooks/useCarStatusUpdates'
+import { useCarUpdates } from '@/hooks/useCarUpdates'
 import { useOfferUpdates } from '@/hooks/useOfferUpdates'
 import { useNow } from '@/hooks/useNow'
 import toast from 'react-hot-toast'
@@ -49,11 +49,18 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 	const depositAmount = Math.round(finalPrice * 0.30)
 	const isAvailable   = car.status === 'AVAILABLE'
 
-	// Real-time status updates
-	useCarStatusUpdates((carId, newStatus) => {
-		if (carId === car.id && newStatus !== car.status) {
-			setCar((prev) => ({ ...prev, status: newStatus as any }))
-			if (newStatus === 'RESERVED') toast.error('Ce véhicule vient d\'être réservé par quelqu\'un d\'autre.')
+	// Mises à jour temps réel (statut, prix, photos, kilométrage, etc.)
+	useCarUpdates((updatedCar) => {
+		if (updatedCar.id !== car.id) return
+
+		const statusChangedToReserved = updatedCar.status !== undefined
+			&& updatedCar.status !== car.status
+			&& updatedCar.status === 'RESERVED'
+
+		setCar((prev) => ({ ...prev, ...updatedCar } as typeof prev))
+
+		if (statusChangedToReserved) {
+			toast.error('Ce véhicule vient d\'être réservé par quelqu\'un d\'autre.')
 		}
 	})
 

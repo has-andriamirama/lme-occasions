@@ -3,7 +3,6 @@ import type { Car, Offer, Reservation, Admin, Contact, CarOffer } from '@prisma/
 
 export type { Car, Offer, Reservation, Admin, Contact, CarOffer }
 
-// ── Extended types ─────────────────────────────────────────────────────────
 export type CarWithOffers = Car & {
 	offers: Array<{ offer: Offer }>
 	_count?: { reservations: number }
@@ -25,7 +24,6 @@ export type AdminRole = 'SUPER_ADMIN' | 'ADMIN'
 export type ReservationStatus = 'PENDING' | 'PAID' | 'CONFIRMED' | 'COMPLETED' | 'EXPIRED' | 'CANCELLED'
 export type InstallmentType = 'FULL' | 'THREE_TIMES' | 'FOUR_TIMES'
 
-// ── API Response types ─────────────────────────────────────────────────────
 export type ApiResponse<T = unknown> = {
 	success: boolean
 	data?: T
@@ -33,7 +31,6 @@ export type ApiResponse<T = unknown> = {
 	message?: string
 }
 
-// ── Filter types ───────────────────────────────────────────────────────────
 export interface CarFilters {
 	brand?: string
 	minPrice?: number
@@ -51,7 +48,6 @@ export interface CarFilters {
 	limit?: number
 }
 
-// ── Dashboard stats ────────────────────────────────────────────────────────
 export interface DashboardStats {
 	totalCars: number
 	availableCars: number
@@ -66,7 +62,6 @@ export interface DashboardStats {
 	featuredCars: Car[]
 }
 
-// ── Session user override ──────────────────────────────────────────────────
 declare module 'next-auth' {
 	interface Session {
 		user: {

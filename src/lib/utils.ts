@@ -59,9 +59,6 @@ export function getDaysRemaining(expiresAt: Date | string): number {
 	return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
 }
 
-// ── Offer status (derived from isActive + startDate/endDate) ────────────────
-// Même principe que CarStatus (AVAILABLE/RESERVED/SOLD) mais calculé à la volée
-// à partir de la fenêtre de dates + du flag isActive (utilisé par l'action "pause").
 export type OfferStatusComputed = 'ACTIVE' | 'PAUSED' | 'SCHEDULED' | 'EXPIRED'
 
 export function getOfferStatus(
@@ -108,7 +105,6 @@ export function getOfferStatusDot(status: OfferStatusComputed): string {
 	return dots[status]
 }
 
-// Conservé pour compatibilité avec le code existant (CarCard, CarDetailClient...)
 export function isOfferActive(offer: { startDate: Date | string; endDate: Date | string; isActive: boolean }): boolean {
 	return getOfferStatus(offer) === 'ACTIVE'
 }

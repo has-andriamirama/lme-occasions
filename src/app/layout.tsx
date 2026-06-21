@@ -29,14 +29,13 @@ export const metadata: Metadata = {
     default: 'LME Occasions — Voitures d\'occasion premium',
     template: '%s | LME Occasions',
   },
-  description:
-    'LME Occasions — Spécialiste de la vente de voitures d\'occasion sélectionnées. Trouvez votre prochain véhicule parmi notre sélection de qualité. Réservez en ligne, livraison possible.',
+  description: 'LME Occasions — Spécialiste de la vente de voitures d\'occasion sélectionnées. Trouvez votre prochain véhicule parmi notre sélection de qualité. Réservez en ligne, livraison possible.',
   keywords: ['voitures occasion', 'auto occasion', 'LME Occasions', 'achat voiture', 'véhicule premium'],
   openGraph: {
-    type:    'website',
-    locale:  'fr_FR',
+    type: 'website',
+    locale: 'fr_FR',
     siteName: 'LME Occasions',
-    title:   'LME Occasions — Voitures d\'occasion premium',
+    title: 'LME Occasions — Voitures d\'occasion premium',
     description: 'Trouvez votre prochain véhicule parmi notre sélection de voitures d\'occasion de qualité.',
     images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: 'LME Occasions' }],
   },

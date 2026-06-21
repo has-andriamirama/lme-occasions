@@ -54,7 +54,6 @@ export const authOptions: NextAuthOptions = {
 
 				const ip = req?.headers?.['x-forwarded-for'] as string | undefined
 
-				// ── Brute-force protection ───────────────────────────────
 				const windowStart = new Date(Date.now() - LOCKOUT_WINDOW_MINUTES * 60 * 1000)
 				const recentFailures = await prisma.loginAttempt.count({
 					where: {
@@ -70,7 +69,6 @@ export const authOptions: NextAuthOptions = {
 					)
 				}
 
-				// ── Find admin ───────────────────────────────────────────
 				const admin = await prisma.admin.findFirst({
 					where: {
 						OR: [
@@ -97,7 +95,6 @@ export const authOptions: NextAuthOptions = {
 					throw new Error('Identifiant ou mot de passe incorrect')
 				}
 
-				// ── Success ──────────────────────────────────────────────
 				await Promise.all([
 					prisma.loginAttempt.create({
 						data: { username: credentials.username, ip, success: true, adminId: admin.id },
@@ -131,16 +128,15 @@ export async function requireAuth() {
 	return session
 }
 
-// Password strength validation
 export function validatePassword(password: string): {
 	valid: boolean
 	errors: string[]
 } {
 	const errors: string[] = []
-	if (password.length < 8)        errors.push('Au moins 8 caractères')
-	if (!/[A-Z]/.test(password))    errors.push('Au moins une majuscule')
-	if (!/[a-z]/.test(password))    errors.push('Au moins une minuscule')
-	if (!/[0-9]/.test(password))    errors.push('Au moins un chiffre')
+	if (password.length < 8) errors.push('Au moins 8 caractères')
+	if (!/[A-Z]/.test(password)) errors.push('Au moins une majuscule')
+	if (!/[a-z]/.test(password)) errors.push('Au moins une minuscule')
+	if (!/[0-9]/.test(password)) errors.push('Au moins un chiffre')
 	if (!/[^A-Za-z0-9]/.test(password)) errors.push('Au moins un caractère spécial')
 	return { valid: errors.length === 0, errors }
 }

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/db'
-import { broadcastCarStatus, broadcastAdminNotification, EVENTS } from '@/lib/pusher'
+import { broadcastCarUpdate, broadcastAdminNotification, EVENTS } from '@/lib/pusher'
 import {
 	sendReservationConfirmedToClient,
 	sendReservationNotificationToAdmin,
@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
 		})
 
 		try {
-			await broadcastCarStatus(carId, 'RESERVED', car.title)
+			await broadcastCarUpdate({ id: carId, status: 'RESERVED', title: car.title })
 			await broadcastAdminNotification(EVENTS.newReservation, {
 				reservationId: reservation.id,
 				carTitle:      car.title,

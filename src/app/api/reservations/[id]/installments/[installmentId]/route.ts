@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/db'
-import { broadcastCarStatus } from '@/lib/pusher'
+import { broadcastCarUpdate } from '@/lib/pusher'
 import { z } from 'zod'
 
 const updateInstallmentSchema = z.object({
@@ -95,7 +95,7 @@ export async function PUT(
 			})
 
 			try {
-				await broadcastCarStatus(reservation.carId, 'SOLD', reservation.car.title)
+				await broadcastCarUpdate({ id: reservation.carId, status: 'SOLD', title: reservation.car.title })
 			} catch (pusherErr) {
 				console.error('[PUT /installments/:id] Pusher broadcast échoué (non-critique) :', pusherErr)
 			}
@@ -103,14 +103,13 @@ export async function PUT(
 			autoCompleted = true
 		}
 
-		// ── Audit log ─────────────────────────────────────────────────────────
 		await prisma.auditLog.create({
 			data: {
 				adminId: session.user.id,
 				action: 'UPDATE',
 				entity: 'PaymentInstallment',
 				entityId: updatedInstallment.id,
-				details:  {
+				details: {
 					reservationId: params.id,
 					installmentNumber: targetInstallment.installmentNumber,
 					paidAmountBefore: targetInstallment.paidAmount,

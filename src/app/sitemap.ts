@@ -3,11 +3,11 @@ import type { MetadataRoute } from 'next'
 import prisma from '@/lib/db'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.lmeoccasions.com'
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://localhost:3000'
 
   const cars = await prisma.car.findMany({
-    where:   { status: { not: 'SOLD' } },
-    select:  { id: true, updatedAt: true },
+    where:  { status: { not: 'SOLD' } },
+    select: { id: true, updatedAt: true },
   })
 
   const staticRoutes: MetadataRoute.Sitemap = [
