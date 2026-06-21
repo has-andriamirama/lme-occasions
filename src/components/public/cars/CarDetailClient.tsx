@@ -28,12 +28,12 @@ interface Props {
 }
 
 export default function CarDetailClient({ car: initialCar, paymentSuccess, paymentCancelled }: Props) {
-	const [car, setCar]           = useState(initialCar)
-	const [imgIdx, setImgIdx]     = useState(0)
-	const [loading, setLoading]   = useState(false)
-	const [form, setForm]         = useState({ clientName: '', clientEmail: '', clientPhone: '' })
+	const [car, setCar]         = useState(initialCar)
+	const [imgIdx, setImgIdx]   = useState(0)
+	const [loading, setLoading] = useState(false)
+	const [form, setForm]       = useState({ clientName: '', clientEmail: '', clientPhone: '' })
 	const [installment, setInstallment] = useState<'FULL' | 'THREE_TIMES' | 'FOUR_TIMES'>('FULL')
-	const [errors, setErrors]     = useState<Record<string, string>>({})
+	const [errors, setErrors]   = useState<Record<string, string>>({})
 
 	const allImages = car.mainImage
 		? [car.mainImage, ...car.images.filter((i) => i !== car.mainImage)]
@@ -41,15 +41,14 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 
 	const now = useNow(15000)
 
-	const rawOffer     = car.offers[0]?.offer ?? null
-	const activeOffer  = rawOffer && getOfferStatus(rawOffer, now) === 'ACTIVE' ? rawOffer : null
-	const finalPrice   = activeOffer
+	const rawOffer = car.offers[0]?.offer ?? null
+	const activeOffer = rawOffer && getOfferStatus(rawOffer, now) === 'ACTIVE' ? rawOffer : null
+	const finalPrice = activeOffer
 		? calculateDiscountedPrice(car.price, activeOffer.type as any, activeOffer.value)
 		: car.price
 	const depositAmount = Math.round(finalPrice * 0.30)
-	const isAvailable   = car.status === 'AVAILABLE'
+	const isAvailable = car.status === 'AVAILABLE'
 
-	// Mises à jour temps réel (statut, prix, photos, kilométrage, etc.)
 	useCarUpdates((updatedCar) => {
 		if (updatedCar.id !== car.id) return
 
@@ -67,9 +66,9 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 	useOfferUpdates({
 		onChange: (offer) => {
 			setCar((prev) => {
-				const isLinked     = offer.carIds.includes(prev.id)
+				const isLinked = offer.carIds.includes(prev.id)
 				const hasThisOffer = prev.offers[0]?.offer?.id === offer.id
-				if (isLinked)     return { ...prev, offers: [{ offer: offer as any }] }
+				if (isLinked) return { ...prev, offers: [{ offer: offer as any }] }
 				if (hasThisOffer) return { ...prev, offers: [] }
 				return prev
 			})
@@ -128,21 +127,20 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 	const nextImg = () => setImgIdx((i) => (i + 1) % allImages.length)
 
 	const specItems = [
-		{ icon: Gauge,    label: 'Kilométrage',   value: formatMileage(car.mileage) },
-		{ icon: Calendar, label: 'Année',         value: String(car.year) },
-		{ icon: Fuel,     label: 'Carburant',     value: getFuelLabel(car.fuelType) },
-		{ icon: Settings2,label: 'Transmission',  value: getTransmissionLabel(car.transmission) },
-		{ icon: Users,    label: 'Places',        value: String(car.seats ?? 5) },
-		{ icon: DoorOpen, label: 'Portes',        value: String(car.doors ?? 4) },
-		...(car.color     ? [{ icon: Palette, label: 'Couleur',     value: car.color }] : []),
-		...(car.engineSize? [{ icon: Zap,     label: 'Motorisation', value: car.engineSize }] : []),
+		{ icon: Gauge,     label: 'Kilométrage',  value: formatMileage(car.mileage) },
+		{ icon: Calendar,  label: 'Année',        value: String(car.year) },
+		{ icon: Fuel,      label: 'Carburant',    value: getFuelLabel(car.fuelType) },
+		{ icon: Settings2, label: 'Transmission', value: getTransmissionLabel(car.transmission) },
+		{ icon: Users,     label: 'Places',       value: String(car.seats ?? 5) },
+		{ icon: DoorOpen,  label: 'Portes',       value: String(car.doors ?? 4) },
+		...(car.color      ? [{ icon: Palette, label: 'Couleur', value: car.color }] : []),
+		...(car.engineSize ? [{ icon: Zap, label: 'Motorisation', value: car.engineSize }] : []),
 	]
 
 	return (
 		<div className="pt-20 pb-20 min-h-screen">
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-				{/* Breadcrumb */}
 				<nav className="flex items-center gap-2 text-sm text-dark-400 mb-8 pt-4">
 					<Link href="/" className="hover:text-white transition-colors">Accueil</Link>
 					<span>/</span>
@@ -151,7 +149,6 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 					<span className="text-white truncate max-w-[200px]">{car.title}</span>
 				</nav>
 
-				{/* Payment success banner */}
 				{paymentSuccess && (
 					<div className="flex items-start gap-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-5 mb-8">
 						<CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0 mt-0.5" />
@@ -167,10 +164,8 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 
 				<div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
 
-					{/* ─── Left: Gallery + details ──────────────────────────── */}
 					<div className="lg:col-span-3 space-y-6">
 
-						{/* Gallery */}
 						<div className="relative rounded-2xl overflow-hidden bg-dark-800 border border-dark-700">
 							<div className="relative aspect-[16/10]">
 								{allImages[imgIdx] ? (
@@ -182,7 +177,6 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 										<Settings2 className="w-16 h-16 text-dark-600" />
 									</div>
 								)}
-								{/* Overlay badges */}
 								<div className="absolute top-4 left-4 flex items-center gap-2">
 									<span className={`badge ${getStatusColor(car.status)}`}>
 										<span className={`status-dot ${
@@ -203,7 +197,6 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 										{activeOffer.type === 'PERCENTAGE' ? `-${activeOffer.value}%` : `-${activeOffer.value}€`}
 									</div>
 								)}
-								{/* Nav arrows */}
 								{allImages.length > 1 && (
 									<>
 										<button onClick={prevImg}
@@ -228,7 +221,6 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 									</>
 								)}
 							</div>
-							{/* Thumbnails */}
 							{allImages.length > 1 && (
 								<div className="flex gap-2 p-3 overflow-x-auto">
 									{allImages.map((src, i) => (
@@ -242,7 +234,6 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 							)}
 						</div>
 
-						{/* Title + price */}
 						<div>
 							<div className="flex items-start justify-between gap-4 flex-wrap mb-3">
 								<div>
@@ -256,14 +247,13 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 									<p className="font-display font-black text-3xl text-white">{formatPrice(finalPrice)}</p>
 									{activeOffer && (
 										<p className="text-xs text-brand-400 mt-0.5">
-											Offre : {activeOffer.name} · expire le {formatDate(activeOffer.endDate)}
+											{activeOffer.name} · expire le {formatDate(activeOffer.endDate)}
 										</p>
 									)}
 								</div>
 							</div>
 						</div>
 
-						{/* Specs grid */}
 						<div className="card p-5">
 							<h2 className="font-display font-bold text-white text-sm uppercase tracking-widest mb-4">
 								Caractéristiques
@@ -279,7 +269,6 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 							</div>
 						</div>
 
-						{/* Description */}
 						<div className="card p-6">
 							<h2 className="font-display font-bold text-white text-sm uppercase tracking-widest mb-4">Description</h2>
 							<p className="text-dark-300 text-sm leading-relaxed whitespace-pre-line">{car.description}</p>
@@ -291,7 +280,6 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 							)}
 						</div>
 
-						{/* Equipments */}
 						{car.equipments.length > 0 && (
 							<div className="card p-6">
 								<h2 className="font-display font-bold text-white text-sm uppercase tracking-widest mb-4">
@@ -311,11 +299,9 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 						)}
 					</div>
 
-					{/* ─── Right: Reservation panel ─────────────────────────── */}
 					<div className="lg:col-span-2">
 						<div className="sticky top-24 space-y-4">
 
-							{/* Status card */}
 							{!isAvailable && (
 								<div className={cn('rounded-2xl p-5 border',
 									car.status === 'RESERVED'
@@ -342,7 +328,6 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 								</div>
 							)}
 
-							{/* Reservation form */}
 							{isAvailable && (
 								<div className="card p-6">
 									<div className="flex items-center gap-3 mb-5">
@@ -355,7 +340,6 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 										</div>
 									</div>
 
-									{/* Price breakdown */}
 									<div className="bg-dark-900/60 rounded-xl p-4 mb-5 space-y-2">
 										<div className="flex justify-between text-sm">
 											<span className="text-dark-400">Prix du véhicule</span>
@@ -371,7 +355,6 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 										</div>
 									</div>
 
-									{/* Installment (if allowed) */}
 									{car.allowInstallment && (
 										<div className="mb-5">
 											<label className="text-xs font-semibold text-dark-300 uppercase tracking-wider block mb-2">
@@ -396,7 +379,6 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 										</div>
 									)}
 
-									{/* Client form */}
 									<div className="space-y-3 mb-5">
 										<div>
 											<label className="text-xs font-semibold text-dark-300 uppercase tracking-wider block mb-1.5">
@@ -424,7 +406,6 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 										</div>
 									</div>
 
-									{/* Important notice */}
 									<div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 mb-4 text-xs text-amber-300 space-y-1">
 										<div className="flex items-center gap-1.5 font-semibold">
 											<Clock className="w-3.5 h-3.5 shrink-0" /> Délai de 5 jours
@@ -432,14 +413,12 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 										<p>Après réservation, vous disposez de 5 jours pour finaliser la vente en agence. L'acompte n'est pas remboursable en cas d'expiration.</p>
 									</div>
 
-									{/* Submit */}
 									<button onClick={handleReserve} disabled={loading} className="btn-primary w-full text-base py-4">
 										{loading
-											? <><Loader2 className="w-5 h-5 animate-spin" /> Redirection Stripe…</>
+											? <><Loader2 className="w-5 h-5 animate-spin" /> Redirection Stripe...</>
 											: <><CreditCard className="w-5 h-5" /> Payer l'acompte {formatPrice(depositAmount)}</>}
 									</button>
 
-									{/* Legal */}
 									<p className="text-[11px] text-dark-500 text-center mt-3">
 										En continuant, vous acceptez nos{' '}
 										<Link href="/cgv" target="_blank" className="text-brand-500 hover:underline">CGV</Link>.
