@@ -43,12 +43,12 @@ const INSTALLMENT_OPTIONS = [
 
 export default function ReservationForm({ mode, availableCars, defaultExpiresAt, initialData }: Props) {
 	const router  = useRouter()
-	const [form, setForm]       = useState<FormData>({
+	const [form, setForm] = useState<FormData>({
 		...INITIAL,
 		expiresAt: defaultExpiresAt ?? '',
 		...initialData,
 	})
-	const [errors, setErrors]   = useState<Record<string, string>>({})
+	const [errors, setErrors] = useState<Record<string, string>>({})
 	const [loading, setLoading] = useState(false)
 
 	const set = (field: keyof FormData, value: unknown) => {
@@ -134,10 +134,11 @@ export default function ReservationForm({ mode, availableCars, defaultExpiresAt,
 				<div className="flex items-start gap-3 rounded-xl border border-brand-500/20 bg-brand-500/10 p-4">
 					<Info className="w-4 h-4 text-brand-400 mt-0.5 shrink-0" />
 					<p className="text-sm text-brand-200/90">
-						À utiliser quand un client réserve <strong>directement en agence</strong> (acompte déjà réglé sur place).
-						La réservation sera créée au statut <strong>Confirmée</strong>, le véhicule passera en <strong>Réservé</strong>,
-						et les emails de confirmation seront envoyés automatiquement au client et à l'administrateur — exactement
-						comme pour une réservation effectuée en ligne.
+						À utiliser quand un client réserve <strong>directement en agence</strong> (acompte déjà réglé sur place,
+						client physiquement présent). La réservation sera créée directement au statut <strong>Confirmée</strong>
+						(contrairement à une réservation en ligne, qui passe d'abord par <strong>Payée</strong> en attendant la
+						présentation du client) — le véhicule passera en <strong>Réservé</strong> et les paiements de tranche
+						(comptant, 3x ou 4x) pourront être saisis immédiatement.
 					</p>
 				</div>
 			)}
@@ -247,7 +248,9 @@ export default function ReservationForm({ mode, availableCars, defaultExpiresAt,
 						className={cn('input-base', errors.expiresAt && 'border-red-500/50')} />
 				</Field>
 				<p className="text-xs text-dark-500">
-					Passé ce délai sans finalisation, la réservation pourra être annulée et le véhicule remis en vente.
+					Cette date est indicative — contrairement à une réservation en ligne (statut « Payée »), une réservation
+					créée ici passe directement au statut « Confirmée » et n&apos;expire plus automatiquement. Passé ce délai,
+					pensez à relancer le client ou à annuler manuellement la réservation si la vente ne se concrétise pas.
 				</p>
 			</section>
 

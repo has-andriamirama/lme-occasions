@@ -7,9 +7,7 @@ import { broadcastCarStatus } from '@/lib/pusher'
 import { z } from 'zod'
 
 const updateInstallmentSchema = z.object({
-	// null = remettre la tranche à "impayée" (reset)
 	paidAmount: z.number().positive().nullable(),
-	// Date ISO facultative — défaut = maintenant
 	paidAt:     z.string().datetime().optional().nullable(),
 	notes:      z.string().max(1000).optional().nullable(),
 })
@@ -30,7 +28,6 @@ export async function PUT(
 
 		const { paidAmount, paidAt, notes } = parsed.data
 
-		// ── Charger la réservation + toutes les tranches ──────────────────────
 		const reservation = await prisma.reservation.findUnique({
 			where:   { id: params.id },
 			include: {
@@ -43,7 +40,16 @@ export async function PUT(
 			return NextResponse.json({ success: false, error: 'Réservation introuvable' }, { status: 404 })
 		}
 
-		// ── Vérifier que la tranche appartient bien à cette réservation ───────
+		if (!['CONFIRMED', 'COMPLETED'].includes(reservation.status)) {
+			return NextResponse.json(
+				{
+					success: false,
+					error:   'Cette réservation doit d\'abord être confirmée par un admin (présentation en agence) avant de pouvoir enregistrer un paiement de tranche.',
+				},
+				{ status: 400 },
+			)
+		}
+
 		const targetInstallment = reservation.paymentInstallments.find(
 			(i) => i.id === params.installmentId,
 		)
@@ -51,7 +57,6 @@ export async function PUT(
 			return NextResponse.json({ success: false, error: 'Tranche introuvable' }, { status: 404 })
 		}
 
-		// ── Mise à jour de la tranche ─────────────────────────────────────────
 		const updatedInstallment = await prisma.paymentInstallment.update({
 			where: { id: params.installmentId },
 			data:  {
@@ -63,7 +68,6 @@ export async function PUT(
 			},
 		})
 
-		// ── Recalcul du total encaissé (tranches fraîches depuis la DB) ────────
 		const freshInstallments = await prisma.paymentInstallment.findMany({
 			where: { reservationId: params.id },
 		})
@@ -76,13 +80,9 @@ export async function PUT(
 		const remaining   = Math.max(0, reservation.totalPrice - totalPaid)
 		const isFullyPaid = totalPaid >= reservation.totalPrice
 
-		// ── Auto-clôture si le solde est intégralement réglé ─────────────────
-		// Déclenchée uniquement pour les réservations encore actives
-		// (CONFIRMED ou PENDING). Une réservation COMPLETED ne régresse pas même
-		// si un admin annule un paiement (la voiture est déjà SOLD).
 		let autoCompleted = false
 
-		if (isFullyPaid && ['CONFIRMED', 'PENDING'].includes(reservation.status)) {
+		if (isFullyPaid && reservation.status === 'CONFIRMED') {
 			await prisma.$transaction(async (tx) => {
 				await tx.reservation.update({
 					where: { id: params.id },
@@ -106,15 +106,15 @@ export async function PUT(
 		// ── Audit log ─────────────────────────────────────────────────────────
 		await prisma.auditLog.create({
 			data: {
-				adminId:  session.user.id,
-				action:   'UPDATE',
-				entity:   'PaymentInstallment',
+				adminId: session.user.id,
+				action: 'UPDATE',
+				entity: 'PaymentInstallment',
 				entityId: updatedInstallment.id,
 				details:  {
-					reservationId:     params.id,
+					reservationId: params.id,
 					installmentNumber: targetInstallment.installmentNumber,
-					paidAmountBefore:  targetInstallment.paidAmount,
-					paidAmountAfter:   paidAmount,
+					paidAmountBefore: targetInstallment.paidAmount,
+					paidAmountAfter: paidAmount,
 					totalPaid,
 					autoCompleted,
 				},
@@ -129,8 +129,8 @@ export async function PUT(
 			data: {
 				installment: updatedInstallment,
 				summary: {
-					depositAmount:   reservation.depositAmount,
-					totalPrice:      reservation.totalPrice,
+					depositAmount: reservation.depositAmount,
+					totalPrice: reservation.totalPrice,
 					totalPaid,
 					remaining,
 					isFullyPaid,

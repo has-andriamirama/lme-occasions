@@ -4,13 +4,12 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/db'
 import { broadcastCarStatus } from '@/lib/pusher'
+import { sendReservationConfirmedToClient } from '@/lib/mail'
+import { getInstallmentCount, recreateInstallments } from '@/lib/installments'
 import { z } from 'zod'
-import type { PrismaClient } from '@prisma/client'
-
-type TransactionClient = Parameters<Parameters<PrismaClient['$transaction']>[0]>[0]
 
 const patchSchema = z.object({
-	action: z.enum(['COMPLETE', 'CANCEL']),
+	action: z.enum(['CONFIRM', 'COMPLETE', 'CANCEL']),
 	notes:  z.string().optional(),
 })
 
@@ -25,39 +24,6 @@ const updateReservationSchema = z.object({
 	notes:           z.string().max(2000).optional().nullable(),
 }).strict()
 
-// ── Helper : nombre de tranches ───────────────────────────────────────────────
-function getInstallmentCount(type: string): number {
-	switch (type) {
-		case 'THREE_TIMES': return 3
-		case 'FOUR_TIMES':  return 4
-		default:            return 1
-	}
-}
-
-// ── Helper : recréer les tranches dans une transaction ────────────────────────
-async function recreateInstallments(
-	tx:              TransactionClient,
-	reservationId:   string,
-	totalPrice:      number,
-	depositAmount:   number,
-	installmentType: string,
-) {
-	await tx.paymentInstallment.deleteMany({ where: { reservationId } })
-
-	const count          = getInstallmentCount(installmentType)
-	const balance        = totalPrice - depositAmount
-	const expectedAmount = Math.round((balance / count) * 100) / 100
-
-	await tx.paymentInstallment.createMany({
-		data: Array.from({ length: count }, (_, i) => ({
-			reservationId,
-			installmentNumber: i + 1,
-			expectedAmount,
-		})),
-	})
-}
-
-// ── PUT : édition complète ────────────────────────────────────────────────────
 export async function PUT(
 	req: NextRequest,
 	{ params }: { params: { id: string } }
@@ -78,7 +44,7 @@ export async function PUT(
 		})
 		if (!existing) return NextResponse.json({ success: false, error: 'Réservation introuvable' }, { status: 404 })
 
-		if (!['PENDING', 'CONFIRMED'].includes(existing.status)) {
+		if (!['PENDING', 'PAID', 'CONFIRMED'].includes(existing.status)) {
 			return NextResponse.json(
 				{ success: false, error: 'Cette réservation est déjà finalisée ou annulée et ne peut plus être modifiée.' },
 				{ status: 400 },
@@ -87,7 +53,6 @@ export async function PUT(
 
 		const data = parsed.data
 
-		// ── Vérification montants ─────────────────────────────────────────────
 		const nextTotalPrice    = data.totalPrice    ?? existing.totalPrice
 		const nextDepositAmount = data.depositAmount ?? existing.depositAmount
 		if (nextDepositAmount > nextTotalPrice) {
@@ -97,9 +62,6 @@ export async function PUT(
 			)
 		}
 
-		// ── Vérification changement de type de paiement ───────────────────────
-		// Si le type d'échéancier change, on supprime et recrée les tranches —
-		// SEULEMENT si aucun paiement n'a encore été enregistré.
 		const typeChanged  = data.installmentType !== undefined && data.installmentType !== existing.installmentType
 		const hasAnyPayment = existing.paymentInstallments.some((i) => i.paidAmount !== null)
 
@@ -113,7 +75,6 @@ export async function PUT(
 			)
 		}
 
-		// ── Mise à jour dans une transaction ──────────────────────────────────
 		const updated = await prisma.$transaction(async (tx) => {
 			const reservation = await tx.reservation.update({
 				where: { id: params.id },
@@ -129,7 +90,6 @@ export async function PUT(
 				},
 			})
 
-			// Si le type d'échéancier a changé, recréer les tranches
 			if (typeChanged) {
 				await recreateInstallments(
 					tx,
@@ -139,8 +99,6 @@ export async function PUT(
 					data.installmentType!,
 				)
 			} else if (data.totalPrice !== undefined || data.depositAmount !== undefined) {
-				// Les montants ont changé sans changement de type :
-				// recalculer uniquement l'expectedAmount des tranches encore impayées
 				const newInstallmentType = existing.installmentType ?? 'FULL'
 				const count              = getInstallmentCount(newInstallmentType)
 				const balance            = nextTotalPrice - nextDepositAmount
@@ -172,9 +130,6 @@ export async function PUT(
 	}
 }
 
-// ── PATCH : actions rapides (COMPLETE manuel ou CANCEL) ───────────────────────
-// COMPLETE est conservé comme passe-droit admin (ex. finalisation hors-système).
-// La voie principale reste le suivi automatique via les tranches de paiement.
 export async function PATCH(
 	req: NextRequest,
 	{ params }: { params: { id: string } }
@@ -193,20 +148,41 @@ export async function PATCH(
 		})
 		if (!reservation) return NextResponse.json({ success: false, error: 'Réservation introuvable' }, { status: 404 })
 
-		if (!['CONFIRMED', 'PENDING'].includes(reservation.status)) {
+		const { action, notes } = parsed.data
+
+		if (action === 'CONFIRM' && reservation.status !== 'PAID') {
+			return NextResponse.json(
+				{ success: false, error: 'Seule une réservation au statut « Payée » (acompte encaissé, en attente de présentation en agence) peut être confirmée.' },
+				{ status: 400 },
+			)
+		}
+		if (action === 'COMPLETE' && reservation.status !== 'CONFIRMED') {
+			return NextResponse.json(
+				{ success: false, error: 'La réservation doit d\'abord être confirmée (présentation en agence) avant de pouvoir être finalisée.' },
+				{ status: 400 },
+			)
+		}
+		if (action === 'CANCEL' && !['PENDING', 'PAID', 'CONFIRMED'].includes(reservation.status)) {
 			return NextResponse.json({ success: false, error: 'Réservation déjà traitée' }, { status: 400 })
 		}
 
-		const { action, notes } = parsed.data
-
 		await prisma.$transaction(async (tx) => {
-			if (action === 'COMPLETE') {
+			if (action === 'CONFIRM') {
+				await tx.reservation.update({
+					where: { id: params.id },
+					data: {
+						status:      'CONFIRMED',
+						confirmedAt: new Date(),
+						notes:       notes ?? reservation.notes,
+					},
+				})
+			} else if (action === 'COMPLETE') {
 				await tx.reservation.update({
 					where: { id: params.id },
 					data: {
 						status:      'COMPLETED',
 						completedAt: new Date(),
-						notes:       notes ?? null,
+						notes:       notes ?? reservation.notes,
 					},
 				})
 				await tx.car.update({
@@ -214,10 +190,9 @@ export async function PATCH(
 					data:  { status: 'SOLD' },
 				})
 			} else {
-				// CANCEL
 				await tx.reservation.update({
 					where: { id: params.id },
-					data: { status: 'CANCELLED', notes: notes ?? null },
+					data: { status: 'CANCELLED', notes: notes ?? reservation.notes },
 				})
 				await tx.car.updateMany({
 					where: { id: reservation.carId, status: 'RESERVED' },
@@ -226,11 +201,30 @@ export async function PATCH(
 			}
 		})
 
-		const newCarStatus = action === 'COMPLETE' ? 'SOLD' : 'AVAILABLE'
-		try {
-			await broadcastCarStatus(reservation.carId, newCarStatus, reservation.car.title)
-		} catch (pusherErr) {
-			console.error('[PATCH /api/reservations/:id] Pusher échoué (non-critique) :', pusherErr)
+		if (action !== 'CONFIRM') {
+			const newCarStatus = action === 'COMPLETE' ? 'SOLD' : 'AVAILABLE'
+			try {
+				await broadcastCarStatus(reservation.carId, newCarStatus, reservation.car.title)
+			} catch (pusherErr) {
+				console.error('[PATCH /api/reservations/:id] Pusher échoué (non-critique) :', pusherErr)
+			}
+		}
+
+		if (action === 'CONFIRM') {
+			sendReservationConfirmedToClient({
+				clientName:      reservation.clientName,
+				clientEmail:     reservation.clientEmail,
+				carTitle:        reservation.car.title,
+				carBrand:        reservation.car.brand,
+				carModel:        reservation.car.model,
+				carYear:         reservation.car.year,
+				depositAmount:   reservation.depositAmount,
+				totalPrice:      reservation.totalPrice,
+				reservationId:   reservation.id,
+				installmentType: reservation.installmentType,
+			}).catch((mailErr) =>
+				console.error('[PATCH /api/reservations/:id] Email de confirmation échoué (non-critique) :', mailErr)
+			)
 		}
 
 		await prisma.auditLog.create({
@@ -243,10 +237,13 @@ export async function PATCH(
 			},
 		})
 
-		return NextResponse.json({
-			success: true,
-			message: action === 'COMPLETE' ? 'Vente finalisée manuellement' : 'Réservation annulée',
-		})
+		const messages: Record<string, string> = {
+			CONFIRM:  'Réservation confirmée — les paiements de tranche peuvent maintenant être enregistrés.',
+			COMPLETE: 'Vente finalisée manuellement',
+			CANCEL:   'Réservation annulée',
+		}
+
+		return NextResponse.json({ success: true, message: messages[action] })
 	} catch (err) {
 		console.error('[PATCH /api/reservations/:id]', err)
 		return NextResponse.json({ success: false, error: 'Erreur serveur' }, { status: 500 })

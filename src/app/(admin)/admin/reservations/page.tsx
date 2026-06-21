@@ -12,6 +12,7 @@ import {
 	Plus,
 	Pencil,
 	Eye,
+	CreditCard,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -19,13 +20,13 @@ export const metadata: Metadata = { title: 'Réservations' }
 
 const STATUS_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
 	PENDING:   { label: 'En attente',  color: 'bg-amber-500/10 text-amber-400 border-amber-500/20',    icon: <Clock className="w-3.5 h-3.5" /> },
+	PAID:     { label: 'Payée',       color: 'bg-blue-500/10 text-blue-400 border-blue-500/20',       icon: <CreditCard className="w-3.5 h-3.5" /> },
 	CONFIRMED: { label: 'Confirmée',   color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
 	COMPLETED: { label: 'Finalisée',   color: 'bg-brand-500/10 text-brand-400 border-brand-500/20',    icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
 	EXPIRED:   { label: 'Expirée',     color: 'bg-red-500/10 text-red-400 border-red-500/20',          icon: <XCircle className="w-3.5 h-3.5" /> },
 	CANCELLED: { label: 'Annulée',     color: 'bg-dark-600/30 text-dark-400 border-dark-600/20',       icon: <XCircle className="w-3.5 h-3.5" /> },
 }
 
-// ── Helper : afficher la progression des paiements ───────────────────────────
 function PaymentProgress({
 	status,
 	installments,
@@ -37,7 +38,7 @@ function PaymentProgress({
 	depositAmount: number
 	totalPrice:   number
 }) {
-	if (['EXPIRED', 'CANCELLED'].includes(status)) {
+	if (['EXPIRED', 'CANCELLED', 'PENDING'].includes(status)) {
 		return <span className="text-xs text-dark-600">—</span>
 	}
 
@@ -91,7 +92,6 @@ export default async function ReservationsPage({
 			where,
 			include: {
 				car: { select: { id: true, title: true, brand: true, model: true, mainImage: true } },
-				// ── NOUVEAU : inclure les tranches pour la colonne "Paiements" ──
 				paymentInstallments: { select: { paidAmount: true } },
 			},
 			orderBy: { reservedAt: 'desc' },
@@ -100,17 +100,17 @@ export default async function ReservationsPage({
 		}),
 		prisma.reservation.count({ where }),
 		Promise.all([
+			prisma.reservation.count({ where: { status: 'PAID' } }),
 			prisma.reservation.count({ where: { status: 'CONFIRMED' } }),
 			prisma.reservation.count({ where: { status: 'COMPLETED' } }),
-			prisma.reservation.count({ where: { status: 'EXPIRED' } }),
 			prisma.reservation.aggregate({
-				where: { status: { in: ['CONFIRMED', 'COMPLETED'] } },
+				where: { status: { in: ['PAID', 'CONFIRMED', 'COMPLETED'] } },
 				_sum:  { depositAmount: true },
 			}),
 		]),
 	])
 
-	const [active, completed, expired, revenueAgg] = stats
+	const [payed, confirmed, completed, revenueAgg] = stats
 	const totalPages = Math.ceil(total / limit)
 
 	return (
@@ -129,10 +129,10 @@ export default async function ReservationsPage({
 			{/* Cartes récap */}
 			<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 				{[
-					{ label: 'Actives',           value: active,    color: 'text-emerald-400' },
-					{ label: 'Finalisées',         value: completed, color: 'text-brand-400' },
-					{ label: 'Expirées',           value: expired,   color: 'text-red-400' },
-					{ label: 'Revenus (acomptes)', value: formatPrice(revenueAgg._sum.depositAmount ?? 0), color: 'text-white', isText: true },
+					{ label: 'Payées (à confirmer)', value: payed,     color: 'text-blue-400' },
+					{ label: 'Confirmées',           value: confirmed, color: 'text-emerald-400' },
+					{ label: 'Finalisées',           value: completed, color: 'text-brand-400' },
+					{ label: 'Revenus (acomptes)',   value: formatPrice(revenueAgg._sum.depositAmount ?? 0), color: 'text-white', isText: true },
 				].map(({ label, value, color, isText }) => (
 					<div key={label} className="card p-5">
 						<div className={`text-2xl font-display font-bold ${color} ${isText ? 'text-lg' : ''}`}>{value}</div>
@@ -145,8 +145,9 @@ export default async function ReservationsPage({
 			<div className="flex flex-wrap gap-2">
 				{[
 					{ label: 'Toutes',     value: '' },
-					{ label: 'Confirmées', value: 'CONFIRMED' },
 					{ label: 'En attente', value: 'PENDING' },
+					{ label: 'Payées',     value: 'PAID' },
+					{ label: 'Confirmées', value: 'CONFIRMED' },
 					{ label: 'Finalisées', value: 'COMPLETED' },
 					{ label: 'Expirées',   value: 'EXPIRED' },
 					{ label: 'Annulées',   value: 'CANCELLED' },
@@ -180,7 +181,6 @@ export default async function ReservationsPage({
 									<th className="text-left px-4 py-3 font-medium">Véhicule</th>
 									<th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Client</th>
 									<th className="text-right px-4 py-3 font-medium hidden md:table-cell">Acompte</th>
-									{/* ── NOUVELLE colonne Paiements ── */}
 									<th className="text-center px-4 py-3 font-medium hidden lg:table-cell">Paiements</th>
 									<th className="text-center px-4 py-3 font-medium hidden lg:table-cell">Expiration</th>
 									<th className="text-center px-4 py-3 font-medium">Statut</th>
@@ -191,7 +191,7 @@ export default async function ReservationsPage({
 								{reservations.map((r) => {
 									const meta     = STATUS_META[r.status] ?? STATUS_META.CANCELLED
 									const daysLeft = getDaysRemaining(r.expiresAt)
-									const isUrgent = r.status === 'CONFIRMED' && daysLeft <= 1
+									const isUrgent = r.status === 'PAID' && daysLeft <= 1
 
 									return (
 										<tr
@@ -222,11 +222,14 @@ export default async function ReservationsPage({
 
 											{/* Acompte */}
 											<td className="px-4 py-3 text-right hidden md:table-cell">
-												<p className="text-sm font-bold text-brand-400">{formatPrice(r.depositAmount)}</p>
-												<p className="text-xs text-dark-500">/ {formatPrice(r.totalPrice)}</p>
+												<p className={`text-sm font-bold ${r.status === 'PENDING' ? 'text-dark-500' : 'text-brand-400'}`}>
+													{formatPrice(r.depositAmount)}
+												</p>
+												<p className="text-xs text-dark-500">
+													{r.status === 'PENDING' ? 'non encaissé' : `/ ${formatPrice(r.totalPrice)}`}
+												</p>
 											</td>
 
-											{/* ── NOUVEAU : progression des paiements ── */}
 											<td className="px-4 py-3 text-center hidden lg:table-cell">
 												<PaymentProgress
 													status={r.status}
@@ -238,7 +241,7 @@ export default async function ReservationsPage({
 
 											{/* Expiration */}
 											<td className="px-4 py-3 text-center hidden lg:table-cell">
-												{r.status === 'CONFIRMED' ? (
+												{r.status === 'PAID' ? (
 													<div className={`flex items-center justify-center gap-1 text-xs font-medium
 														${isUrgent ? 'text-red-400' : daysLeft <= 2 ? 'text-amber-400' : 'text-dark-400'}`}>
 														{isUrgent && <AlertTriangle className="w-3.5 h-3.5" />}
@@ -268,7 +271,7 @@ export default async function ReservationsPage({
 														<Eye className="w-4 h-4" />
 													</Link>
 
-													{(r.status === 'CONFIRMED' || r.status === 'PENDING') && (
+													{['PENDING', 'PAID', 'CONFIRMED'].includes(r.status) && (
 														<>
 															<Link
 																href={`/admin/reservations/${r.id}/edit`}
@@ -277,8 +280,7 @@ export default async function ReservationsPage({
 															>
 																<Pencil className="w-4 h-4" />
 															</Link>
-															{/* ── ReservationActions = bouton Annuler uniquement ── */}
-															<ReservationActions reservationId={r.id} />
+															<ReservationActions reservationId={r.id} status={r.status} />
 														</>
 													)}
 												</div>

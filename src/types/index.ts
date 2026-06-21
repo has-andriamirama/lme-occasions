@@ -5,16 +5,16 @@ export type { Car, Offer, Reservation, Admin, Contact, CarOffer }
 
 // ── Extended types ─────────────────────────────────────────────────────────
 export type CarWithOffers = Car & {
-  offers: Array<{ offer: Offer }>
-  _count?: { reservations: number }
+	offers: Array<{ offer: Offer }>
+	_count?: { reservations: number }
 }
 
 export type OfferWithCars = Offer & {
-  cars: Array<{ car: Car }>
+	cars: Array<{ car: Car }>
 }
 
 export type ReservationWithCar = Reservation & {
-  car: Car
+	car: Car
 }
 
 export type CarStatus = 'AVAILABLE' | 'RESERVED' | 'SOLD'
@@ -22,69 +22,69 @@ export type TransmissionType = 'MANUAL' | 'AUTOMATIC' | 'SEMI_AUTOMATIC'
 export type FuelType = 'GASOLINE' | 'DIESEL' | 'ELECTRIC' | 'HYBRID' | 'GPL'
 export type OfferType = 'PERCENTAGE' | 'FIXED_AMOUNT'
 export type AdminRole = 'SUPER_ADMIN' | 'ADMIN'
-export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'EXPIRED' | 'CANCELLED'
+export type ReservationStatus = 'PENDING' | 'PAID' | 'CONFIRMED' | 'COMPLETED' | 'EXPIRED' | 'CANCELLED'
 export type InstallmentType = 'FULL' | 'THREE_TIMES' | 'FOUR_TIMES'
 
 // ── API Response types ─────────────────────────────────────────────────────
 export type ApiResponse<T = unknown> = {
-  success: boolean
-  data?: T
-  error?: string
-  message?: string
+	success: boolean
+	data?: T
+	error?: string
+	message?: string
 }
 
 // ── Filter types ───────────────────────────────────────────────────────────
 export interface CarFilters {
-  brand?: string
-  minPrice?: number
-  maxPrice?: number
-  minYear?: number
-  maxYear?: number
-  maxMileage?: number
-  status?: CarStatus | 'ALL'
-  transmission?: TransmissionType
-  fuelType?: FuelType
-  search?: string
-  isFeatured?: boolean
-  sortBy?: 'price_asc' | 'price_desc' | 'year_desc' | 'year_asc' | 'mileage_asc' | 'newest'
-  page?: number
-  limit?: number
+	brand?: string
+	minPrice?: number
+	maxPrice?: number
+	minYear?: number
+	maxYear?: number
+	maxMileage?: number
+	status?: CarStatus | 'ALL'
+	transmission?: TransmissionType
+	fuelType?: FuelType
+	search?: string
+	isFeatured?: boolean
+	sortBy?: 'price_asc' | 'price_desc' | 'year_desc' | 'year_asc' | 'mileage_asc' | 'newest'
+	page?: number
+	limit?: number
 }
 
 // ── Dashboard stats ────────────────────────────────────────────────────────
 export interface DashboardStats {
-  totalCars: number
-  availableCars: number
-  reservedCars: number
-  soldCars: number
-  totalReservations: number
-  activeReservations: number
-  pendingContacts: number
-  totalRevenue: number
-  monthlyRevenue: number
-  recentReservations: ReservationWithCar[]
-  featuredCars: Car[]
+	totalCars: number
+	availableCars: number
+	reservedCars: number
+	soldCars: number
+	totalReservations: number
+	activeReservations: number
+	pendingContacts: number
+	totalRevenue: number
+	monthlyRevenue: number
+	recentReservations: ReservationWithCar[]
+	featuredCars: Car[]
 }
 
 // ── Session user override ──────────────────────────────────────────────────
 declare module 'next-auth' {
-  interface Session {
-    user: {
-      id: string
-      name?: string | null
-      email?: string | null
-      username: string
-      role: string
-      mustChangePassword: boolean
-    }
-  }
+	interface Session {
+		user: {
+			id: string
+			name?: string | null
+			email?: string | null
+			username: string
+			role: string
+			mustChangePassword: boolean
+		}
+	}
 }
 
 declare module 'next-auth/jwt' {
-  interface JWT {
-    id: string
-    role: string
-    mustChangePassword: boolean
-    username: string
-  }
+	interface JWT {
+		id: string
+		role: string
+		mustChangePassword: boolean
+		username: string
+	}
 }

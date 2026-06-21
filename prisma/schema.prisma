@@ -135,6 +135,9 @@ model Reservation {
 	status              ReservationStatus @default(PENDING)
 	reservedAt          DateTime          @default(now())
 	expiresAt           DateTime
+
+	paidAt              DateTime?
+	confirmedAt         DateTime?
 	completedAt         DateTime?
 	expiredAt           DateTime?
 	emailSentToAdmin    Boolean           @default(false)
@@ -143,7 +146,7 @@ model Reservation {
 	notes               String?           @db.Text
 
 	car                 Car               @relation(fields: [carId], references: [id])
-	// ── NOUVEAU : tranches de paiement ───────────────────────
+	
 	paymentInstallments PaymentInstallment[]
 
 	@@map("reservations")
@@ -151,6 +154,7 @@ model Reservation {
 
 enum ReservationStatus {
 	PENDING
+	PAID
 	CONFIRMED
 	COMPLETED
 	EXPIRED
@@ -164,19 +168,13 @@ enum InstallmentType {
 }
 
 // ─── PAYMENT INSTALLMENTS (NOUVEAU) ───────────────────────
-// Chaque ligne représente une tranche de paiement DU SOLDE (hors acompte).
-// Nombre de lignes = 1 (FULL) | 3 (THREE_TIMES) | 4 (FOUR_TIMES).
-// paidAmount = null  → tranche pas encore encaissée
-// paidAmount = Float → montant réellement reçu (peut différer de expectedAmount)
-// La clôture automatique est déclenchée par l'API quand :
-//   depositAmount + Σ(paidAmount) >= totalPrice
 model PaymentInstallment {
 	id                String      @id @default(cuid())
 	reservationId     String
-	installmentNumber Int                        // 1, 2, 3 ou 4
-	expectedAmount    Float                      // montant suggéré = solde / N tranches
-	paidAmount        Float?                     // montant réel encaissé (null = impayé)
-	paidAt            DateTime?                  // date enregistrée par l'admin
+	installmentNumber Int
+	expectedAmount    Float
+	paidAmount        Float?
+	paidAt            DateTime?
 	notes             String?     @db.Text
 	createdAt         DateTime    @default(now())
 	updatedAt         DateTime    @updatedAt

@@ -5,13 +5,12 @@ import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/db'
 import { broadcastCarStatus, broadcastAdminNotification, EVENTS } from '@/lib/pusher'
 import {
-	sendReservationConfirmationToClient,
+	sendReservationConfirmedToClient,
 	sendReservationNotificationToAdmin,
 } from '@/lib/mail'
+import { createInstallments } from '@/lib/installments'
 import { z } from 'zod'
-import type { PrismaClient } from '@prisma/client'
 
-// ── Création manuelle d'une réservation par un admin (client venu en agence) ──
 const createReservationSchema = z.object({
 	carId:           z.string().cuid(),
 	clientName:      z.string().min(2).max(100),
@@ -26,40 +25,6 @@ const createReservationSchema = z.object({
 	message: 'L\'acompte ne peut pas dépasser le prix total',
 	path:    ['depositAmount'],
 })
-
-// ── Helper : nombre de tranches selon le type ────────────────────────────────
-function getInstallmentCount(type: string): number {
-	switch (type) {
-		case 'THREE_TIMES': return 3
-		case 'FOUR_TIMES':  return 4
-		default:            return 1  // FULL
-	}
-}
-
-// ── Helper : créer les tranches dans une transaction ─────────────────────────
-// Arrondit l'expectedAmount à 2 décimales.
-// Toutes les tranches sont créées avec paidAmount = null (impayées).
-type TransactionClient = Parameters<Parameters<PrismaClient['$transaction']>[0]>[0]
-
-async function createInstallments(
-	tx:              TransactionClient,
-	reservationId:   string,
-	totalPrice:      number,
-	depositAmount:   number,
-	installmentType: string,
-) {
-	const count          = getInstallmentCount(installmentType)
-	const balance        = totalPrice - depositAmount
-	const expectedAmount = Math.round((balance / count) * 100) / 100
-
-	const installments = Array.from({ length: count }, (_, i) => ({
-		reservationId,
-		installmentNumber: i + 1,
-		expectedAmount,
-	}))
-
-	await tx.paymentInstallment.createMany({ data: installments })
-}
 
 export async function POST(req: NextRequest) {
 	try {
@@ -77,10 +42,6 @@ export async function POST(req: NextRequest) {
 			totalPrice, depositAmount, installmentType, expiresAt, notes,
 		} = parsed.data
 
-		// ── Vérification atomique de disponibilité + création ────────────────
-		// Les tranches de paiement sont créées dans la même transaction pour
-		// garantir la cohérence : si la création de tranches échoue, la
-		// réservation est annulée (rollback automatique).
 		let result
 		try {
 			result = await prisma.$transaction(async (tx) => {
@@ -101,16 +62,16 @@ export async function POST(req: NextRequest) {
 						totalPrice,
 						depositAmount,
 						installmentType,
-						status:     'CONFIRMED', // acompte déjà réglé en agence
+						status: 'CONFIRMED',
 						reservedAt: new Date(),
-						expiresAt:  new Date(expiresAt),
-						notes:      notes ?? null,
+						confirmedAt: new Date(),
+						expiresAt: new Date(expiresAt),
+						notes: notes ?? null,
 					},
 				})
 
 				await tx.car.update({ where: { id: carId }, data: { status: 'RESERVED' } })
 
-				// ── NOUVEAU : créer les tranches dans la même transaction ────
 				await createInstallments(tx, reservation.id, totalPrice, depositAmount, installmentType)
 
 				return { car, reservation }
@@ -141,7 +102,6 @@ export async function POST(req: NextRequest) {
 			},
 		})
 
-		// ── Broadcast Pusher (NON-CRITIQUE) ──────────────────────────────────
 		try {
 			await broadcastCarStatus(carId, 'RESERVED', car.title)
 			await broadcastAdminNotification(EVENTS.newReservation, {
@@ -154,19 +114,18 @@ export async function POST(req: NextRequest) {
 			console.error('[POST /api/reservations] Pusher broadcast échoué (non-critique) :', pusherErr)
 		}
 
-		// ── Emails (NON-CRITIQUE) ─────────────────────────────────────────────
 		await Promise.all([
-			sendReservationConfirmationToClient({
+			sendReservationConfirmedToClient({
 				clientName,
 				clientEmail,
-				carTitle:      car.title,
-				carBrand:      car.brand,
-				carModel:      car.model,
-				carYear:       car.year,
+				carTitle: car.title,
+				carBrand: car.brand,
+				carModel: car.model,
+				carYear: car.year,
 				depositAmount,
 				totalPrice,
 				reservationId: reservation.id,
-				expiresAt:     reservation.expiresAt,
+				installmentType,
 			}).then(() =>
 				prisma.reservation.update({ where: { id: reservation.id }, data: { emailSentToClient: true } })
 			),
@@ -213,8 +172,8 @@ export async function GET(req: NextRequest) {
 					paymentInstallments: { select: { paidAmount: true } },
 				},
 				orderBy: { reservedAt: 'desc' },
-				skip:    (page - 1) * limit,
-				take:    limit,
+				skip: (page - 1) * limit,
+				take: limit,
 			}),
 			prisma.reservation.count({ where }),
 		])

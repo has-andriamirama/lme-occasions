@@ -24,6 +24,7 @@ export const metadata: Metadata = { title: 'Détail de la réservation' }
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
 	PENDING:   { label: 'En attente', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
+	PAID:      { label: 'Payée',      color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
 	CONFIRMED: { label: 'Confirmée',  color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
 	COMPLETED: { label: 'Finalisée',  color: 'bg-brand-500/10 text-brand-400 border-brand-500/20' },
 	EXPIRED:   { label: 'Expirée',    color: 'bg-red-500/10 text-red-400 border-red-500/20' },
@@ -52,7 +53,7 @@ export default async function ReservationDetailPage({
 	if (!reservation) notFound()
 
 	const statusMeta = STATUS_META[reservation.status] ?? STATUS_META.CANCELLED
-	const isEditable = ['PENDING', 'CONFIRMED'].includes(reservation.status)
+	const isEditable = ['PENDING', 'PAID', 'CONFIRMED'].includes(reservation.status)
 
 	const installmentsSerialized = reservation.paymentInstallments.map((i) => ({
 		id:                i.id,
@@ -72,7 +73,6 @@ export default async function ReservationDetailPage({
 	return (
 		<div className="space-y-6 max-w-5xl">
 
-			{/* ── En-tête ────────────────────────────────────────────────────── */}
 			<div className="flex items-start justify-between gap-4 flex-wrap">
 				<div className="flex items-center gap-3">
 					<Link href="/admin/reservations" className="btn-ghost p-2">
@@ -103,7 +103,7 @@ export default async function ReservationDetailPage({
 						</Link>
 					)}
 					{isEditable && (
-						<ReservationActions reservationId={params.id} />
+						<ReservationActions reservationId={params.id} status={reservation.status} />
 					)}
 				</div>
 			</div>
@@ -213,13 +213,46 @@ export default async function ReservationDetailPage({
 							<p className="text-xs text-white">{formatDateTime(reservation.reservedAt)}</p>
 						</div>
 					</div>
-					<div className="flex items-center gap-2">
-						<Calendar className="w-3.5 h-3.5 text-dark-500 shrink-0" />
-						<div>
-							<p className="text-xs text-dark-500">Expire le</p>
-							<p className="text-xs text-white">{formatDateTime(reservation.expiresAt)}</p>
+
+					{reservation.paidAt && (
+						<div className="flex items-center gap-2">
+							<Calendar className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+							<div>
+								<p className="text-xs text-dark-500">Payé le</p>
+								<p className="text-xs text-blue-400">{formatDateTime(reservation.paidAt)}</p>
+							</div>
 						</div>
-					</div>
+					)}
+
+					{reservation.confirmedAt && (
+						<div className="flex items-center gap-2">
+							<Calendar className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+							<div>
+								<p className="text-xs text-dark-500">Confirmé le</p>
+								<p className="text-xs text-emerald-400">{formatDateTime(reservation.confirmedAt)}</p>
+							</div>
+						</div>
+					)}
+
+					{reservation.status === 'PAID' && (
+						<div className="flex items-center gap-2">
+							<Calendar className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+							<div>
+								<p className="text-xs text-dark-500">À confirmer avant le</p>
+								<p className="text-xs text-amber-400">{formatDateTime(reservation.expiresAt)}</p>
+							</div>
+						</div>
+					)}
+					{reservation.expiredAt && (
+						<div className="flex items-center gap-2">
+							<Calendar className="w-3.5 h-3.5 text-red-400 shrink-0" />
+							<div>
+								<p className="text-xs text-dark-500">Expiré le</p>
+								<p className="text-xs text-red-400">{formatDateTime(reservation.expiredAt)}</p>
+							</div>
+						</div>
+					)}
+
 					{reservation.completedAt && (
 						<div className="flex items-center gap-2">
 							<Calendar className="w-3.5 h-3.5 text-brand-400 shrink-0" />
@@ -232,7 +265,19 @@ export default async function ReservationDetailPage({
 				</div>
 			</div>
 
-			{/* ── Suivi des paiements ─────────────────────────────────────────── */}
+			{reservation.status === 'PAID' && (
+				<div className="card p-4 border border-blue-500/30 bg-blue-500/5 flex items-start gap-3">
+					<BadgeInfo className="w-5 h-5 text-blue-400 mt-0.5 shrink-0" />
+					<div className="flex-1">
+						<p className="text-sm text-blue-300 font-medium">En attente de présentation en agence</p>
+						<p className="text-xs text-dark-400 mt-0.5">
+							L&apos;acompte a été encaissé. Confirmez la réservation une fois que le client s&apos;est présenté
+							en agence — cela débloquera la saisie des paiements de tranche (comptant, 3x ou 4x).
+						</p>
+					</div>
+				</div>
+			)}
+
 			<PaymentTracker
 				reservationId={params.id}
 				depositAmount={reservation.depositAmount}

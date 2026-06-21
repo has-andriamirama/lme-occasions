@@ -11,6 +11,7 @@ export const metadata: Metadata = { title: 'Modifier la réservation' }
 
 const STATUS_LABEL: Record<string, string> = {
 	PENDING:   'En attente',
+	PAID:      'Payée',
 	CONFIRMED: 'Confirmée',
 	COMPLETED: 'Finalisée',
 	EXPIRED:   'Expirée',
@@ -24,7 +25,7 @@ export default async function EditReservationPage({ params }: { params: { id: st
 	})
 	if (!reservation) notFound()
 
-	const editable = ['PENDING', 'CONFIRMED'].includes(reservation.status)
+	const editable = ['PENDING', 'PAID', 'CONFIRMED'].includes(reservation.status)
 
 	return (
 		<div className="space-y-6 max-w-4xl">
@@ -67,7 +68,7 @@ export default async function EditReservationPage({ params }: { params: { id: st
 							Réservation {STATUS_LABEL[reservation.status]?.toLowerCase()} — modification impossible
 						</p>
 						<p className="text-sm text-dark-400 mt-1">
-							Seules les réservations « En attente » ou « Confirmée » peuvent être modifiées.
+							Seules les réservations « En attente », « Payée » ou « Confirmée » peuvent être modifiées.
 						</p>
 					</div>
 				</div>

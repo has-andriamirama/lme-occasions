@@ -39,8 +39,6 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 		? [car.mainImage, ...car.images.filter((i) => i !== car.mainImage)]
 		: car.images
 
-	// Horloge "tick" toutes les 15s : l'offre du véhicule passe automatiquement
-	// à "Expirée" quand sa date de fin est atteinte, sans recharger la page.
 	const now = useNow(15000)
 
 	const rawOffer     = car.offers[0]?.offer ?? null
@@ -55,12 +53,10 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 	useCarStatusUpdates((carId, newStatus) => {
 		if (carId === car.id && newStatus !== car.status) {
 			setCar((prev) => ({ ...prev, status: newStatus as any }))
-			if (newStatus === 'RESERVED') toast.error('⚠️ Ce véhicule vient d\'être réservé par quelqu\'un d\'autre.')
+			if (newStatus === 'RESERVED') toast.error('Ce véhicule vient d\'être réservé par quelqu\'un d\'autre.')
 		}
 	})
 
-	// Pusher : si un admin modifie / met en pause / réactive / supprime l'offre
-	// appliquée à ce véhicule, le prix et le badge se mettent à jour instantanément.
 	useOfferUpdates({
 		onChange: (offer) => {
 			setCar((prev) => {
@@ -79,7 +75,7 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 	})
 
 	useEffect(() => {
-		if (paymentSuccess) toast.success('🎉 Paiement réussi ! Votre réservation est confirmée.')
+		if (paymentSuccess) toast.success('Paiement réussi ! Présentez-vous en agence sous 5 jours.')
 		if (paymentCancelled) toast.error('Paiement annulé. Vous pouvez réessayer.')
 	}, [paymentSuccess, paymentCancelled])
 
@@ -153,9 +149,10 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 					<div className="flex items-start gap-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-5 mb-8">
 						<CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0 mt-0.5" />
 						<div>
-							<h3 className="font-semibold text-white mb-1">Réservation confirmée !</h3>
+							<h3 className="font-semibold text-white mb-1">Paiement reçu !</h3>
 							<p className="text-sm text-dark-300">
-								Un email de confirmation a été envoyé. Vous disposez de 5 jours pour finaliser la vente en agence.
+								Un email récapitulatif vous a été envoyé. Présentez-vous en agence sous 5 jours avec une pièce
+								d&apos;identité pour que votre réservation soit définitivement confirmée et finaliser la vente.
 							</p>
 						</div>
 					</div>
@@ -444,12 +441,11 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 								</div>
 							)}
 
-							{/* Trust badges */}
 							<div className="card p-4">
 								<div className="grid grid-cols-3 gap-3 text-center">
 									{[
-										{ icon: Shield,   label: 'Paiement\nsécurisé' },
-										{ icon: Phone,    label: 'Support\ndédié' },
+										{ icon: Shield, label: 'Paiement\nsécurisé' },
+										{ icon: Phone, label: 'Support\ndédié' },
 										{ icon: CheckCircle2, label: 'Véhicule\ncontrôlé' },
 									].map(({ icon: Icon, label }) => (
 										<div key={label}>
@@ -460,8 +456,7 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 								</div>
 							</div>
 
-							{/* Contact CTA */}
-							<a href="tel:+33123456789"
+							<a href="tel:+262693405407"
 								className="btn-secondary w-full justify-center text-sm">
 								<Phone className="w-4 h-4" /> Appeler l'agence
 							</a>

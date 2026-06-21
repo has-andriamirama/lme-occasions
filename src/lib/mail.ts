@@ -7,7 +7,6 @@ const FROM     = process.env.EMAIL_FROM          ?? 'LME Occasions <onboarding@r
 const ADMIN_TO = process.env.ADMIN_EMAIL         ?? 'hasandriamirama@hotmail.com'
 const APP_URL  = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 
-// ── Shared HTML wrapper ──────────────────────────────────────────────────────
 function wrap(content: string): string {
 	return `<!DOCTYPE html>
 		<html lang="fr">
@@ -70,7 +69,6 @@ function wrap(content: string): string {
 		</html>`
 }
 
-// ── Centralized sending helper ────────────────────────────────────────────────
 async function sendEmail(params: {
 	to: string | string[]
 	subject: string
@@ -92,8 +90,7 @@ async function sendEmail(params: {
 	return data
 }
 
-// ── 1. Reservation confirmed — CLIENT ────────────────────────────────────────
-export async function sendReservationConfirmationToClient(data: {
+export async function sendPaymentReceivedToClient(data: {
 	clientName: string
 	clientEmail: string
 	carTitle: string
@@ -110,8 +107,8 @@ export async function sendReservationConfirmationToClient(data: {
 	})
 
 	const html = wrap(`
-		<h2>Votre réservation est confirmée !</h2>
-		<p>Bonjour <strong>${data.clientName}</strong>, votre acompte a bien été reçu.
+		<h2>Votre paiement a bien été reçu !</h2>
+		<p>Bonjour <strong>${data.clientName}</strong>, votre acompte a bien été encaissé.
 		Voici le récapitulatif de votre réservation :</p>
 
 		<div class="car-card">
@@ -129,19 +126,74 @@ export async function sendReservationConfirmationToClient(data: {
 		</div>
 
 		<div class="alert">
-			<strong>Important :</strong> Vous avez jusqu'au <strong>${expiryStr}</strong>
-			pour vous présenter en agence et régler le solde du véhicule.
+			<strong>Important :</strong> Votre réservation n'est pas encore définitive.
+			Vous avez jusqu'au <strong>${expiryStr}</strong> pour vous présenter en agence
+			afin qu'un membre de notre équipe confirme votre réservation et organise le règlement du solde.
 		</div>
 
 		<h2>Prochaines étapes</h2>
 		<p>1. Présentez-vous à notre agence avec une pièce d'identité valide.</p>
-		<p>2. Réglez le solde de <strong>${(data.totalPrice - data.depositAmount).toLocaleString('fr-FR')} €</strong>.</p>
-		<p>3. Signez le contrat de vente et repartez avec votre véhicule !</p>
+		<p>2. Notre équipe confirme votre réservation sur place.</p>
+		<p>3. Réglez le solde de <strong>${(data.totalPrice - data.depositAmount).toLocaleString('fr-FR')} €</strong> (comptant ou en plusieurs fois selon votre choix), signez le contrat de vente et repartez avec votre véhicule !</p>
 
 		<div class="warning">
 			<strong>Délai de 5 jours :</strong> En cas de non-présentation avant le ${expiryStr},
-			la réservation sera annulée et l'acompte versé ne sera pas remboursé.
+			la réservation expirera automatiquement et l'acompte versé ne sera pas remboursé.
 			Pour toute question, contactez-nous immédiatement.
+		</div>
+
+		<a href="${APP_URL}/contact" class="btn">Nous contacter</a>
+	`)
+
+	return sendEmail({
+		to:      data.clientEmail,
+		subject: `Paiement reçu — finalisez votre réservation en agence — ${data.carTitle}`,
+		html,
+	})
+}
+
+export async function sendReservationConfirmedToClient(data: {
+	clientName: string
+	clientEmail: string
+	carTitle: string
+	carBrand: string
+	carModel: string
+	carYear: number
+	depositAmount: number
+	totalPrice: number
+	reservationId: string
+	installmentType?: 'FULL' | 'THREE_TIMES' | 'FOUR_TIMES' | null
+}) {
+	const balance = data.totalPrice - data.depositAmount
+	const installmentLabel: Record<string, string> = {
+		FULL:        `le règlement comptant du solde restant (${balance.toLocaleString('fr-FR')} €)`,
+		THREE_TIMES: `le règlement du solde en 3 fois (soit environ ${(balance / 3).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} € par échéance)`,
+		FOUR_TIMES:  `le règlement du solde en 4 fois (soit environ ${(balance / 4).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} € par échéance)`,
+	}
+	const nextStep = installmentLabel[data.installmentType ?? 'FULL']
+
+	const html = wrap(`
+		<h2>Votre réservation est confirmée !</h2>
+		<p>Bonjour <strong>${data.clientName}</strong>, votre réservation a été confirmée par notre équipe.
+		Voici le récapitulatif :</p>
+
+		<div class="car-card">
+			<div class="car-title">${data.carTitle}</div>
+			<div class="info-row"><span class="info-label">Référence réservation</span>
+				<span class="info-value">#${data.reservationId.slice(-8).toUpperCase()}</span></div>
+			<div class="info-row"><span class="info-label">Véhicule</span>
+				<span class="info-value">${data.carBrand} ${data.carModel} ${data.carYear}</span></div>
+			<div class="info-row"><span class="info-label">Prix total du véhicule</span>
+				<span class="info-value highlight">${data.totalPrice.toLocaleString('fr-FR')} €</span></div>
+			<div class="info-row"><span class="info-label">Acompte versé</span>
+				<span class="info-value" style="color:#10B981;font-weight:700;">${data.depositAmount.toLocaleString('fr-FR')} €</span></div>
+			<div class="info-row"><span class="info-label">Solde restant</span>
+				<span class="info-value">${balance.toLocaleString('fr-FR')} €</span></div>
+		</div>
+
+		<div class="alert">
+			<strong>Prochaine étape :</strong> ${nextStep}.
+			Notre équipe reste à votre disposition en agence pour organiser ce règlement.
 		</div>
 
 		<a href="${APP_URL}/contact" class="btn">Nous contacter</a>
@@ -154,7 +206,6 @@ export async function sendReservationConfirmationToClient(data: {
 	})
 }
 
-// ── 2. Reservation confirmed — ADMIN ─────────────────────────────────────────
 export async function sendReservationNotificationToAdmin(data: {
 	clientName: string
 	clientEmail: string
@@ -197,7 +248,6 @@ export async function sendReservationNotificationToAdmin(data: {
 	})
 }
 
-// ── 3. Reservation expired — CLIENT ──────────────────────────────────────────
 export async function sendReservationExpiredToClient(data: {
 	clientName: string
 	clientEmail: string
@@ -229,7 +279,6 @@ export async function sendReservationExpiredToClient(data: {
 	})
 }
 
-// ── 4. Reservation expired — ADMIN ───────────────────────────────────────────
 export async function sendReservationExpiredToAdmin(data: {
 	clientName: string
 	clientEmail: string
@@ -259,7 +308,6 @@ export async function sendReservationExpiredToAdmin(data: {
 	})
 }
 
-// ── 5. Contact form ───────────────────────────────────────────────────────────
 export async function sendContactEmail(data: {
 	name: string
 	email: string

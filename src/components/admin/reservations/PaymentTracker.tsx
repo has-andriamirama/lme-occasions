@@ -14,39 +14,34 @@ import {
 	Banknote,
 	TrendingUp,
 	Info,
+	Lock,
 } from 'lucide-react'
 import { formatPrice, formatDate } from '@/lib/utils'
-
-// ── Types ────────────────────────────────────────────────────────────────────
 
 export interface PaymentInstallmentSerialized {
 	id:                string
 	installmentNumber: number
 	expectedAmount:    number
 	paidAmount:        number | null
-	paidAt:            string | null   // ISO string ou null
+	paidAt:            string | null
 	notes:             string | null
 }
 
 export interface PaymentTrackerProps {
-	reservationId:   string
-	depositAmount:   number
-	depositDate:     string            // ISO string
-	totalPrice:      number
-	installmentType: 'FULL' | 'THREE_TIMES' | 'FOUR_TIMES'
+	reservationId:     string
+	depositAmount:     number
+	depositDate:       string
+	totalPrice:        number
+	installmentType:   'FULL' | 'THREE_TIMES' | 'FOUR_TIMES'
 	reservationStatus: string
-	installments:    PaymentInstallmentSerialized[]
+	installments:      PaymentInstallmentSerialized[]
 }
-
-// ── Labels ───────────────────────────────────────────────────────────────────
 
 const INSTALLMENT_LABEL: Record<string, string> = {
 	FULL:        'Paiement intégral du solde',
 	THREE_TIMES: 'Paiement en 3 fois',
 	FOUR_TIMES:  'Paiement en 4 fois',
 }
-
-// ── Sous-composant : ligne d'une tranche ─────────────────────────────────────
 
 interface InstallmentRowProps {
 	installment: PaymentInstallmentSerialized
@@ -131,8 +126,6 @@ function InstallmentRow({ installment, totalInstallments, disabled, onAction }: 
 	)
 }
 
-// ── Composant principal ───────────────────────────────────────────────────────
-
 export default function PaymentTracker({
 	reservationId,
 	depositAmount,
@@ -144,7 +137,6 @@ export default function PaymentTracker({
 }: PaymentTrackerProps) {
 	const router = useRouter()
 
-	// ── État local des tranches (mis à jour optimistement après chaque PUT) ──
 	const [installments, setInstallments] = useState<PaymentInstallmentSerialized[]>(initialInstallments)
 	const [currentStatus, setCurrentStatus] = useState(reservationStatus)
 
@@ -159,7 +151,6 @@ export default function PaymentTracker({
 	const [saving,  setSaving]  = useState(false)
 	const [resetting, setResetting] = useState(false)
 
-	// ── Calculs dérivés ───────────────────────────────────────────────────────
 	const totalFromInstallments = installments.reduce((s, i) => s + (i.paidAmount ?? 0), 0)
 	const totalPaid             = depositAmount + totalFromInstallments
 	const remaining             = Math.max(0, totalPrice - totalPaid)
@@ -168,8 +159,8 @@ export default function PaymentTracker({
 	const paidCount             = installments.filter((i) => i.paidAmount !== null).length
 	const isCompleted           = currentStatus === 'COMPLETED'
 	const isCancelled           = ['CANCELLED', 'EXPIRED'].includes(currentStatus)
+	const isAwaitingConfirmation = ['PENDING', 'PAID'].includes(currentStatus)
 
-	// ── Ouvrir la modale ──────────────────────────────────────────────────────
 	const openModal = useCallback((inst: PaymentInstallmentSerialized) => {
 		const today = new Date().toISOString().slice(0, 10)
 		setModal({
@@ -182,7 +173,6 @@ export default function PaymentTracker({
 
 	const closeModal = useCallback(() => setModal(null), [])
 
-	// ── Enregistrer un paiement ───────────────────────────────────────────────
 	const handleSave = useCallback(async () => {
 		if (!modal) return
 
@@ -210,14 +200,13 @@ export default function PaymentTracker({
 			const json = await res.json()
 			if (!res.ok) throw new Error(json.error ?? 'Erreur serveur')
 
-			// ── Mise à jour optimiste de l'état local ────────────────────────
 			setInstallments((prev) =>
 				prev.map((i) =>
 					i.id === modal.installment.id
 						? {
 								...i,
 								paidAmount: amount,
-								paidAt:     modal.formDate
+								paidAt: modal.formDate
 									? new Date(modal.formDate).toISOString()
 									: new Date().toISOString(),
 								notes: modal.formNotes || null,
@@ -228,7 +217,7 @@ export default function PaymentTracker({
 
 			if (json.data?.autoCompleted) {
 				setCurrentStatus('COMPLETED')
-				toast.success('🎉 Solde intégralement réglé — réservation finalisée automatiquement !', { duration: 5000 })
+				toast.success('Solde intégralement réglé — réservation finalisée automatiquement !', { duration: 5000 })
 			} else {
 				toast.success('Paiement enregistré')
 			}
@@ -242,7 +231,6 @@ export default function PaymentTracker({
 		}
 	}, [modal, reservationId, closeModal, router])
 
-	// ── Remettre une tranche à "impayée" ─────────────────────────────────────
 	const handleReset = useCallback(async () => {
 		if (!modal) return
 		if (!window.confirm('Remettre cette tranche à « impayée » ?')) return
@@ -279,7 +267,6 @@ export default function PaymentTracker({
 		}
 	}, [modal, reservationId, closeModal, router])
 
-	// ── Calcul de l'alerte "clôture imminente" dans la modale ────────────────
 	const modalWillComplete = modal
 		? (() => {
 				const newAmount  = parseFloat(modal.formAmount) || 0
@@ -291,8 +278,6 @@ export default function PaymentTracker({
 			})()
 		: false
 
-	// ── Rendu ─────────────────────────────────────────────────────────────────
-
 	if (installments.length === 0) {
 		return (
 			<div className="card p-6 flex items-start gap-3">
@@ -300,8 +285,8 @@ export default function PaymentTracker({
 				<div>
 					<p className="text-sm text-white font-medium">Suivi des paiements non disponible</p>
 					<p className="text-xs text-dark-400 mt-1">
-						Cette réservation a été créée avant le système de suivi des tranches.
-						Utilisez le bouton « Finaliser manuellement » si la vente est conclue.
+						Cette réservation a été créée avant la mise en place du suivi des tranches de paiement.
+						Aucune ligne de paiement n&apos;est disponible pour elle.
 					</p>
 				</div>
 			</div>
@@ -411,7 +396,7 @@ export default function PaymentTracker({
 										key={inst.id}
 										installment={inst}
 										totalInstallments={installments.length}
-										disabled={isCancelled}
+										disabled={isCancelled || isAwaitingConfirmation}
 										onAction={openModal}
 									/>
 								))}
@@ -419,7 +404,6 @@ export default function PaymentTracker({
 						</table>
 					</div>
 
-					{/* Note si réservation terminée */}
 					{isCompleted && (
 						<div className="px-4 py-3 border-t border-dark-800 flex items-center gap-2">
 							<CheckCircle2 className="w-4 h-4 text-brand-400 shrink-0" />
@@ -429,7 +413,17 @@ export default function PaymentTracker({
 						</div>
 					)}
 
-					{/* Alerte si réservation annulée/expirée */}
+					{isAwaitingConfirmation && (
+						<div className="px-4 py-3 border-t border-dark-800 flex items-center gap-2">
+							<Lock className="w-4 h-4 text-amber-400 shrink-0" />
+							<p className="text-xs text-dark-400">
+								{currentStatus === 'PENDING'
+									? 'En attente du paiement de l\'acompte en ligne — les tranches ne pourront être saisies qu\'une fois la réservation confirmée.'
+									: 'Réservation payée, en attente de confirmation par un admin (présentation en agence) — les tranches ne peuvent pas encore être saisies.'}
+							</p>
+						</div>
+					)}
+
 					{isCancelled && (
 						<div className="px-4 py-3 border-t border-dark-800 flex items-center gap-2">
 							<AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
@@ -563,7 +557,6 @@ export default function PaymentTracker({
 								</button>
 							</div>
 
-							{/* Reset (uniquement si la tranche est déjà payée) */}
 							{modal.installment.paidAmount !== null && (
 								<div className="pt-1 border-t border-dark-800 text-center">
 									<button
