@@ -4,17 +4,53 @@ import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import prisma from '@/lib/db'
 import ReservationForm from '@/components/admin/reservations/ReservationForm'
+import { calculateDiscountedPrice } from '@/lib/utils'
 
 export const metadata: Metadata = { title: 'Nouvelle réservation' }
 
 export default async function NewReservationPage() {
-	const availableCars = await prisma.car.findMany({
+	const now = new Date()
+
+	const cars = await prisma.car.findMany({
 		where:   { status: 'AVAILABLE' },
-		select:  { id: true, title: true, brand: true, model: true, year: true, price: true },
+		select:  {
+			id: true, title: true, brand: true, model: true, year: true, price: true,
+			offers: {
+				where: {
+					offer: {
+						isActive:  true,
+						startDate: { lte: now },
+						endDate:   { gte: now },
+					},
+				},
+				include: {
+					offer: { select: { id: true, name: true, type: true, value: true } },
+				},
+			},
+		},
 		orderBy: { brand: 'asc' },
 	})
 
-	// Même délai par défaut que la réservation publique (cf. /api/payments/create-checkout)
+	const availableCars = cars.map((c) => {
+		const activeOffer = c.offers[0]?.offer ?? null
+		const finalPrice  = activeOffer
+			? calculateDiscountedPrice(c.price, activeOffer.type as any, activeOffer.value)
+			: c.price
+
+		return {
+			id:    c.id,
+			title: c.title,
+			brand: c.brand,
+			model: c.model,
+			year:  c.year,
+			price: c.price,
+			finalPrice,
+			offer: activeOffer
+				? { id: activeOffer.id, name: activeOffer.name, type: activeOffer.type, value: activeOffer.value }
+				: null,
+		}
+	})
+
 	const expiryDays      = Number(process.env.RESERVATION_EXPIRY_DAYS ?? 5)
 	const defaultExpiresAt = new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000)
 		.toISOString()

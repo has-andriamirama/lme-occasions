@@ -2,12 +2,22 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertCircle, Loader2, Info, Car as CarIcon } from 'lucide-react'
+import { AlertCircle, Loader2, Info, Car as CarIcon, Tag } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cn, formatPrice } from '@/lib/utils'
 
+interface CarOfferInfo {
+	id: string
+	name: string
+	type: 'PERCENTAGE' | 'FIXED_AMOUNT'
+	value: number
+}
+
 interface CarOption {
-	id: string; title: string; brand: string; model: string; year: number; price: number
+	id: string; title: string; brand: string; model: string; year: number
+	price: number
+	finalPrice?: number
+	offer?: CarOfferInfo | null
 }
 
 interface FormData {
@@ -50,16 +60,20 @@ export default function ReservationForm({ mode, availableCars, defaultExpiresAt,
 	})
 	const [errors, setErrors] = useState<Record<string, string>>({})
 	const [loading, setLoading] = useState(false)
+	const [priceAutoFilled, setPriceAutoFilled] = useState(false)
 
 	const set = (field: keyof FormData, value: unknown) => {
 		setForm((f) => ({ ...f, [field]: value }))
 		setErrors((e) => { const n = { ...e }; delete n[field]; return n })
+		if (field === 'totalPrice') setPriceAutoFilled(false)
 	}
 
 	function handleCarChange(carId: string) {
 		const car = availableCars.find((c) => c.id === carId)
-		setForm((f) => ({ ...f, carId, totalPrice: car ? car.price : f.totalPrice }))
+		const price = car ? (car.finalPrice ?? car.price) : form.totalPrice
+		setForm((f) => ({ ...f, carId, totalPrice: price }))
 		setErrors((e) => { const n = { ...e }; delete n.carId; delete n.totalPrice; return n })
+		setPriceAutoFilled(true)
 	}
 
 	function validate(): boolean {
@@ -124,7 +138,8 @@ export default function ReservationForm({ mode, availableCars, defaultExpiresAt,
 		</div>
 	)
 
-	const remaining = Math.max(0, (form.totalPrice || 0) - (form.depositAmount || 0))
+	const remaining   = Math.max(0, (form.totalPrice || 0) - (form.depositAmount || 0))
+	const selectedCar = mode === 'create' ? availableCars.find((c) => c.id === form.carId) : undefined
 
 	return (
 		<form onSubmit={handleSubmit} className="space-y-8 max-w-4xl">
@@ -143,28 +158,50 @@ export default function ReservationForm({ mode, availableCars, defaultExpiresAt,
 				</div>
 			)}
 
-			{/* ── Section: véhicule ───────────────────────────────────── */}
 			<section className="card p-6 space-y-5">
 				<h2 className="font-display font-bold text-white text-sm uppercase tracking-widest border-b border-dark-700 pb-3">
 					Véhicule
 				</h2>
 
 				{mode === 'create' ? (
-					<Field label="Véhicule à réserver" error={errors.carId} required>
-						{availableCars.length === 0 ? (
-							<p className="text-sm text-dark-500">Aucun véhicule disponible à la réservation actuellement.</p>
-						) : (
-							<select value={form.carId} onChange={(e) => handleCarChange(e.target.value)}
-								className={cn('input-base', errors.carId && 'border-red-500/50')}>
-								<option value="">— Choisir un véhicule —</option>
-								{availableCars.map((c) => (
-									<option key={c.id} value={c.id}>
-										{c.brand} {c.model} {c.year} — {formatPrice(c.price)}
-									</option>
-								))}
-							</select>
+					<>
+						<Field label="Véhicule à réserver" error={errors.carId} required>
+							{availableCars.length === 0 ? (
+								<p className="text-sm text-dark-500">Aucun véhicule disponible à la réservation actuellement.</p>
+							) : (
+								<select value={form.carId} onChange={(e) => handleCarChange(e.target.value)}
+									className={cn('input-base', errors.carId && 'border-red-500/50')}>
+									<option value="">— Choisir un véhicule —</option>
+									{availableCars.map((c) => (
+										<option key={c.id} value={c.id}>
+											{c.brand} {c.model} {c.year} — {formatPrice(c.finalPrice ?? c.price)}
+											{c.offer ? ` (offre active : ${c.offer.name})` : ''}
+										</option>
+									))}
+								</select>
+							)}
+						</Field>
+
+						{selectedCar?.offer && (
+							<div className="flex items-start gap-3 rounded-xl border border-brand-500/30 bg-brand-500/10 p-4">
+								<Tag className="w-4 h-4 text-brand-400 mt-0.5 shrink-0" />
+								<div className="text-sm">
+									<p className="text-brand-200 font-semibold">
+										Offre active sur ce véhicule : « {selectedCar.offer.name} » (
+										{selectedCar.offer.type === 'PERCENTAGE'
+											? `-${selectedCar.offer.value}%`
+											: `-${formatPrice(selectedCar.offer.value)}`}
+										)
+									</p>
+									<p className="text-dark-300 mt-1">
+										Prix catalogue <span className="line-through text-dark-500">{formatPrice(selectedCar.price)}</span>
+										{' '}→ prix proposé <span className="font-bold text-white">{formatPrice(selectedCar.finalPrice ?? selectedCar.price)}</span>.
+										{priceAutoFilled && ' Le champ « Prix total » ci-dessous a été pré-rempli avec ce montant — modifiable si besoin.'}
+									</p>
+								</div>
+							</div>
 						)}
-					</Field>
+					</>
 				) : (
 					<div>
 						<label className="text-xs font-semibold text-dark-300 uppercase tracking-wider block mb-1.5">
@@ -224,6 +261,12 @@ export default function ReservationForm({ mode, availableCars, defaultExpiresAt,
 							className={cn('input-base font-semibold', errors.depositAmount && 'border-red-500/50')} />
 					</Field>
 				</div>
+				{selectedCar?.offer && (
+					<p className="text-xs text-dark-500">
+						Le prix total ci-dessus inclut déjà la réduction de l'offre « {selectedCar.offer.name} ».
+						Vous pouvez l'ajuster manuellement si une négociation a eu lieu en agence.
+					</p>
+				)}
 
 				<Field label="Mode de règlement du solde">
 					<select value={form.installmentType} onChange={(e) => set('installmentType', e.target.value)} className="input-base">

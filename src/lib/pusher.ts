@@ -19,10 +19,20 @@ export function getPusherClient(): PusherClient {
 		throw new Error('getPusherClient() must be called client-side')
 	}
 	if (!pusherClientInstance) {
-		pusherClientInstance = new PusherClient(
-			process.env.NEXT_PUBLIC_PUSHER_KEY!,
-			{ cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER! }
-		)
+		const key     = process.env.NEXT_PUBLIC_PUSHER_KEY
+		const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER
+
+		if (!key || !cluster) {
+			throw new Error(
+				'[Pusher] NEXT_PUBLIC_PUSHER_KEY et/ou NEXT_PUBLIC_PUSHER_CLUSTER sont absents. ' +
+				'Vérifiez ces variables dans Vercel → Settings → Environment Variables (environnement ' +
+				'« Production »). Important : les variables préfixées NEXT_PUBLIC_ sont injectées dans ' +
+				'le bundle au moment du BUILD — si vous venez de les ajouter/modifier, il faut redéployer ' +
+				'(pas juste sauvegarder la variable) pour qu\'elles soient prises en compte.'
+			)
+		}
+
+		pusherClientInstance = new PusherClient(key, { cluster })
 	}
 	return pusherClientInstance
 }
@@ -38,7 +48,7 @@ export const EVENTS = {
 	carStatusChanged: 'car-status-changed',
 	carCreated:       'car-created',
 	carUpdated:       'car-updated',
-	offerChanged:     'offer-changed', // création, édition, pause/reprise
+	offerChanged:     'offer-changed',
 	offerDeleted:     'offer-deleted',
 	newReservation:   'new-reservation',
 	newContact:       'new-contact',
@@ -51,9 +61,6 @@ export async function broadcastCarStatus(carId: string, status: string, title: s
 	})
 }
 
-// Payload envoyé à chaque création / édition / pause / reprise d'offre.
-// `carIds` = liste à jour des véhicules concernés (calculée côté serveur après écriture en DB),
-// ce qui permet aux pages publiques de savoir précisément quelles voitures sont impactées.
 export interface OfferBroadcastPayload {
 	id:           string
 	name:         string
