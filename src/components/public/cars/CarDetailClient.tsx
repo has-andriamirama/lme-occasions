@@ -1,6 +1,7 @@
 // src/components/public/cars/CarDetailClient.tsx
 'use client'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -28,6 +29,7 @@ interface Props {
 }
 
 export default function CarDetailClient({ car: initialCar, paymentSuccess, paymentCancelled }: Props) {
+	const router = useRouter()
 	const [car, setCar]         = useState(initialCar)
 	const [imgIdx, setImgIdx]   = useState(0)
 	const [loading, setLoading] = useState(false)
@@ -49,18 +51,25 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 	const depositAmount = Math.round(finalPrice * 0.30)
 	const isAvailable = car.status === 'AVAILABLE'
 
-	useCarUpdates((updatedCar) => {
-		if (updatedCar.id !== car.id) return
+	useCarUpdates({
+		onChange: (updatedCar) => {
+			if (updatedCar.id !== car.id) return
 
-		const statusChangedToReserved = updatedCar.status !== undefined
-			&& updatedCar.status !== car.status
-			&& updatedCar.status === 'RESERVED'
+			const statusChangedToReserved = updatedCar.status !== undefined
+				&& updatedCar.status !== car.status
+				&& updatedCar.status === 'RESERVED'
 
-		setCar((prev) => ({ ...prev, ...updatedCar } as typeof prev))
+			setCar((prev) => ({ ...prev, ...updatedCar } as typeof prev))
 
-		if (statusChangedToReserved) {
-			toast.error('Ce véhicule vient d\'être réservé par quelqu\'un d\'autre.')
-		}
+			if (statusChangedToReserved) {
+				toast.error('Ce véhicule vient d\'être réservé par quelqu\'un d\'autre.')
+			}
+		},
+		onDelete: (carId) => {
+			if (carId !== car.id) return
+			toast.error('Ce véhicule a été retiré du catalogue.')
+			router.push('/cars')
+		},
 	})
 
 	useOfferUpdates({

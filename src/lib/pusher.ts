@@ -44,6 +44,7 @@ export const CHANNELS = {
 export const EVENTS = {
 	carCreated:     'car-created',
 	carUpdated:     'car-updated',
+	carDeleted:     'car-deleted',
 	offerChanged:   'offer-changed',
 	offerDeleted:   'offer-deleted',
 	newReservation: 'new-reservation',
@@ -77,6 +78,12 @@ export interface CarBroadcastPayload {
 export async function broadcastCarUpdate(payload: CarBroadcastPayload) {
 	await pusherServer.trigger(CHANNELS.cars, EVENTS.carUpdated, {
 		...payload, timestamp: new Date().toISOString(),
+	})
+}
+
+export async function broadcastCarDeleted(carId: string) {
+	await pusherServer.trigger(CHANNELS.cars, EVENTS.carDeleted, {
+		carId, timestamp: new Date().toISOString(),
 	})
 }
 

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/db'
-import { broadcastCarUpdate } from '@/lib/pusher'
+import { broadcastCarUpdate, broadcastCarDeleted } from '@/lib/pusher'
 import { z } from 'zod'
 
 const updateSchema = z.object({
@@ -29,7 +29,6 @@ const updateSchema = z.object({
 	allowInstallment: z.boolean().optional(),
 }).strict()
 
-// ── GET single car ─────────────────────────────────────────────────────────
 export async function GET(
 	_req: NextRequest,
 	{ params }: { params: { id: string } }
@@ -58,7 +57,6 @@ export async function GET(
 	}
 }
 
-// ── PATCH update car ─────────────────────────────────────────────────────────
 export async function PATCH(
 	req: NextRequest,
 	{ params }: { params: { id: string } }
@@ -82,17 +80,11 @@ export async function PATCH(
 			data:  parsed.data,
 		})
 
-		// Broadcast Pusher (NON-CRITIQUE : une erreur Pusher ne doit pas faire échouer
-		// la mise à jour de la voiture — la DB est déjà mise à jour avec succès)
-		// On diffuse dès qu'au moins un champ a changé, pas seulement le statut,
-		// et on envoie uniquement les champs réellement modifiés (mise à jour partielle).
 		if (Object.keys(parsed.data).length > 0) {
 			try {
 				await broadcastCarUpdate({ id: updated.id, ...parsed.data })
 				console.log('[PATCH /api/cars/:id] Pusher broadcast OK :', Object.keys(parsed.data))
 			} catch (pusherErr) {
-				// Pusher a échoué → on logge mais la réponse reste 200
-				// Les clients verront la mise à jour au prochain refresh
 				console.error('[PATCH /api/cars/:id] Pusher broadcast échoué (non-critique) :', pusherErr)
 			}
 		}
@@ -114,7 +106,6 @@ export async function PATCH(
 	}
 }
 
-// ── DELETE car ────────────────────────────────────────────────────────────────
 export async function DELETE(
 	_req: NextRequest,
 	{ params }: { params: { id: string } }
@@ -144,6 +135,12 @@ export async function DELETE(
 				details:  { title: car.title, brand: car.brand },
 			},
 		})
+
+		try {
+			await broadcastCarDeleted(params.id)
+		} catch (pusherErr) {
+			console.error('[DELETE /api/cars/:id] Pusher broadcast échoué (non-critique) :', pusherErr)
+		}
 
 		return NextResponse.json({ success: true, message: 'Véhicule supprimé' })
 	} catch (err) {

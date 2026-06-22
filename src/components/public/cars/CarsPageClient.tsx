@@ -108,8 +108,17 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
 	const [offer, setOffer]               = useState<OfferWithCars | null>(null)
 	const [loadingOffer, setLoadingOffer] = useState(false)
 
-	useCarUpdates((updatedCar) => {
-		setCars((prev) => prev.map((c) => (c.id === updatedCar.id ? { ...c, ...updatedCar } : c)))
+	useCarUpdates({
+		onChange: (updatedCar) => {
+			setCars((prev) => prev.map((c) => (c.id === updatedCar.id ? { ...c, ...updatedCar } : c)))
+		},
+		onDelete: (carId) => {
+			const wasPresent = cars.some((c) => c.id === carId)
+			setCars((prev) => prev.filter((c) => c.id !== carId))
+			if (wasPresent) {
+				setMeta((prev) => ({ ...prev, total: Math.max(0, prev.total - 1) }))
+			}
+		},
 	})
 
 	useOfferUpdates({

@@ -54,10 +54,15 @@ function applyOfferChange(
 export default function AllCarsPreview({ cars: initialCars }: { cars: CarWithOffers[] }) {
 	const [cars, setCars] = useState(initialCars)
 
-	useCarUpdates((updatedCar) => {
-		setCars((prev) =>
-			prev.map((c) => (c.id === updatedCar.id ? ({ ...c, ...updatedCar } as CarWithOffers) : c))
-		)
+	useCarUpdates({
+		onChange: (updatedCar) => {
+			setCars((prev) =>
+				prev.map((c) => (c.id === updatedCar.id ? ({ ...c, ...updatedCar } as CarWithOffers) : c))
+			)
+		},
+		onDelete: (carId) => {
+			setCars((prev) => prev.filter((c) => c.id !== carId))
+		},
 	})
 
 	useOfferUpdates({

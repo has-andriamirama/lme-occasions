@@ -28,7 +28,6 @@ export default function CarCard({ car, now }: { car: CarWithOffers; now?: Date }
 					: 'border-dark-700 hover:border-brand-500/30 hover:shadow-brand hover:-translate-y-1 card-hover'
 			)}
 		>
-			{/* Image */}
 			<div className="relative aspect-[16/10] bg-dark-700 overflow-hidden">
 				{car.mainImage ? (
 					<Image
@@ -47,10 +46,8 @@ export default function CarCard({ car, now }: { car: CarWithOffers; now?: Date }
 					</div>
 				)}
 
-				{/* Gradient overlay */}
 				<div className="absolute inset-0 bg-gradient-to-t from-dark-900/80 via-transparent to-transparent" />
 
-				{/* Status badge */}
 				<div className="absolute top-3 left-3">
 					<span className={`badge ${getStatusColor(car.status)}`}>
 						<span className={`status-dot ${
@@ -61,7 +58,6 @@ export default function CarCard({ car, now }: { car: CarWithOffers; now?: Date }
 					</span>
 				</div>
 
-				{/* Promo badge */}
 				{activeOffer && (
 					<div className="absolute top-3 right-3">
 						<span className="badge bg-brand-500 text-dark-950 border-0 font-bold shadow-brand">
@@ -72,7 +68,6 @@ export default function CarCard({ car, now }: { car: CarWithOffers; now?: Date }
 					</div>
 				)}
 
-				{/* Featured star */}
 				{car.isFeatured && (
 					<div className="absolute bottom-3 right-3">
 						<div className="w-7 h-7 rounded-full bg-brand-500/20 border border-brand-500/40
@@ -83,20 +78,16 @@ export default function CarCard({ car, now }: { car: CarWithOffers; now?: Date }
 				)}
 			</div>
 
-			{/* Content */}
 			<div className="p-5 flex flex-col flex-1">
-				{/* Brand + Year */}
 				<div className="flex items-center justify-between mb-1.5">
 					<span className="text-xs font-bold text-brand-400 uppercase tracking-wider">{car.brand}</span>
 					<span className="text-xs text-dark-400">{car.year}</span>
 				</div>
 
-				{/* Title */}
 				<h3 className="font-display font-bold text-white text-base leading-snug mb-3 line-clamp-2 group-hover:text-brand-400 transition-colors">
 					{car.title}
 				</h3>
 
-				{/* Specs row */}
 				<div className="grid grid-cols-2 gap-2 mb-4">
 					{[
 						{ icon: Gauge,     label: formatMileage(car.mileage) },
@@ -111,7 +102,6 @@ export default function CarCard({ car, now }: { car: CarWithOffers; now?: Date }
 					))}
 				</div>
 
-				{/* Price */}
 				<div className="flex items-end justify-between mt-auto pt-4 border-t border-dark-700">
 					<div>
 						{activeOffer && (

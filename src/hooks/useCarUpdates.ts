@@ -5,11 +5,14 @@ import { getPusherClient, CHANNELS, EVENTS, type CarBroadcastPayload } from '@/l
 
 export type { CarBroadcastPayload }
 
-export function useCarUpdates(
-	callback: (car: CarBroadcastPayload) => void
-) {
-	const callbackRef = useRef(callback)
-	useEffect(() => { callbackRef.current = callback })
+interface Handlers {
+	onChange?: (car: CarBroadcastPayload) => void
+	onDelete?: (carId: string) => void
+}
+
+export function useCarUpdates(handlers: Handlers) {
+	const handlersRef = useRef(handlers)
+	useEffect(() => { handlersRef.current = handlers })
 
 	useEffect(() => {
 		let pusher: ReturnType<typeof getPusherClient> | null = null
@@ -22,14 +25,19 @@ export function useCarUpdates(
 
 		const channel = pusher.subscribe(CHANNELS.cars)
 
-		const handler = (data: CarBroadcastPayload) => {
-			callbackRef.current(data)
+		const onChange = (data: CarBroadcastPayload) => {
+			handlersRef.current.onChange?.(data)
+		}
+		const onDelete = (data: { carId: string }) => {
+			handlersRef.current.onDelete?.(data.carId)
 		}
 
-		channel.bind(EVENTS.carUpdated, handler)
+		channel.bind(EVENTS.carUpdated, onChange)
+		channel.bind(EVENTS.carDeleted, onDelete)
 
 		return () => {
-			channel.unbind(EVENTS.carUpdated, handler)
+			channel.unbind(EVENTS.carUpdated, onChange)
+			channel.unbind(EVENTS.carDeleted, onDelete)
 		}
 	}, [])
 }
