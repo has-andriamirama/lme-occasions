@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/db'
+import { pusherServer, CHANNELS, EVENTS } from '@/lib/pusher'
 import { z } from 'zod'
 
 const carSchema = z.object({
@@ -28,7 +29,6 @@ const carSchema = z.object({
 	allowInstallment: z.boolean().default(false),
 })
 
-// ── GET — Public car listing with filters ────────────────────────────────────
 export async function GET(req: NextRequest) {
 	try {
 		const { searchParams } = req.nextUrl
@@ -132,7 +132,6 @@ export async function GET(req: NextRequest) {
 	}
 }
 
-// ── POST — Create car (admin only) ───────────────────────────────────────────
 export async function POST(req: NextRequest) {
 	try {
 		const session = await getServerSession(authOptions)
@@ -160,6 +159,18 @@ export async function POST(req: NextRequest) {
 				details:  { title: car.title, brand: car.brand },
 			},
 		})
+
+		try {
+			await pusherServer.trigger(CHANNELS.cars, EVENTS.carCreated, {
+				...car,
+				offers:    [],
+				timestamp: new Date().toISOString(),
+			})
+			console.log('[POST /api/cars] Pusher carCreated OK :', car.id)
+		} catch (pusherErr) {
+			console.error('[POST /api/cars] Pusher broadcast échoué (non-critique) :', pusherErr)
+		}
+		// ─────────────────────────────────────────────────────────────────────
 
 		return NextResponse.json({ success: true, data: car }, { status: 201 })
 	} catch (err) {

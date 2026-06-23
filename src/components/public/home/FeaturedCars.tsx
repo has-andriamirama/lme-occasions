@@ -59,10 +59,23 @@ export default function FeaturedCars({ cars: initialCars }: { cars: CarWithOffer
 	const [cars, setCars] = useState(initialCars)
 
 	useCarUpdates({
+		onCreate: (newCar) => {
+			if (!newCar.isFeatured) return
+			setCars((prev) => {
+				if (prev.some((c) => c.id === newCar.id)) return prev
+				return [newCar as unknown as CarWithOffers, ...prev]
+			})
+		},
 		onChange: (updatedCar) => {
-			setCars((prev) =>
-				prev.map((c) => (c.id === updatedCar.id ? ({ ...c, ...updatedCar } as CarWithOffers) : c))
-			)
+			setCars((prev) => {
+				if (updatedCar.isFeatured === false) {
+					return prev.filter((c) => c.id !== updatedCar.id)
+				}
+				if (updatedCar.isFeatured === true && !prev.some((c) => c.id === updatedCar.id)) {
+					return [{ ...updatedCar, offers: [] } as unknown as CarWithOffers, ...prev]
+				}
+				return prev.map((c) => (c.id === updatedCar.id ? ({ ...c, ...updatedCar } as CarWithOffers) : c))
+			})
 		},
 		onDelete: (carId) => {
 			setCars((prev) => prev.filter((c) => c.id !== carId))

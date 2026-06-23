@@ -92,6 +92,29 @@ function applyOfferChange(cars: any[], offer: OfferBroadcastPayload): any[] {
 	})
 }
 
+function carMatchesFilters(car: any, filters: Filters): boolean {
+	if (filters.search) {
+		const q = filters.search.toLowerCase()
+		const matched =
+			car.title?.toLowerCase().includes(q) ||
+			car.brand?.toLowerCase().includes(q) ||
+			car.model?.toLowerCase().includes(q) ||
+			car.description?.toLowerCase().includes(q)
+		if (!matched) return false
+	}
+	if (filters.brand && car.brand?.toLowerCase() !== filters.brand.toLowerCase()) return false
+	if (filters.status && filters.status !== 'ALL' && car.status !== filters.status) return false
+	if (filters.fuelType && car.fuelType !== filters.fuelType) return false
+	if (filters.transmission && car.transmission !== filters.transmission) return false
+	if (filters.minPrice && car.price < Number(filters.minPrice)) return false
+	if (filters.maxPrice && car.price > Number(filters.maxPrice)) return false
+	if (filters.minYear && car.year < Number(filters.minYear)) return false
+	if (filters.maxYear && car.year > Number(filters.maxYear)) return false
+	if (filters.maxMileage && car.mileage > Number(filters.maxMileage)) return false
+	if (filters.offerId) return false
+	return true
+}
+
 export default function CarsPageClient({ brands }: { brands: string[] }) {
 	const searchParams = useSearchParams()
 
@@ -109,6 +132,16 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
 	const [loadingOffer, setLoadingOffer] = useState(false)
 
 	useCarUpdates({
+		onCreate: (newCar) => {
+			if (page !== 1) return
+			if (filters.sortBy !== 'newest') return  // tri autres que "Plus récents" → pas d'insertion locale fiable
+			if (!carMatchesFilters(newCar, filters)) return
+			setCars((prev) => {
+				if (prev.some((c) => c.id === newCar.id)) return prev
+				return [newCar, ...prev]
+			})
+			setMeta((prev) => ({ ...prev, total: prev.total + 1 }))
+		},
 		onChange: (updatedCar) => {
 			setCars((prev) => prev.map((c) => (c.id === updatedCar.id ? { ...c, ...updatedCar } : c)))
 		},
@@ -242,7 +275,7 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
 
 									<div className="relative p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center gap-6">
 										<div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-brand-500/15 border border-brand-500/30
-																		flex items-center justify-center">
+										                flex items-center justify-center">
 											<Tag className="w-6 h-6 text-brand-400" />
 										</div>
 

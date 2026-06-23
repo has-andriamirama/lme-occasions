@@ -6,6 +6,7 @@ import { getPusherClient, CHANNELS, EVENTS, type CarBroadcastPayload } from '@/l
 export type { CarBroadcastPayload }
 
 interface Handlers {
+	onCreate?: (car: CarBroadcastPayload & { offers: [] }) => void
 	onChange?: (car: CarBroadcastPayload) => void
 	onDelete?: (carId: string) => void
 }
@@ -25,6 +26,10 @@ export function useCarUpdates(handlers: Handlers) {
 
 		const channel = pusher.subscribe(CHANNELS.cars)
 
+		const onCreate = (data: CarBroadcastPayload & { offers: [] }) => {
+			handlersRef.current.onCreate?.(data)
+		}
+
 		const onChange = (data: CarBroadcastPayload) => {
 			handlersRef.current.onChange?.(data)
 		}
@@ -32,10 +37,12 @@ export function useCarUpdates(handlers: Handlers) {
 			handlersRef.current.onDelete?.(data.carId)
 		}
 
+		channel.bind(EVENTS.carCreated, onCreate)
 		channel.bind(EVENTS.carUpdated, onChange)
 		channel.bind(EVENTS.carDeleted, onDelete)
 
 		return () => {
+			channel.unbind(EVENTS.carCreated, onCreate)
 			channel.unbind(EVENTS.carUpdated, onChange)
 			channel.unbind(EVENTS.carDeleted, onDelete)
 		}

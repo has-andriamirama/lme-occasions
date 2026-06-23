@@ -5,11 +5,10 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Tag, Clock, Search, SlidersHorizontal, X, ChevronDown } from 'lucide-react'
 import OfferCard from './OfferCard'
-import { cn } from '@/lib/utils'
+import { cn, getOfferStatus } from '@/lib/utils'
 import { useNow } from '@/hooks/useNow'
 import { useOfferUpdates } from '@/hooks/useOfferUpdates'
 
-// ── Filter options ─────────────────────────────────────────────────────────
 const STATUS_OPTIONS = [
 	{ value: 'ALL',      label: 'Toutes' },
 	{ value: 'ACTIVE',   label: 'En cours' },
@@ -33,7 +32,6 @@ interface Filters { search: string; status: string; type: string; sortBy: string
 
 const INIT_FILTERS: Filters = { search: '', status: 'ALL', type: '', sortBy: 'newest' }
 
-// ── Main Component ─────────────────────────────────────────────────────────
 export default function OffersPageClient() {
 	const searchParams = useSearchParams()
 
@@ -47,9 +45,6 @@ export default function OffersPageClient() {
 	const [showFilters, setShowFilters] = useState(false)
 	const [page, setPage]               = useState(1)
 
-	// Real-time: update car status in list when another user reserves
-
-	//
 	const fetchOffers = useCallback(async (f: Filters, p: number) => {
 		setLoading(true)
 		try {
@@ -71,33 +66,57 @@ export default function OffersPageClient() {
 
 	useEffect(() => { fetchOffers(filters, page) }, [filters, page, fetchOffers])
 
-	// Horloge qui "tick" toutes les 15s : permet à une offre d'apparaître comme
-	// "Expirée" automatiquement quand sa date de fin est atteinte, sans recharger
-	// la page — même principe que pour le statut des voitures, mais ici la
-	// transition est déclenchée par le temps plutôt que par une action admin.
 	const now = useNow(15000)
 
-	// Pusher : si un admin modifie / met en pause / réactive / supprime une offre,
-	// toutes les sessions ouvertes sur cette page le voient immédiatement.
 	useOfferUpdates({
 		onChange: (offer) => {
 			setOffers((prev) => {
 				const idx = prev.findIndex((o) => o.id === offer.id)
-				if (idx === -1) return prev // offre pas dans la page actuelle : on ignore
-				const next = [...prev]
-				next[idx] = {
-					...next[idx],
+
+				const normalized = {
 					...offer,
-					cars: offer.carIds.map((id: string) => ({ car: { id } })),
+					startDate: new Date(offer.startDate),
+					endDate:   new Date(offer.endDate),
+					cars:      offer.carIds.map((id: string) => ({ car: { id } })),
 				}
-				return next
+
+				if (idx !== -1) {
+					const next = [...prev]
+					next[idx]  = { ...next[idx], ...normalized }
+					return next
+				}
+
+				if (page !== 1) return prev
+				if (filters.sortBy !== 'newest') return prev
+
+				const isActive = getOfferStatus(normalized, now) === 'ACTIVE'
+
+				if (filters.status === 'ACTIVE' && !isActive) return prev
+				if (filters.status === 'INACTIVE' && isActive) return prev
+
+				if (filters.type && normalized.type !== filters.type) return prev
+
+				if (filters.search) {
+					const q = filters.search.toLowerCase()
+					const matched =
+						normalized.name?.toLowerCase().includes(q) ||
+						normalized.description?.toLowerCase().includes(q)
+					if (!matched) return prev
+				}
+
+				setMeta((m) => ({ ...m, total: m.total + 1 }))
+				return [normalized, ...prev]
 			})
 		},
 		onDelete: (offerId) => {
-			setOffers((prev) => prev.filter((o) => o.id !== offerId))
+			setOffers((prev) => {
+				const wasPresent = prev.some((o) => o.id === offerId)
+				if (wasPresent) setMeta((m) => ({ ...m, total: Math.max(0, m.total - 1) }))
+				return prev.filter((o) => o.id !== offerId)
+			})
 		},
 	})
-
+	
 	const set = (key: keyof Filters, value: string) => {
 		setPage(1)
 		setFilters((f) => ({ ...f, [key]: value }))
@@ -112,7 +131,6 @@ export default function OffersPageClient() {
 		<div className="pt-24 pb-20 min-h-screen">
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-				{/* ── Header ────────────────────────────────────────── */}
 				<div className="mb-8">
 					<p className="text-xs font-bold text-brand-400 uppercase tracking-widest mb-2">Promotions</p>
 					<h1 className="font-display font-black text-3xl sm:text-4xl text-white mb-2">
@@ -123,7 +141,6 @@ export default function OffersPageClient() {
 					</p>
 				</div>
 
-				{/* ── Search + sort row ──────────────────────────────────── */}
 				<div className="flex flex-col sm:flex-row gap-3 mb-4">
 					<div className="relative flex-1">
 						<Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-400" />
@@ -160,18 +177,15 @@ export default function OffersPageClient() {
 					</div>
 				</div>
 
-				{/* ── Advanced filters ───────────────────────────────────── */}
 				{showFilters && (
 					<div className="card p-5 mb-6 animate-slide-down">
 						<div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
-							{/* Status */}
 							<div>
 								<label className="text-xs text-dark-400 font-semibold uppercase tracking-wider block mb-1.5">Statut</label>
 								<select value={filters.status} onChange={(e) => set('status', e.target.value)} className="input-base text-sm">
 									{STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
 								</select>
 							</div>
-							{/* Type */}
 							<div>
 								<label className="text-xs text-dark-400 font-semibold uppercase tracking-wider block mb-1.5">Type de réduction</label>
 								<select value={filters.type} onChange={(e) => set('type', e.target.value)} className="input-base text-sm">
@@ -187,7 +201,6 @@ export default function OffersPageClient() {
 					</div>
 				)}
 
-				{/* ── Grid ──────────────────────────────────────────────── */}
 				{loading ? (
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 						{Array.from({ length: 6 }).map((_, i) => (
@@ -203,7 +216,7 @@ export default function OffersPageClient() {
 					<div className="text-center py-20">
 						<Tag className="w-12 h-12 text-dark-600 mx-auto mb-4" />
 						<p className="text-dark-400 text-lg mb-2">Aucune offre trouvée</p>
-						{activeFiltersCount && (
+						{activeFiltersCount > 0 && (
 							<button onClick={reset} className="btn-secondary mt-4">
 								Réinitialiser les filtres
 							</button>
@@ -215,7 +228,6 @@ export default function OffersPageClient() {
 							{offers.map((offer) => <OfferCard key={offer.id} offer={offer} now={now} />)}
 						</div>
 
-						{/* Pagination */}
 						{meta.totalPages > 1 && (
 							<div className="flex items-center justify-center gap-2 mt-10 flex-wrap">
 								{Array.from({ length: meta.totalPages }, (_, i) => i + 1).map((p) => (

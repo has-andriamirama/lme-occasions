@@ -55,6 +55,12 @@ export default function AllCarsPreview({ cars: initialCars }: { cars: CarWithOff
 	const [cars, setCars] = useState(initialCars)
 
 	useCarUpdates({
+		onCreate: (newCar) => {
+			setCars((prev) => {
+				if (prev.some((c) => c.id === newCar.id)) return prev
+				return [newCar as unknown as CarWithOffers, ...prev]
+			})
+		},
 		onChange: (updatedCar) => {
 			setCars((prev) =>
 				prev.map((c) => (c.id === updatedCar.id ? ({ ...c, ...updatedCar } as CarWithOffers) : c))
@@ -81,7 +87,6 @@ export default function AllCarsPreview({ cars: initialCars }: { cars: CarWithOff
 
 	return (
 		<section id="vehicules" className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-			{/* Header */}
 			<div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
 				<div>
 					<p className="text-xs font-bold text-brand-400 uppercase tracking-widest mb-2">Notre sélection</p>
@@ -94,7 +99,6 @@ export default function AllCarsPreview({ cars: initialCars }: { cars: CarWithOff
 				</Link>
 			</div>
 
-			{/* Grid */}
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 stagger">
 				{cars.map((car) => (
 					<CarCard key={car.id} car={car} />
