@@ -1,18 +1,17 @@
-// src/components/admin/cars/AdminCarsActions.tsx
+// src/components/admin/admins/AdminActions.tsx
 'use client'
 import { useState } from 'react'
-import { Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import ConfirmModal from '@/components/admin/shared/ConfirmModal'
 
 interface Props {
-	carId: string
-	carTitle: string
-	carStatus: string
+	adminId: string
+	adminUsername: string
 }
 
-export default function AdminCarsActions({ carId, carTitle, carStatus }: Props) {
+export default function AdminActions({ adminId, adminUsername }: Props) {
 	const router = useRouter()
 	const [confirm, setConfirm] = useState(false)
 	const [loading, setLoading] = useState(false)
@@ -20,29 +19,17 @@ export default function AdminCarsActions({ carId, carTitle, carStatus }: Props) 
 	async function handleDelete() {
 		setLoading(true)
 		try {
-			const res  = await fetch(`/api/cars/${carId}`, { method: 'DELETE' })
+			const res  = await fetch(`/api/admins/${adminId}`, { method: 'DELETE' })
 			const data = await res.json()
 			if (!data.success) { toast.error(data.error); return }
-			toast.success('Véhicule supprimé')
+			toast.success('Administrateur supprimé')
+			setConfirm(false)
 			router.refresh()
 		} catch {
 			toast.error('Erreur réseau')
 		} finally {
 			setLoading(false)
-			setConfirm(false)
 		}
-	}
-
-	if (carStatus === 'RESERVED') {
-		return (
-			<button
-				disabled
-				title="Impossible de supprimer un véhicule réservé"
-				className="p-1.5 text-dark-600 cursor-not-allowed rounded-lg"
-			>
-				<Trash2 className="w-4 h-4" />
-			</button>
-		)
 	}
 
 	return (
@@ -57,10 +44,11 @@ export default function AdminCarsActions({ carId, carTitle, carStatus }: Props) 
 
 			<ConfirmModal
 				open={confirm}
-				title="Supprimer ce véhicule ?"
+				title="Supprimer cet administrateur ?"
 				description={
 					<>
-						<span className="text-white font-medium">{carTitle}</span>{' '}
+						Le compte de{' '}
+						<span className="text-white font-medium">{adminUsername}</span>{' '}
 						sera définitivement supprimé. Cette action est irréversible.
 					</>
 				}

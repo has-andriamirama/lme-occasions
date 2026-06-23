@@ -82,7 +82,7 @@ export default async function AdminCarsPage({
           <div className="text-center py-16">
             <p className="text-dark-400">Aucun véhicule trouvé</p>
             <Link href="/admin/cars/new" className="btn-primary mt-4 inline-flex">
-              <Plus className="w-4 h-4" /> Ajouter
+              <Plus className="w-4 h-4" /> Ajouter un véhicule
             </Link>
           </div>
         ) : (
