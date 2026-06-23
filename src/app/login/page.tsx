@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, Lock, User, AlertCircle, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function LoginPage() {
@@ -88,7 +88,6 @@ export default function LoginPage() {
 								Identifiant
 							</label>
 							<div className="relative">
-								<User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-400" />
 								<input
 									type="text"
 									autoComplete="username"
@@ -107,7 +106,6 @@ export default function LoginPage() {
 								Mot de passe
 							</label>
 							<div className="relative">
-								<Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-400" />
 								<input
 									type={showPwd ? 'text' : 'password'}
 									autoComplete="current-password"
