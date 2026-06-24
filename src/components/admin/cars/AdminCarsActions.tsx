@@ -33,27 +33,35 @@ export default function AdminCarsActions({ carId, carTitle, carStatus }: Props) 
 		}
 	}
 
-	if (carStatus === 'RESERVED') {
-		return (
-			<button
-				disabled
-				title="Impossible de supprimer un véhicule réservé"
-				className="p-1.5 text-dark-600 cursor-not-allowed rounded-lg"
-			>
-				<Trash2 className="w-4 h-4" />
-			</button>
-		)
-	}
-
 	return (
-		<>
-			<button
-				onClick={() => setConfirm(true)}
-				title="Supprimer"
-				className="p-1.5 text-dark-400 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-all"
-			>
-				<Trash2 className="w-4 h-4" />
-			</button>
+		<div className="flex items-center justify-center gap-1">
+			<Link href={`/cars/${carId}`} target="_blank"
+				className="p-1.5 text-dark-400 hover:text-white rounded-lg hover:bg-dark-700 transition-all">
+				<Eye className="w-4 h-4" />
+			</Link>
+			
+			<Link href={`/admin/cars/${carId}/edit`}
+				className="p-1.5 text-dark-400 hover:text-brand-400 rounded-lg hover:bg-dark-700 transition-all">
+				<Pencil className="w-4 h-4" />
+			</Link>
+
+			{carStatus === 'RESERVED' ? (
+				<button
+					onClick={() => setConfirm(true)}
+					title="Supprimer"
+					className="p-1.5 text-dark-400 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-all"
+				>
+					<Trash2 className="w-4 h-4" />
+				</button>
+			) : (
+				<button
+					disabled
+					title="Impossible de supprimer un véhicule réservé"
+					className="p-1.5 text-dark-600 cursor-not-allowed rounded-lg"
+				>
+					<Trash2 className="w-4 h-4" />
+				</button>
+			)}
 
 			<ConfirmModal
 				open={confirm}
@@ -70,6 +78,6 @@ export default function AdminCarsActions({ carId, carTitle, carStatus }: Props) 
 				onConfirm={handleDelete}
 				onCancel={() => setConfirm(false)}
 			/>
-		</>
+		</div>
 	)
 }

@@ -139,17 +139,7 @@ export default async function AdminCarsPage({
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center justify-center gap-1">
-                        <Link href={`/cars/${car.id}`} target="_blank"
-                          className="p-1.5 text-dark-400 hover:text-white rounded-lg hover:bg-dark-700 transition-all">
-                          <Eye className="w-4 h-4" />
-                        </Link>
-                        <Link href={`/admin/cars/${car.id}/edit`}
-                          className="p-1.5 text-dark-400 hover:text-brand-400 rounded-lg hover:bg-dark-700 transition-all">
-                          <Pencil className="w-4 h-4" />
-                        </Link>
-                        <AdminCarsActions carId={car.id} carTitle={car.title} carStatus={car.status} />
-                      </div>
+                      <AdminCarsActions carId={car.id} carTitle={car.title} carStatus={car.status} />
                     </td>
                   </tr>
                 ))}

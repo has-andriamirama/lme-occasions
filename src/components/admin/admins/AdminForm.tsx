@@ -173,7 +173,7 @@ export default function AdminForm({ mode = 'create', admin, isSelf = false }: Pr
 					className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-sm"
 					onClick={(e) => { if (e.target === e.currentTarget) handleClose() }}
 				>
-					<div className="bg-dark-800 border border-dark-700 rounded-2xl p-6 w-full max-w-md shadow-card-lg animate-scale-in text-left">
+					<div className="bg-dark-800 border border-dark-700 rounded-2xl p-6 w-full max-w-md shadow-card-lg animate-scale-in">
 						<div className="flex items-center justify-between mb-5">
 							<h3 className="font-display font-bold text-white text-lg">
 								{isEdit ? "Modifier l'administrateur" : 'Nouvel administrateur'}

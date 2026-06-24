@@ -40,29 +40,27 @@ export default function AdminActions({ admin, isSelf }: Props) {
 		}
 	}
 
-	if (isSelf) {
-		return (
-			<button
-				disabled
-				title="Impossible de supprimer un super admin"
-				className="p-1.5 text-dark-600 cursor-not-allowed rounded-lg"
-			>
-				<Trash2 className="w-4 h-4" />
-			</button>
-		)
-	}
-
 	return (
 		<div className="flex items-center justify-center gap-1">
 			<AdminForm mode="edit" admin={admin} isSelf={isSelf} />
 
-			<button
-				onClick={() => setConfirm(true)}
-				title="Supprimer"
-				className="p-1.5 text-dark-400 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-all"
-			>
-				<Trash2 className="w-4 h-4" />
-			</button>
+			{!isSelf ? (
+				<button
+					onClick={() => setConfirm(true)}
+					title="Supprimer"
+					className="p-1.5 text-dark-400 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-all"
+				>
+					<Trash2 className="w-4 h-4" />
+				</button>
+			) : (
+				<button
+					disabled
+					title="Impossible de supprimer un véhicule réservé"
+					className="p-1.5 text-dark-600 cursor-not-allowed rounded-lg"
+				>
+					<Trash2 className="w-4 h-4" />
+				</button>
+			)}
 
 			<ConfirmModal
 				open={confirm}

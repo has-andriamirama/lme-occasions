@@ -47,7 +47,7 @@ export default function ConfirmModal({
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget && !loading) onCancel() }}
     >
-      <div className="bg-dark-800 border border-dark-700 rounded-2xl p-6 w-full max-w-sm shadow-card-lg animate-scale-in text-left">
+      <div className="bg-dark-800 border border-dark-700 rounded-2xl p-6 w-full max-w-sm shadow-card-lg animate-scale-in">
         <h3 className="font-display font-bold text-white text-lg mb-2">{title}</h3>
         <div className="text-sm text-dark-400 mb-6">{description}</div>
         <div className="flex gap-3">

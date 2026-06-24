@@ -98,7 +98,7 @@ export default async function AdminsPage() {
 											</span>
 										</td>
 
-										<td className="px-5 py-4 text-center">
+										<td className="px-5 py-4">
 											<AdminActions admin={a} isSelf={a.id === currentAdminId} />
 										</td>
 									</tr>
