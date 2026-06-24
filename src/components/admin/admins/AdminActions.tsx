@@ -5,13 +5,21 @@ import { useRouter } from 'next/navigation'
 import { Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import ConfirmModal from '@/components/admin/shared/ConfirmModal'
+import AdminForm from '@/components/admin/admins/AdminForm'
 
-interface Props {
-	adminId: string
-	adminUsername: string
+interface AdminLite {
+	id: string
+	username: string
+	email: string
+	role: string
 }
 
-export default function AdminActions({ adminId, adminUsername }: Props) {
+interface Props {
+	admin: AdminLite
+	isSelf: boolean
+}
+
+export default function AdminActions({ admin, isSelf }: Props) {
 	const router = useRouter()
 	const [confirm, setConfirm] = useState(false)
 	const [loading, setLoading] = useState(false)
@@ -19,7 +27,7 @@ export default function AdminActions({ adminId, adminUsername }: Props) {
 	async function handleDelete() {
 		setLoading(true)
 		try {
-			const res  = await fetch(`/api/admins/${adminId}`, { method: 'DELETE' })
+			const res  = await fetch(`/api/admins/${admin.id}`, { method: 'DELETE' })
 			const data = await res.json()
 			if (!data.success) { toast.error(data.error); return }
 			toast.success('Administrateur supprimé')
@@ -33,14 +41,18 @@ export default function AdminActions({ adminId, adminUsername }: Props) {
 	}
 
 	return (
-		<>
-			<button
-				onClick={() => setConfirm(true)}
-				title="Supprimer"
-				className="p-1.5 text-dark-400 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-all"
-			>
-				<Trash2 className="w-4 h-4" />
-			</button>
+		<div className="flex items-center justify-center gap-1">
+			<AdminForm mode="edit" admin={admin} isSelf={isSelf} />
+
+			{!isSelf && (
+				<button
+					onClick={() => setConfirm(true)}
+					title="Supprimer"
+					className="p-1.5 text-dark-400 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-all"
+				>
+					<Trash2 className="w-4 h-4" />
+				</button>
+			)}
 
 			<ConfirmModal
 				open={confirm}
@@ -48,7 +60,7 @@ export default function AdminActions({ adminId, adminUsername }: Props) {
 				description={
 					<>
 						Le compte de{' '}
-						<span className="text-white font-medium">{adminUsername}</span>{' '}
+						<span className="text-white font-medium">{admin.username}</span>{' '}
 						sera définitivement supprimé. Cette action est irréversible.
 					</>
 				}
@@ -58,6 +70,6 @@ export default function AdminActions({ adminId, adminUsername }: Props) {
 				onConfirm={handleDelete}
 				onCancel={() => setConfirm(false)}
 			/>
-		</>
+		</div>
 	)
 }

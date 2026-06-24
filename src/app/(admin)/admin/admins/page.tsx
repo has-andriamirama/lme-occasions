@@ -99,9 +99,7 @@ export default async function AdminsPage() {
 										</td>
 
 										<td className="px-5 py-4 text-center">
-											{a.id !== currentAdminId && (
-												<AdminActions adminId={a.id} adminUsername={a.username} />
-											)}
+											<AdminActions admin={a} isSelf={a.id === currentAdminId} />
 										</td>
 									</tr>
 								))}

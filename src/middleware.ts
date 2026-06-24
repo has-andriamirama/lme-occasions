@@ -14,10 +14,10 @@ export default withAuth(
 		if (
 			token?.mustChangePassword &&
 			pathname.startsWith('/admin') &&
-			!pathname.startsWith('/admin/settings/change-password')
+			pathname !== '/admin/dashboard'
 		) {
 			return NextResponse.redirect(
-				new URL('/admin/settings/change-password', req.url)
+				new URL('/admin/dashboard', req.url)
 			)
 		}
 

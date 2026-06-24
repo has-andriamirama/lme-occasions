@@ -26,6 +26,9 @@ export const authOptions: NextAuthOptions = {
 				if (typeof session.mustChangePassword === 'boolean') {
 					token.mustChangePassword = session.mustChangePassword
 				}
+				if (typeof session.role === 'string') {
+					token.role = session.role
+				}
 			}
 
 			return token
