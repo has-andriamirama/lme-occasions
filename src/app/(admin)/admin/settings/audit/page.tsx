@@ -32,7 +32,7 @@ export default async function AuditPage({ searchParams }: { searchParams: { page
 	const totalPages = Math.ceil(total / limit)
 
 	return (
-		<div className="space-y-6 max-w-7xl">
+		<div className="space-y-6 min-w-0">
 			<div className="flex items-center gap-3">
 				<Link href="/admin/settings" className="btn-ghost p-2"><ChevronLeft className="w-5 h-5" /></Link>
 				<div>
