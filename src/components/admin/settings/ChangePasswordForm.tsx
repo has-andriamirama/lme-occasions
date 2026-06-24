@@ -173,7 +173,7 @@ export default function ChangePasswordModal({ open, onClose }: Props) {
 						<button type="submit" disabled={!allOk || loading} className="btn-primary flex-1">
 							{loading
 								? <><Loader2 className="w-4 h-4 animate-spin" /> Mise à jour...</>
-								: 'Mettre à jour le mot de passe'}
+								: 'Mettre à jour'}
 						</button>
 						{dismissible && (
 							<button

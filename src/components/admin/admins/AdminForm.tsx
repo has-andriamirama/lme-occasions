@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { Plus, Pencil, Eye, EyeOff, Loader2, X } from 'lucide-react'
+import { Plus, Pencil, Eye, EyeOff, Loader2, X, CheckCircle2, XCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import ConfirmModal from '@/components/admin/shared/ConfirmModal'
+import { cn } from '@/lib/utils'
 
 interface AdminLite {
 	id: string
@@ -20,12 +21,21 @@ interface Props {
 	isSelf?: boolean
 }
 
+const RULES = [
+	{ label: 'Au moins 8 caractères',         test: (p: string) => p.length >= 8 },
+	{ label: 'Au moins une majuscule',        test: (p: string) => /[A-Z]/.test(p) },
+	{ label: 'Au moins une minuscule',        test: (p: string) => /[a-z]/.test(p) },
+	{ label: 'Au moins un chiffre',           test: (p: string) => /[0-9]/.test(p) },
+	{ label: 'Au moins un caractère spécial', test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+]
+
 function emptyForm(admin?: AdminLite) {
 	return {
-		username: admin?.username ?? '',
-		email:    admin?.email ?? '',
-		password: '',
-		role:     admin?.role ?? 'ADMIN',
+		username:        admin?.username ?? '',
+		email:           admin?.email ?? '',
+		password:        '',
+		confirmPassword: '',
+		role:            admin?.role ?? 'ADMIN',
 	}
 }
 
@@ -36,6 +46,7 @@ export default function AdminForm({ mode = 'create', admin, isSelf = false }: Pr
 	const [open, setOpen]                       = useState(false)
 	const [form, setForm]                       = useState(emptyForm(admin))
 	const [showPwd, setShowPwd]                 = useState(false)
+	const [showConfirmPwd, setShowConfirmPwd]   = useState(false)
 	const [loading, setLoading]                 = useState(false)
 	const [error, setError]                     = useState('')
 	const [confirmTransfer, setConfirmTransfer] = useState(false)
@@ -44,10 +55,21 @@ export default function AdminForm({ mode = 'create', admin, isSelf = false }: Pr
 	const canChangeRole = isEdit && !isSelf
 	const willTransfer  = canChangeRole && form.role === 'SUPER_ADMIN' && admin?.role !== 'SUPER_ADMIN'
 
+	const rules          = RULES.map((r) => ({ ...r, ok: r.test(form.password) }))
+	const allRulesOk     = rules.every((r) => r.ok)
+	const hasPassword    = form.password.length > 0
+	const passwordsMatch = form.password === form.confirmPassword
+	const showConfirmField = !isEdit || hasPassword
+
+	const pwdValid = isEdit
+		? (hasPassword ? allRulesOk && passwordsMatch : true)
+		: hasPassword && allRulesOk && passwordsMatch
+
 	function handleOpen() {
 		setForm(emptyForm(admin))
 		setError('')
 		setShowPwd(false)
+		setShowConfirmPwd(false)
 		setOpen(true)
 	}
 
@@ -58,9 +80,29 @@ export default function AdminForm({ mode = 'create', admin, isSelf = false }: Pr
 		setConfirmTransfer(false)
 	}
 
+	function handlePasswordChange(pwd: string) {
+		setForm((prev) => ({
+			...prev,
+			password: pwd,
+			confirmPassword: !pwd && isEdit ? '' : prev.confirmPassword,
+		}))
+	}
+
 	function handleSubmit(e: React.FormEvent) {
 		e.preventDefault()
 		setError('')
+
+		if (hasPassword) {
+			if (!allRulesOk) {
+				setError('Le mot de passe ne respecte pas les critères requis.')
+				return
+			}
+			if (!passwordsMatch) {
+				setError('Les mots de passe ne correspondent pas.')
+				return
+			}
+		}
+
 		if (willTransfer) {
 			setConfirmTransfer(true)
 			return
@@ -133,7 +175,7 @@ export default function AdminForm({ mode = 'create', admin, isSelf = false }: Pr
 					className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-sm"
 					onClick={(e) => { if (e.target === e.currentTarget) handleClose() }}
 				>
-					<div className="bg-dark-800 border border-dark-700 rounded-2xl p-6 w-full max-w-md shadow-card-lg animate-scale-in">
+					<div className="bg-dark-800 border border-dark-700 rounded-2xl p-6 w-full max-w-md shadow-card-lg animate-scale-in text-left">
 						<div className="flex items-center justify-between mb-5">
 							<h3 className="font-display font-bold text-white text-lg">
 								{isEdit ? "Modifier l'administrateur" : 'Nouvel administrateur'}
@@ -153,6 +195,7 @@ export default function AdminForm({ mode = 'create', admin, isSelf = false }: Pr
 						)}
 
 						<form onSubmit={handleSubmit} className="space-y-4">
+
 							<div>
 								<label className="text-xs font-semibold text-dark-300 uppercase tracking-wider block mb-1.5">
 									Identifiant
@@ -183,17 +226,18 @@ export default function AdminForm({ mode = 'create', admin, isSelf = false }: Pr
 
 							<div>
 								<label className="text-xs font-semibold text-dark-300 uppercase tracking-wider block mb-1.5">
-									Mot de passe {isEdit && <span className="text-dark-500 font-normal">(optionnel)</span>}
+									Mot de passe{' '}
+									{isEdit && <span className="text-dark-500 font-normal">(optionnel)</span>}
 								</label>
 								<div className="relative">
 									<input
 										type={showPwd ? 'text' : 'password'}
 										value={form.password}
-										onChange={(e) => setForm({ ...form, password: e.target.value })}
+										onChange={(e) => handlePasswordChange(e.target.value)}
 										placeholder="••••••••"
 										className="input-base pr-10"
 										required={!isEdit}
-										minLength={8}
+										autoComplete="new-password"
 									/>
 									<button
 										type="button"
@@ -205,12 +249,69 @@ export default function AdminForm({ mode = 'create', admin, isSelf = false }: Pr
 										{showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
 									</button>
 								</div>
-								<p className="text-[11px] text-dark-500 mt-1">
-									{isEdit
-										? 'Laisser vide pour conserver le mot de passe actuel. Sinon : min. 8 caractères, 1 majuscule, 1 chiffre, 1 caractère spécial.'
-										: 'Min. 8 caractères, 1 majuscule, 1 chiffre, 1 caractère spécial'}
-								</p>
+
+								{hasPassword && (
+									<div className="mt-2 space-y-1.5">
+										{rules.map((r) => (
+											<div
+												key={r.label}
+												className={cn(
+													'flex items-center gap-2 text-xs transition-colors',
+													r.ok ? 'text-emerald-400' : 'text-dark-500',
+												)}
+											>
+												{r.ok
+													? <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+													: <XCircle     className="w-3.5 h-3.5 shrink-0" />}
+												{r.label}
+											</div>
+										))}
+									</div>
+								)}
+
+								{isEdit && !hasPassword && (
+									<p className="text-[11px] text-dark-500 mt-1">
+										Laisser vide pour conserver le mot de passe actuel.
+									</p>
+								)}
 							</div>
+
+							{showConfirmField && (
+								<div>
+									<label className="text-xs font-semibold text-dark-300 uppercase tracking-wider block mb-1.5">
+										Confirmer le mot de passe{' '}
+										{isEdit && <span className="text-dark-500 font-normal">(optionnel)</span>}
+									</label>
+									<div className="relative">
+										<input
+											type={showConfirmPwd ? 'text' : 'password'}
+											value={form.confirmPassword}
+											onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+											placeholder="••••••••"
+											className={cn(
+												'input-base pr-10',
+												form.confirmPassword && !passwordsMatch && 'border-red-500/50',
+											)}
+											required={!isEdit || hasPassword}
+											autoComplete="new-password"
+										/>
+										<button
+											type="button"
+											onClick={() => setShowConfirmPwd((v) => !v)}
+											className="absolute right-3.5 top-1/2 -translate-y-1/2 text-dark-400 hover:text-white transition-colors"
+											tabIndex={-1}
+											aria-label={showConfirmPwd ? 'Masquer' : 'Afficher'}
+										>
+											{showConfirmPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+										</button>
+									</div>
+									{form.confirmPassword && !passwordsMatch && (
+										<p className="text-xs text-red-400 mt-1">
+											Les mots de passe ne correspondent pas
+										</p>
+									)}
+								</div>
+							)}
 
 							{canChangeRole ? (
 								<div>
@@ -240,8 +341,14 @@ export default function AdminForm({ mode = 'create', admin, isSelf = false }: Pr
 							)}
 
 							<div className="flex gap-3 pt-2">
-								<button type="submit" disabled={loading} className="btn-primary flex-1">
-									{loading ? <Loader2 className="w-4 h-4 animate-spin" /> : isEdit ? 'Enregistrer' : 'Créer'}
+								<button
+									type="submit"
+									disabled={loading || !pwdValid}
+									className="btn-primary flex-1"
+								>
+									{loading
+										? <Loader2 className="w-4 h-4 animate-spin" />
+										: isEdit ? 'Enregistrer' : 'Créer'}
 								</button>
 								<button
 									type="button"
