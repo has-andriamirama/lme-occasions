@@ -111,7 +111,7 @@ export default async function DashboardPage() {
 					<div className="flex items-center justify-between px-6 py-4 border-b border-dark-700">
 						<h2 className="font-display font-semibold text-white text-sm">Dernières réservations</h2>
 						<Link href="/admin/reservations" className="text-xs text-brand-400 hover:text-brand-300 transition-colors">
-							Voir tout →
+							Voir tout
 						</Link>
 					</div>
 					<div className="divide-y divide-dark-800">
@@ -141,7 +141,7 @@ export default async function DashboardPage() {
 					<div className="flex items-center justify-between px-6 py-4 border-b border-dark-700">
 						<h2 className="font-display font-semibold text-white text-sm">Messages non lus</h2>
 						<Link href="/admin/contacts" className="text-xs text-brand-400 hover:text-brand-300 transition-colors">
-							Voir tout →
+							Voir tout
 						</Link>
 					</div>
 					<div className="divide-y divide-dark-800">
