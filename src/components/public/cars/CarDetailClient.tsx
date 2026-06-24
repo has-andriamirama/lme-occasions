@@ -249,7 +249,7 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 									<p className="text-sm font-bold text-brand-400 uppercase tracking-wider mb-1">{car.brand}</p>
 									<h1 className="font-display font-black text-2xl sm:text-3xl text-white leading-tight">{car.title}</h1>
 								</div>
-								<div className="text-right shrink-0">
+								<div className="text-right flex-1">
 									{activeOffer && (
 										<p className="text-sm text-dark-500 line-through">{formatPrice(car.price)}</p>
 									)}
