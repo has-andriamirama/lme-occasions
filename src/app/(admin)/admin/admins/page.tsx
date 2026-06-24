@@ -26,7 +26,7 @@ export default async function AdminsPage() {
 	const currentAdminId = session!.user.id
 
 	return (
-		<div className="space-y-6 max-w-4xl">
+		<div className="space-y-6 max-w-7xl">
 			<div className="flex items-center justify-between gap-4">
 				<div>
 					<h1 className="text-2xl font-display font-bold text-white">Administrateurs</h1>
@@ -58,7 +58,7 @@ export default async function AdminsPage() {
 							<tbody className="divide-y divide-dark-800">
 								{admins.map((a) => (
 									<tr key={a.id} className="hover:bg-dark-800/30 transition-colors">
-										<td className="px-5 py-4">
+										<td className="px-4 py-3">
 											<div className="flex items-center gap-3">
 												<div className="w-8 h-8 rounded-full bg-gradient-brand flex items-center justify-center text-xs font-black text-dark-950 shrink-0">
 													{a.username.charAt(0).toUpperCase()}
@@ -82,7 +82,7 @@ export default async function AdminsPage() {
 											</div>
 										</td>
 
-										<td className="px-5 py-4 hidden sm:table-cell">
+										<td className="px-4 py-3 hidden sm:table-cell">
 											<span className={`flex items-center gap-1.5 text-xs font-medium w-fit ${
 												a.role === 'SUPER_ADMIN' ? 'text-brand-400' : 'text-dark-300'
 											}`}>
@@ -92,13 +92,13 @@ export default async function AdminsPage() {
 											</span>
 										</td>
 
-										<td className="px-5 py-4 hidden md:table-cell">
+										<td className="px-4 py-3 hidden md:table-cell">
 											<span className="text-xs text-dark-400">
 												{a.lastLoginAt ? formatDateTime(a.lastLoginAt) : 'Jamais'}
 											</span>
 										</td>
 
-										<td className="px-5 py-4">
+										<td className="px-4 py-3">
 											<AdminActions admin={a} isSelf={a.id === currentAdminId} />
 										</td>
 									</tr>

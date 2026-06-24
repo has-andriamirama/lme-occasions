@@ -12,7 +12,7 @@ export default async function SettingsPage() {
 	const session = await getServerSession(authOptions)
 
 	return (
-		<div className="space-y-6 max-w-2xl">
+		<div className="space-y-6 max-w-7xl">
 			<div>
 				<h1 className="text-2xl font-display font-bold text-white">Paramètres</h1>
 				<p className="text-dark-400 text-sm mt-0.5">Gérez votre compte et les préférences du site.</p>
