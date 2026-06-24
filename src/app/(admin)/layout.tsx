@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import AdminSidebar from '@/components/admin/layout/AdminSidebar'
-import AdminTopbar  from '@/components/admin/layout/AdminTopbar'
+import AdminTopbar from '@/components/admin/layout/AdminTopbar'
 import ChangePasswordForm from '@/components/admin/settings/ChangePasswordForm'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -19,7 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 					{children}
 				</main>
 			</div>
-			<ChangePasswordModal open={session.user.mustChangePassword} />
+			<ChangePasswordForm open={session.user.mustChangePassword} />
 		</div>
 	)
 }
