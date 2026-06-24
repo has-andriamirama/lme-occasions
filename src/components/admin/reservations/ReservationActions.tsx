@@ -106,7 +106,7 @@ export default function ReservationActions({ reservationId, status }: Props) {
 				open={modal === 'cancel'}
 				title="Annuler cette réservation ?"
 				description="Le véhicule redeviendra disponible à la vente. Cette action est irréversible."
-				confirmLabel="Annuler la réservation"
+				confirmLabel="Valider"
 				confirmVariant="danger"
 				loading={loading}
 				onConfirm={handleCancel}

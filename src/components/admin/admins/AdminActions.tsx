@@ -55,7 +55,7 @@ export default function AdminActions({ admin, isSelf }: Props) {
 			) : (
 				<button
 					disabled
-					title="Impossible de supprimer un véhicule réservé"
+					title="Impossible de supprimer votre propre compte"
 					className="p-1.5 text-dark-600 cursor-not-allowed rounded-lg"
 				>
 					<Trash2 className="w-4 h-4" />
