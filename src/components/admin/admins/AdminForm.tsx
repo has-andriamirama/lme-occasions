@@ -46,7 +46,6 @@ export default function AdminForm({ mode = 'create', admin, isSelf = false }: Pr
 	const [open, setOpen]                       = useState(false)
 	const [form, setForm]                       = useState(emptyForm(admin))
 	const [showPwd, setShowPwd]                 = useState(false)
-	const [showConfirmPwd, setShowConfirmPwd]   = useState(false)
 	const [loading, setLoading]                 = useState(false)
 	const [error, setError]                     = useState('')
 	const [confirmTransfer, setConfirmTransfer] = useState(false)
@@ -69,7 +68,6 @@ export default function AdminForm({ mode = 'create', admin, isSelf = false }: Pr
 		setForm(emptyForm(admin))
 		setError('')
 		setShowPwd(false)
-		setShowConfirmPwd(false)
 		setOpen(true)
 	}
 
@@ -284,7 +282,7 @@ export default function AdminForm({ mode = 'create', admin, isSelf = false }: Pr
 									</label>
 									<div className="relative">
 										<input
-											type={showConfirmPwd ? 'text' : 'password'}
+											type='password'
 											value={form.confirmPassword}
 											onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
 											placeholder="••••••••"
@@ -295,15 +293,6 @@ export default function AdminForm({ mode = 'create', admin, isSelf = false }: Pr
 											required={!isEdit || hasPassword}
 											autoComplete="new-password"
 										/>
-										<button
-											type="button"
-											onClick={() => setShowConfirmPwd((v) => !v)}
-											className="absolute right-3.5 top-1/2 -translate-y-1/2 text-dark-400 hover:text-white transition-colors"
-											tabIndex={-1}
-											aria-label={showConfirmPwd ? 'Masquer' : 'Afficher'}
-										>
-											{showConfirmPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-										</button>
 									</div>
 									{form.confirmPassword && !passwordsMatch && (
 										<p className="text-xs text-red-400 mt-1">
