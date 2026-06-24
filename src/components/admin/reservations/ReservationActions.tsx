@@ -2,7 +2,8 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { XCircle, CheckCircle2 } from 'lucide-react'
+import { XCircle, CheckCircle2, Pencil, Eye } from 'lucide-react'
+import Link from 'next/link'
 import toast from 'react-hot-toast'
 import ConfirmModal from '@/components/admin/shared/ConfirmModal'
 
@@ -62,28 +63,52 @@ export default function ReservationActions({ reservationId, status }: Props) {
 	}
 
 	return (
-		<>
-			<div className="flex items-center gap-1">
-				<button
-					onClick={() => canConfirm && setModal('confirm')}
-					disabled={!canConfirm}
-					title={canConfirm
-						? 'Confirmer la réservation (présentation en agence)'
-						: 'Confirmation disponible uniquement pour une réservation payée'}
-					className="p-1.5 text-dark-400 hover:text-emerald-400 rounded-lg hover:bg-dark-700 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-dark-400 disabled:hover:bg-transparent"
-				>
-					<CheckCircle2 className="w-4 h-4" />
-				</button>
+		<div className="flex items-center justify-center">
+			<Link
+				href={`/admin/reservations/${reservationId}`}
+				title="Voir le détail"
+				className="p-1.5 text-dark-400 hover:text-white rounded-lg hover:bg-dark-700 transition-all"
+			>
+				<Eye className="w-4 h-4" />
+			</Link>
 
-				<button
-					onClick={() => canCancel && setModal('cancel')}
-					disabled={!canCancel}
-					title={canCancel ? 'Annuler la réservation' : 'Annulation indisponible pour ce statut'}
-					className="p-1.5 text-dark-400 hover:text-red-400 rounded-lg hover:bg-dark-700 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-dark-400 disabled:hover:bg-transparent"
+			{['PENDING', 'PAID', 'CONFIRMED'].includes(status) ? (
+				<Link
+					href={`/admin/reservations/${reservationId}/edit`}
+					title="Modifier"
+					className="p-1.5 text-dark-400 hover:text-brand-400 rounded-lg hover:bg-dark-700 transition-all"
 				>
-					<XCircle className="w-4 h-4" />
-				</button>
-			</div>
+					<Pencil className="w-4 h-4" />
+				</Link>
+			) : (
+				<span
+					title="Modification indisponible pour ce statut"
+					aria-disabled="true"
+					className="p-1.5 text-dark-400 opacity-30 cursor-not-allowed rounded-lg"
+				>
+					<Pencil className="w-4 h-4" />
+				</span>
+			)}
+
+			<button
+				onClick={() => canConfirm && setModal('confirm')}
+				disabled={!canConfirm}
+				title={canConfirm
+					? 'Confirmer la réservation (présentation en agence)'
+					: 'Confirmation disponible uniquement pour une réservation payée'}
+				className="p-1.5 text-dark-400 hover:text-emerald-400 rounded-lg hover:bg-dark-700 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-dark-400 disabled:hover:bg-transparent"
+			>
+				<CheckCircle2 className="w-4 h-4" />
+			</button>
+
+			<button
+				onClick={() => canCancel && setModal('cancel')}
+				disabled={!canCancel}
+				title={canCancel ? 'Annuler la réservation' : 'Annulation indisponible pour ce statut'}
+				className="p-1.5 text-dark-400 hover:text-red-400 rounded-lg hover:bg-dark-700 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-dark-400 disabled:hover:bg-transparent"
+			>
+				<XCircle className="w-4 h-4" />
+			</button>
 
 			<ConfirmModal
 				open={modal === 'confirm'}
@@ -112,6 +137,6 @@ export default function ReservationActions({ reservationId, status }: Props) {
 				onConfirm={handleCancel}
 				onCancel={() => setModal(null)}
 			/>
-		</>
+		</div>
 	)
 }

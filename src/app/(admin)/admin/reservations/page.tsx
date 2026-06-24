@@ -4,16 +4,7 @@ import prisma from '@/lib/db'
 import Image from 'next/image'
 import { formatPrice, formatDateTime, getDaysRemaining } from '@/lib/utils'
 import ReservationActions from '@/components/admin/reservations/ReservationActions'
-import {
-	Clock,
-	CheckCircle2,
-	XCircle,
-	AlertTriangle,
-	Plus,
-	Pencil,
-	Eye,
-	CreditCard,
-} from 'lucide-react'
+import { Clock, CheckCircle2, XCircle, AlertTriangle, Plus, CreditCard } from 'lucide-react'
 import Link from 'next/link'
 
 export const metadata: Metadata = { title: 'Réservations' }
@@ -251,36 +242,8 @@ export default async function ReservationsPage({
 												</span>
 											</td>
 
-											<td className="px-4 py-3 text-center">
-												<div className="flex items-center justify-center gap-1">
-													<Link
-														href={`/admin/reservations/${r.id}`}
-														title="Voir le détail"
-														className="p-1.5 text-dark-400 hover:text-white rounded-lg hover:bg-dark-700 transition-all"
-													>
-														<Eye className="w-4 h-4" />
-													</Link>
-
-													{['PENDING', 'PAID', 'CONFIRMED'].includes(r.status) ? (
-														<Link
-															href={`/admin/reservations/${r.id}/edit`}
-															title="Modifier"
-															className="p-1.5 text-dark-400 hover:text-brand-400 rounded-lg hover:bg-dark-700 transition-all"
-														>
-															<Pencil className="w-4 h-4" />
-														</Link>
-													) : (
-														<span
-															title="Modification indisponible pour ce statut"
-															aria-disabled="true"
-															className="p-1.5 text-dark-400 opacity-30 cursor-not-allowed rounded-lg"
-														>
-															<Pencil className="w-4 h-4" />
-														</span>
-													)}
-
-													<ReservationActions reservationId={r.id} status={r.status} />
-												</div>
+											<td className="px-4 py-3">
+												<ReservationActions reservationId={r.id} status={r.status} />
 											</td>
 										</tr>
 									)
