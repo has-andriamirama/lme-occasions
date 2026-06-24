@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import AdminSidebar from '@/components/admin/layout/AdminSidebar'
 import AdminTopbar  from '@/components/admin/layout/AdminTopbar'
-import ChangePasswordModal from '@/components/admin/settings/ChangePasswordModal'
+import ChangePasswordForm from '@/components/admin/settings/ChangePasswordForm'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
 	const session = await getServerSession(authOptions)
