@@ -46,7 +46,7 @@ export default function AdminCarsActions({ carId, carTitle, carStatus }: Props) 
 				<Pencil className="w-4 h-4" />
 			</Link>
 
-			{carStatus === 'RESERVED' ? (
+			{carStatus !== 'RESERVED' ? (
 				<button
 					onClick={() => setConfirm(true)}
 					title="Supprimer"
