@@ -78,7 +78,7 @@ export default async function DashboardPage() {
 	}
 
 	return (
-		<div className="space-y-8 max-w-7xl">
+		<div className="space-y-8 min-w-0">
 			<div>
 				<h1 className="text-2xl font-display font-bold text-white">
 					Bonjour, {session?.user.username} 👋

@@ -33,7 +33,7 @@ export default async function ContactsPage({
 	const totalPages = Math.ceil(total / limit)
 
 	return (
-		<div className="space-y-6 max-w-7xl">
+		<div className="space-y-6 min-w-0">
 			<div className="flex items-center justify-between">
 				<div>
 					<h1 className="text-2xl font-display font-bold text-white">Messages</h1>

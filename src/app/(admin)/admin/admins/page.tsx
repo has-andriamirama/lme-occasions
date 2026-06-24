@@ -26,7 +26,7 @@ export default async function AdminsPage() {
 	const currentAdminId = session!.user.id
 
 	return (
-		<div className="space-y-6 max-w-7xl">
+		<div className="space-y-6 min-w-0">
 			<div className="flex items-center justify-between gap-4">
 				<div>
 					<h1 className="text-2xl font-display font-bold text-white">Administrateurs</h1>
