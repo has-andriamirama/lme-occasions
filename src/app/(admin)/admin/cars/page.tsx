@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 import prisma from '@/lib/db'
-import { Plus, Pencil, Trash2, Star, Eye } from 'lucide-react'
+import { Plus, Star } from 'lucide-react'
 import { formatPrice, formatMileage, getStatusLabel, getStatusColor } from '@/lib/utils'
 import AdminCarsActions from '@/components/admin/cars/AdminCarsActions'
 
