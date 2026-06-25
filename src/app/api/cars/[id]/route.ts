@@ -1,9 +1,9 @@
 // src/app/api/cars/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/db'
 import { broadcastCarUpdate, broadcastCarDeleted } from '@/lib/pusher'
+import { requireSession, apiError, validationError, createAuditLog, safePusher } from '@/lib/api'
+import { getActiveOffersInclude } from '@/lib/queries'
 import { z } from 'zod'
 
 const updateSchema = z.object({
@@ -35,25 +35,14 @@ export async function GET(
 ) {
 	try {
 		const car = await prisma.car.findUnique({
-			where: { id: params.id },
-			include: {
-				offers: {
-					include: { offer: true },
-					where: {
-						offer: {
-							isActive:  true,
-							startDate: { lte: new Date() },
-							endDate:   { gte: new Date() },
-						},
-					},
-				},
-			},
+			where:   { id: params.id },
+			include: { offers: getActiveOffersInclude() },
 		})
-		if (!car) return NextResponse.json({ success: false, error: 'Voiture introuvable' }, { status: 404 })
+		if (!car) return apiError('Voiture introuvable', 404)
 		return NextResponse.json({ success: true, data: car })
 	} catch (err) {
 		console.error('[GET /api/cars/:id]', err)
-		return NextResponse.json({ success: false, error: 'Erreur serveur' }, { status: 500 })
+		return apiError('Erreur serveur')
 	}
 }
 
@@ -62,47 +51,32 @@ export async function PATCH(
 	{ params }: { params: { id: string } }
 ) {
 	try {
-		const session = await getServerSession(authOptions)
-		if (!session?.user) return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 })
+		const session = await requireSession()
+		if (!session) return apiError('Non autorisé', 401)
 
-		const body = await req.json()
+		const body         = await req.json()
 		const { id, ...data } = body
-		const parsed = updateSchema.safeParse(data)
-		if (!parsed.success) {
-			return NextResponse.json({ success: false, error: 'Données invalides', details: parsed.error.flatten() }, { status: 400 })
-		}
+		const parsed       = updateSchema.safeParse(data)
+		if (!parsed.success) return validationError(parsed.error.flatten())
 
 		const existing = await prisma.car.findUnique({ where: { id: params.id } })
-		if (!existing) return NextResponse.json({ success: false, error: 'Voiture introuvable' }, { status: 404 })
+		if (!existing) return apiError('Voiture introuvable', 404)
 
-		const updated = await prisma.car.update({
-			where: { id: params.id },
-			data:  parsed.data,
-		})
+		const updated = await prisma.car.update({ where: { id: params.id }, data: parsed.data })
 
 		if (Object.keys(parsed.data).length > 0) {
-			try {
-				await broadcastCarUpdate({ id: updated.id, ...parsed.data })
-				console.log('[PATCH /api/cars/:id] Pusher broadcast OK :', Object.keys(parsed.data))
-			} catch (pusherErr) {
-				console.error('[PATCH /api/cars/:id] Pusher broadcast échoué (non-critique) :', pusherErr)
-			}
+			await safePusher(
+				() => broadcastCarUpdate({ id: updated.id, ...parsed.data }),
+				'PATCH /api/cars/:id'
+			)
 		}
 
-		await prisma.auditLog.create({
-			data: {
-				adminId:  session.user.id,
-				action:   'UPDATE',
-				entity:   'Car',
-				entityId: updated.id,
-				details:  { changes: parsed.data },
-			},
-		})
+		await createAuditLog(session.user.id, 'UPDATE', 'Car', updated.id, { changes: parsed.data })
 
 		return NextResponse.json({ success: true, data: updated })
 	} catch (err) {
 		console.error('[PATCH /api/cars/:id]', err)
-		return NextResponse.json({ success: false, error: 'Erreur serveur' }, { status: 500 })
+		return apiError('Erreur serveur')
 	}
 }
 
@@ -111,40 +85,22 @@ export async function DELETE(
 	{ params }: { params: { id: string } }
 ) {
 	try {
-		const session = await getServerSession(authOptions)
-		if (!session?.user) return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 })
+		const session = await requireSession()
+		if (!session) return apiError('Non autorisé', 401)
 
 		const car = await prisma.car.findUnique({ where: { id: params.id } })
-		if (!car) return NextResponse.json({ success: false, error: 'Voiture introuvable' }, { status: 404 })
-
+		if (!car) return apiError('Voiture introuvable', 404)
 		if (car.status === 'RESERVED') {
-			return NextResponse.json(
-				{ success: false, error: 'Impossible de supprimer un véhicule réservé' },
-				{ status: 400 }
-			)
+			return apiError('Impossible de supprimer un véhicule réservé', 400)
 		}
 
 		await prisma.car.delete({ where: { id: params.id } })
-
-		await prisma.auditLog.create({
-			data: {
-				adminId:  session.user.id,
-				action:   'DELETE',
-				entity:   'Car',
-				entityId: params.id,
-				details:  { title: car.title, brand: car.brand },
-			},
-		})
-
-		try {
-			await broadcastCarDeleted(params.id)
-		} catch (pusherErr) {
-			console.error('[DELETE /api/cars/:id] Pusher broadcast échoué (non-critique) :', pusherErr)
-		}
+		await createAuditLog(session.user.id, 'DELETE', 'Car', params.id, { title: car.title, brand: car.brand })
+		await safePusher(() => broadcastCarDeleted(params.id), 'DELETE /api/cars/:id')
 
 		return NextResponse.json({ success: true, message: 'Véhicule supprimé' })
 	} catch (err) {
 		console.error('[DELETE /api/cars/:id]', err)
-		return NextResponse.json({ success: false, error: 'Erreur serveur' }, { status: 500 })
+		return apiError('Erreur serveur')
 	}
 }

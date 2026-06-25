@@ -1,16 +1,15 @@
 // src/app/api/reservations/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/db'
 import { broadcastCarUpdate } from '@/lib/pusher'
 import { sendReservationConfirmedToClient } from '@/lib/mail'
 import { getInstallmentCount, recreateInstallments } from '@/lib/installments'
+import { requireSession, apiError, validationError, createAuditLog, safePusher } from '@/lib/api'
 import { z } from 'zod'
 
 const patchSchema = z.object({
 	action: z.enum(['CONFIRM', 'COMPLETE', 'CANCEL']),
-	notes: z.string().optional(),
+	notes:  z.string().optional(),
 })
 
 const updateReservationSchema = z.object({
@@ -29,49 +28,37 @@ export async function PUT(
 	{ params }: { params: { id: string } }
 ) {
 	try {
-		const session = await getServerSession(authOptions)
-		if (!session?.user) return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 })
+		const session = await requireSession()
+		if (!session) return apiError('Non autorisé', 401)
 
 		const body   = await req.json()
 		const parsed = updateReservationSchema.safeParse(body)
-		if (!parsed.success) {
-			return NextResponse.json({ success: false, error: 'Données invalides', details: parsed.error.flatten() }, { status: 400 })
-		}
+		if (!parsed.success) return validationError(parsed.error.flatten())
 
 		const existing = await prisma.reservation.findUnique({
 			where:   { id: params.id },
 			include: { paymentInstallments: { select: { paidAmount: true } } },
 		})
-		if (!existing) return NextResponse.json({ success: false, error: 'Réservation introuvable' }, { status: 404 })
+		if (!existing) return apiError('Réservation introuvable', 404)
 
 		if (!['PENDING', 'PAID', 'CONFIRMED'].includes(existing.status)) {
-			return NextResponse.json(
-				{ success: false, error: 'Cette réservation est déjà finalisée ou annulée et ne peut plus être modifiée.' },
-				{ status: 400 },
-			)
+			return apiError('Cette réservation est déjà finalisée ou annulée et ne peut plus être modifiée.', 400)
 		}
 
-		const data = parsed.data
-
-		const nextTotalPrice    = data.totalPrice    ?? existing.totalPrice
-		const nextDepositAmount = data.depositAmount ?? existing.depositAmount
-		if (nextDepositAmount > nextTotalPrice) {
-			return NextResponse.json(
-				{ success: false, error: 'L\'acompte ne peut pas dépasser le prix total' },
-				{ status: 400 },
-			)
+		const data             = parsed.data
+		const nextTotalPrice   = data.totalPrice    ?? existing.totalPrice
+		const nextDeposit      = data.depositAmount ?? existing.depositAmount
+		if (nextDeposit > nextTotalPrice) {
+			return apiError("L'acompte ne peut pas dépasser le prix total", 400)
 		}
 
-		const typeChanged  = data.installmentType !== undefined && data.installmentType !== existing.installmentType
+		const typeChanged   = data.installmentType !== undefined && data.installmentType !== existing.installmentType
 		const hasAnyPayment = existing.paymentInstallments.some((i) => i.paidAmount !== null)
 
 		if (typeChanged && hasAnyPayment) {
-			return NextResponse.json(
-				{
-					success: false,
-					error:   'Impossible de modifier le type d\'échéancier : au moins un paiement a déjà été enregistré. Contactez un super-admin si une correction est nécessaire.',
-				},
-				{ status: 400 },
+			return apiError(
+				"Impossible de modifier le type d'échéancier : au moins un paiement a déjà été enregistré. Contactez un super-admin si une correction est nécessaire.",
+				400
 			)
 		}
 
@@ -91,19 +78,11 @@ export async function PUT(
 			})
 
 			if (typeChanged) {
-				await recreateInstallments(
-					tx,
-					params.id,
-					nextTotalPrice,
-					nextDepositAmount,
-					data.installmentType!,
-				)
+				await recreateInstallments(tx, params.id, nextTotalPrice, nextDeposit, data.installmentType!)
 			} else if (data.totalPrice !== undefined || data.depositAmount !== undefined) {
-				const newInstallmentType = existing.installmentType ?? 'FULL'
-				const count              = getInstallmentCount(newInstallmentType)
-				const balance            = nextTotalPrice - nextDepositAmount
-				const newExpected        = Math.round((balance / count) * 100) / 100
-
+				const count       = getInstallmentCount(existing.installmentType ?? 'FULL')
+				const balance     = nextTotalPrice - nextDeposit
+				const newExpected = Math.round((balance / count) * 100) / 100
 				await tx.paymentInstallment.updateMany({
 					where: { reservationId: params.id, paidAmount: null },
 					data:  { expectedAmount: newExpected },
@@ -113,20 +92,12 @@ export async function PUT(
 			return reservation
 		})
 
-		await prisma.auditLog.create({
-			data: {
-				adminId:  session.user.id,
-				action:   'UPDATE',
-				entity:   'Reservation',
-				entityId: params.id,
-				details:  { changes: data, typeChanged },
-			},
-		})
+		await createAuditLog(session.user.id, 'UPDATE', 'Reservation', params.id, { changes: data, typeChanged })
 
 		return NextResponse.json({ success: true, data: updated, message: 'Réservation mise à jour' })
 	} catch (err) {
 		console.error('[PUT /api/reservations/:id]', err)
-		return NextResponse.json({ success: false, error: 'Erreur serveur' }, { status: 500 })
+		return apiError('Erreur serveur')
 	}
 }
 
@@ -135,64 +106,47 @@ export async function PATCH(
 	{ params }: { params: { id: string } }
 ) {
 	try {
-		const session = await getServerSession(authOptions)
-		if (!session?.user) return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 })
+		const session = await requireSession()
+		if (!session) return apiError('Non autorisé', 401)
 
 		const body   = await req.json()
 		const parsed = patchSchema.safeParse(body)
-		if (!parsed.success) return NextResponse.json({ success: false, error: 'Données invalides' }, { status: 400 })
+		if (!parsed.success) return apiError('Données invalides', 400)
 
 		const reservation = await prisma.reservation.findUnique({
 			where:   { id: params.id },
 			include: { car: true },
 		})
-		if (!reservation) return NextResponse.json({ success: false, error: 'Réservation introuvable' }, { status: 404 })
+		if (!reservation) return apiError('Réservation introuvable', 404)
 
 		const { action, notes } = parsed.data
 
 		if (action === 'CONFIRM' && reservation.status !== 'PAID') {
-			return NextResponse.json(
-				{ success: false, error: 'Seule une réservation au statut « Payée » (acompte encaissé, en attente de présentation en agence) peut être confirmée.' },
-				{ status: 400 },
-			)
+			return apiError("Seule une réservation au statut « Payée » peut être confirmée.", 400)
 		}
 		if (action === 'COMPLETE' && reservation.status !== 'CONFIRMED') {
-			return NextResponse.json(
-				{ success: false, error: 'La réservation doit d\'abord être confirmée (présentation en agence) avant de pouvoir être finalisée.' },
-				{ status: 400 },
-			)
+			return apiError("La réservation doit d'abord être confirmée avant de pouvoir être finalisée.", 400)
 		}
 		if (action === 'CANCEL' && !['PENDING', 'PAID', 'CONFIRMED'].includes(reservation.status)) {
-			return NextResponse.json({ success: false, error: 'Réservation déjà traitée' }, { status: 400 })
+			return apiError('Réservation déjà traitée', 400)
 		}
 
 		await prisma.$transaction(async (tx) => {
 			if (action === 'CONFIRM') {
 				await tx.reservation.update({
 					where: { id: params.id },
-					data: {
-						status:      'CONFIRMED',
-						confirmedAt: new Date(),
-						notes:       notes ?? reservation.notes,
-					},
+					data:  { status: 'CONFIRMED', confirmedAt: new Date(), notes: notes ?? reservation.notes },
 				})
 			} else if (action === 'COMPLETE') {
 				await tx.reservation.update({
 					where: { id: params.id },
-					data: {
-						status:      'COMPLETED',
-						completedAt: new Date(),
-						notes:       notes ?? reservation.notes,
-					},
+					data:  { status: 'COMPLETED', completedAt: new Date(), notes: notes ?? reservation.notes },
 				})
-				await tx.car.update({
-					where: { id: reservation.carId },
-					data:  { status: 'SOLD' },
-				})
+				await tx.car.update({ where: { id: reservation.carId }, data: { status: 'SOLD' } })
 			} else {
 				await tx.reservation.update({
 					where: { id: params.id },
-					data: { status: 'CANCELLED', notes: notes ?? reservation.notes },
+					data:  { status: 'CANCELLED', notes: notes ?? reservation.notes },
 				})
 				await tx.car.updateMany({
 					where: { id: reservation.carId, status: 'RESERVED' },
@@ -203,11 +157,10 @@ export async function PATCH(
 
 		if (action !== 'CONFIRM') {
 			const newCarStatus = action === 'COMPLETE' ? 'SOLD' : 'AVAILABLE'
-			try {
-				await broadcastCarUpdate({ id: reservation.carId, status: newCarStatus, title: reservation.car.title })
-			} catch (pusherErr) {
-				console.error('[PATCH /api/reservations/:id] Pusher échoué (non-critique) :', pusherErr)
-			}
+			await safePusher(
+				() => broadcastCarUpdate({ id: reservation.carId, status: newCarStatus, title: reservation.car.title }),
+				'PATCH /api/reservations/:id'
+			)
 		}
 
 		if (action === 'CONFIRM') {
@@ -227,14 +180,8 @@ export async function PATCH(
 			)
 		}
 
-		await prisma.auditLog.create({
-			data: {
-				adminId:  session.user.id,
-				action,
-				entity:   'Reservation',
-				entityId: params.id,
-				details:  { carId: reservation.carId, action, notes, manualOverride: action === 'COMPLETE' },
-			},
+		await createAuditLog(session.user.id, action, 'Reservation', params.id, {
+			carId: reservation.carId, action, notes, manualOverride: action === 'COMPLETE',
 		})
 
 		const messages: Record<string, string> = {
@@ -246,6 +193,6 @@ export async function PATCH(
 		return NextResponse.json({ success: true, message: messages[action] })
 	} catch (err) {
 		console.error('[PATCH /api/reservations/:id]', err)
-		return NextResponse.json({ success: false, error: 'Erreur serveur' }, { status: 500 })
+		return apiError('Erreur serveur')
 	}
 }

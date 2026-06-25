@@ -4,8 +4,9 @@ import prisma from '@/lib/db'
 import { formatDateTime } from '@/lib/utils'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
+import AdminPagination from '@/components/admin/shared/AdminPagination'
 
-export const metadata: Metadata = { title: 'Journal d\'audit' }
+export const metadata: Metadata = { title: "Journal d'audit" }
 
 const ACTION_COLORS: Record<string, string> = {
 	CREATE:   'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
@@ -34,10 +35,14 @@ export default async function AuditPage({ searchParams }: { searchParams: { page
 	return (
 		<div className="space-y-6 min-w-0">
 			<div className="flex items-center gap-3">
-				<Link href="/admin/settings" className="btn-ghost p-2"><ChevronLeft className="w-5 h-5" /></Link>
+				<Link href="/admin/settings" className="btn-ghost p-2">
+					<ChevronLeft className="w-5 h-5" />
+				</Link>
 				<div>
-					<h1 className="text-2xl font-display font-bold text-white">Journal d'audit</h1>
-					<p className="text-dark-400 text-sm mt-0.5">{total} action{total !== 1 ? 's' : ''} enregistrée{total !== 1 ? 's' : ''}</p>
+					<h1 className="text-2xl font-display font-bold text-white">Journal d&apos;audit</h1>
+					<p className="text-dark-400 text-sm mt-0.5">
+						{total} action{total !== 1 ? 's' : ''} enregistrée{total !== 1 ? 's' : ''}
+					</p>
 				</div>
 			</div>
 
@@ -77,17 +82,12 @@ export default async function AuditPage({ searchParams }: { searchParams: { page
 				</table>
 			</div>
 
-			{totalPages > 1 && (
-				<div className="flex items-center justify-center gap-2">
-					{Array.from({ length: Math.min(totalPages, 8) }, (_, i) => i + 1).map((p) => (
-						<Link key={p} href={`/admin/settings/audit?page=${p}`}
-							className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-medium transition-all
-								${p === page ? 'bg-brand-500 text-dark-950' : 'bg-dark-800 text-dark-400 hover:text-white'}`}>
-							{p}
-						</Link>
-					))}
-				</div>
-			)}
+			<AdminPagination
+				page={page}
+				totalPages={totalPages}
+				buildHref={(p) => `/admin/settings/audit?page=${p}`}
+				maxButtons={8}
+			/>
 		</div>
 	)
 }

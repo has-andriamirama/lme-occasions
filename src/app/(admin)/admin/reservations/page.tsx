@@ -6,25 +6,25 @@ import { formatPrice, formatDateTime, getDaysRemaining } from '@/lib/utils'
 import ReservationActions from '@/components/admin/reservations/ReservationActions'
 import { Clock, CheckCircle2, XCircle, AlertTriangle, Plus, CreditCard } from 'lucide-react'
 import Link from 'next/link'
+import AdminPageHeader from '@/components/admin/shared/AdminPageHeader'
+import AdminFilterTabs from '@/components/admin/shared/AdminFilterTabs'
+import AdminPagination from '@/components/admin/shared/AdminPagination'
 
 export const metadata: Metadata = { title: 'Réservations' }
 
 const STATUS_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-	PENDING:   { label: 'En attente', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20',    icon: <Clock className="w-3.5 h-3.5" /> },
-	PAID:      { label: 'Payée',      color: 'bg-blue-500/10 text-blue-400 border-blue-500/20',       icon: <CreditCard className="w-3.5 h-3.5" /> },
+	PENDING:   { label: 'En attente', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20',       icon: <Clock className="w-3.5 h-3.5" /> },
+	PAID:      { label: 'Payée',      color: 'bg-blue-500/10 text-blue-400 border-blue-500/20',          icon: <CreditCard className="w-3.5 h-3.5" /> },
 	CONFIRMED: { label: 'Confirmée',  color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
-	COMPLETED: { label: 'Finalisée',  color: 'bg-brand-500/10 text-brand-400 border-brand-500/20',    icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
-	EXPIRED:   { label: 'Expirée',    color: 'bg-red-500/10 text-red-400 border-red-500/20',          icon: <XCircle className="w-3.5 h-3.5" /> },
-	CANCELLED: { label: 'Annulée',    color: 'bg-dark-600/30 text-dark-400 border-dark-600/20',       icon: <XCircle className="w-3.5 h-3.5" /> },
+	COMPLETED: { label: 'Finalisée',  color: 'bg-brand-500/10 text-brand-400 border-brand-500/20',       icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
+	EXPIRED:   { label: 'Expirée',    color: 'bg-red-500/10 text-red-400 border-red-500/20',             icon: <XCircle className="w-3.5 h-3.5" /> },
+	CANCELLED: { label: 'Annulée',    color: 'bg-dark-600/30 text-dark-400 border-dark-600/20',          icon: <XCircle className="w-3.5 h-3.5" /> },
 }
 
 function PaymentProgress({
-	status,
-	installments,
-	depositAmount,
-	totalPrice,
+	status, installments, depositAmount, totalPrice,
 }: {
-	status:      string
+	status:       string
 	installments: { paidAmount: number | null }[]
 	depositAmount: number
 	totalPrice:   number
@@ -32,19 +32,14 @@ function PaymentProgress({
 	if (['EXPIRED', 'CANCELLED', 'PENDING'].includes(status)) {
 		return <span className="text-xs text-dark-600">—</span>
 	}
-
 	if (status === 'COMPLETED') {
 		return (
 			<span className="flex items-center gap-1 text-xs font-medium text-brand-400">
-				<CheckCircle2 className="w-3.5 h-3.5" />
-				Réglé
+				<CheckCircle2 className="w-3.5 h-3.5" />Réglé
 			</span>
 		)
 	}
-
-	if (installments.length === 0) {
-		return <span className="text-xs text-dark-500">—</span>
-	}
+	if (installments.length === 0) return <span className="text-xs text-dark-500">—</span>
 
 	const paidCount  = installments.filter((i) => i.paidAmount !== null).length
 	const totalCount = installments.length
@@ -106,16 +101,15 @@ export default async function ReservationsPage({
 
 	return (
 		<div className="space-y-6 min-w-0">
-			<div className="flex items-center justify-between gap-4">
-				<div>
-					<h1 className="text-2xl font-display font-bold text-white">Réservations</h1>
-					<p className="text-dark-400 text-sm mt-0.5">{total} réservation{total !== 1 ? 's' : ''}</p>
-				</div>
-				<Link href="/admin/reservations/new" className="btn-primary">
-					<Plus className="w-4 h-4" />
-					Nouvelle réservation
-				</Link>
-			</div>
+			<AdminPageHeader
+				title="Réservations"
+				subtitle={`${total} réservation${total !== 1 ? 's' : ''}`}
+				action={
+					<Link href="/admin/reservations/new" className="btn-primary">
+						<Plus className="w-4 h-4" />Nouvelle réservation
+					</Link>
+				}
+			/>
 
 			<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 				{[
@@ -131,25 +125,15 @@ export default async function ReservationsPage({
 				))}
 			</div>
 
-			<div className="flex flex-wrap gap-2">
-				{[
-					{ label: 'Toutes',     value: '' },
-					{ label: 'En attente', value: 'PENDING' },
-					{ label: 'Payées',     value: 'PAID' },
-					{ label: 'Confirmées', value: 'CONFIRMED' },
-					{ label: 'Finalisées', value: 'COMPLETED' },
-					{ label: 'Expirées',   value: 'EXPIRED' },
-					{ label: 'Annulées',   value: 'CANCELLED' },
-				].map(({ label, value }) => (
-					<Link key={value} href={`/admin/reservations${value ? `?status=${value}` : ''}`}
-						className={`px-4 py-2 rounded-lg text-sm font-medium transition-all border
-							${status === value
-								? 'bg-brand-500/10 text-brand-400 border-brand-500/30'
-								: 'bg-dark-800 text-dark-400 border-dark-700 hover:text-white hover:border-dark-600'}`}>
-						{label}
-					</Link>
-				))}
-			</div>
+			<AdminFilterTabs tabs={[
+				{ label: 'Toutes',     href: '/admin/reservations',                   active: status === '' },
+				{ label: 'En attente', href: '/admin/reservations?status=PENDING',    active: status === 'PENDING' },
+				{ label: 'Payées',     href: '/admin/reservations?status=PAID',       active: status === 'PAID' },
+				{ label: 'Confirmées', href: '/admin/reservations?status=CONFIRMED',  active: status === 'CONFIRMED' },
+				{ label: 'Finalisées', href: '/admin/reservations?status=COMPLETED',  active: status === 'COMPLETED' },
+				{ label: 'Expirées',   href: '/admin/reservations?status=EXPIRED',    active: status === 'EXPIRED' },
+				{ label: 'Annulées',   href: '/admin/reservations?status=CANCELLED',  active: status === 'CANCELLED' },
+			]} />
 
 			<div className="card overflow-hidden">
 				{reservations.length === 0 ? (
@@ -180,12 +164,8 @@ export default async function ReservationsPage({
 									const meta     = STATUS_META[r.status] ?? STATUS_META.CANCELLED
 									const daysLeft = getDaysRemaining(r.expiresAt)
 									const isUrgent = r.status === 'PAID' && daysLeft <= 1
-
 									return (
-										<tr
-											key={r.id}
-											className={`hover:bg-dark-800/30 transition-colors ${isUrgent ? 'bg-amber-500/5' : ''}`}
-										>
+										<tr key={r.id} className={`hover:bg-dark-800/30 transition-colors ${isUrgent ? 'bg-amber-500/5' : ''}`}>
 											<td className="px-4 py-3">
 												<div className="flex items-center gap-3">
 													<div className="w-10 h-8 rounded-lg bg-dark-700 overflow-hidden shrink-0">
@@ -200,12 +180,10 @@ export default async function ReservationsPage({
 													</div>
 												</div>
 											</td>
-
 											<td className="px-4 py-3 hidden sm:table-cell">
 												<p className="text-sm text-white">{r.clientName}</p>
 												<p className="text-xs text-dark-400">{r.clientEmail}</p>
 											</td>
-
 											<td className="px-4 py-3 text-right hidden md:table-cell">
 												<p className={`text-sm font-bold ${r.status === 'PENDING' ? 'text-dark-500' : 'text-brand-400'}`}>
 													{formatPrice(r.depositAmount)}
@@ -214,7 +192,6 @@ export default async function ReservationsPage({
 													{r.status === 'PENDING' ? 'non encaissé' : `/ ${formatPrice(r.totalPrice)}`}
 												</p>
 											</td>
-
 											<td className="px-4 py-3 text-center hidden lg:table-cell">
 												<PaymentProgress
 													status={r.status}
@@ -223,25 +200,20 @@ export default async function ReservationsPage({
 													totalPrice={r.totalPrice}
 												/>
 											</td>
-
 											<td className="px-4 py-3 text-center hidden lg:table-cell">
 												{r.status === 'PAID' ? (
 													<div className={`flex items-center justify-center gap-1 text-xs font-medium
 														${isUrgent ? 'text-red-400' : daysLeft <= 2 ? 'text-amber-400' : 'text-dark-400'}`}>
 														{isUrgent && <AlertTriangle className="w-3.5 h-3.5" />}
-														{daysLeft === 0 ? 'Expire aujourd\'hui' : `J-${daysLeft}`}
+														{daysLeft === 0 ? "Expire aujourd'hui" : `J-${daysLeft}`}
 													</div>
 												) : (
 													<span className="text-xs text-dark-600">—</span>
 												)}
 											</td>
-
 											<td className="px-4 py-3 text-center">
-												<span className={`badge ${meta.color}`}>
-													{meta.icon}{meta.label}
-												</span>
+												<span className={`badge ${meta.color}`}>{meta.icon}{meta.label}</span>
 											</td>
-
 											<td className="px-4 py-3">
 												<ReservationActions reservationId={r.id} status={r.status} />
 											</td>
@@ -254,17 +226,11 @@ export default async function ReservationsPage({
 				)}
 			</div>
 
-			{totalPages > 1 && (
-				<div className="flex items-center justify-center gap-2">
-					{Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-						<Link key={p} href={`/admin/reservations?page=${p}${status ? `&status=${status}` : ''}`}
-							className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-medium transition-all
-								${p === page ? 'bg-brand-500 text-dark-950' : 'bg-dark-800 text-dark-400 hover:text-white hover:bg-dark-700'}`}>
-							{p}
-						</Link>
-					))}
-				</div>
-			)}
+			<AdminPagination
+				page={page}
+				totalPages={totalPages}
+				buildHref={(p) => `/admin/reservations?page=${p}${status ? `&status=${status}` : ''}`}
+			/>
 		</div>
 	)
 }

@@ -6,8 +6,9 @@ import { redirect } from 'next/navigation'
 import prisma from '@/lib/db'
 import { Shield, ShieldCheck } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
-import AdminForm from '@/components/admin/admins/AdminForm'
+import AdminForm    from '@/components/admin/admins/AdminForm'
 import AdminActions from '@/components/admin/admins/AdminActions'
+import AdminPageHeader from '@/components/admin/shared/AdminPageHeader'
 
 export const metadata: Metadata = { title: 'Administrateurs' }
 
@@ -27,15 +28,11 @@ export default async function AdminsPage() {
 
 	return (
 		<div className="space-y-6 min-w-0">
-			<div className="flex items-center justify-between gap-4">
-				<div>
-					<h1 className="text-2xl font-display font-bold text-white">Administrateurs</h1>
-					<p className="text-dark-400 text-sm mt-0.5">
-						{admins.length} compte{admins.length !== 1 ? 's' : ''}
-					</p>
-				</div>
-				<AdminForm />
-			</div>
+			<AdminPageHeader
+				title="Administrateurs"
+				subtitle={`${admins.length} compte${admins.length !== 1 ? 's' : ''}`}
+				action={<AdminForm />}
+			/>
 
 			<div className="card overflow-hidden">
 				{admins.length === 0 ? (
@@ -67,21 +64,16 @@ export default async function AdminsPage() {
 													<p className="text-sm font-medium text-white flex items-center gap-2 flex-wrap">
 														{a.username}
 														{a.id === currentAdminId && (
-															<span className="text-[10px] bg-brand-500/20 text-brand-400 px-1.5 py-0.5 rounded">
-																Vous
-															</span>
+															<span className="text-[10px] bg-brand-500/20 text-brand-400 px-1.5 py-0.5 rounded">Vous</span>
 														)}
 														{a.mustChangePassword && (
-															<span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">
-																MDP à changer
-															</span>
+															<span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">MDP à changer</span>
 														)}
 													</p>
 													<p className="text-xs text-dark-400">{a.email}</p>
 												</div>
 											</div>
 										</td>
-
 										<td className="px-4 py-3 hidden sm:table-cell">
 											<span className={`flex items-center gap-1.5 text-xs font-medium w-fit ${
 												a.role === 'SUPER_ADMIN' ? 'text-brand-400' : 'text-dark-300'
@@ -91,13 +83,11 @@ export default async function AdminsPage() {
 													: <><Shield className="w-3.5 h-3.5" /> Admin</>}
 											</span>
 										</td>
-
 										<td className="px-4 py-3 hidden md:table-cell">
 											<span className="text-xs text-dark-400">
 												{a.lastLoginAt ? formatDateTime(a.lastLoginAt) : 'Jamais'}
 											</span>
 										</td>
-
 										<td className="px-4 py-3">
 											<AdminActions admin={a} isSelf={a.id === currentAdminId} />
 										</td>

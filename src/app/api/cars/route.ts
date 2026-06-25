@@ -1,9 +1,9 @@
 // src/app/api/cars/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/db'
 import { pusherServer, CHANNELS, EVENTS } from '@/lib/pusher'
+import { requireSession, apiError, validationError, parsePagination, createAuditLog, safePusher } from '@/lib/api'
+import { getActiveOfferFilter, getActiveOffersInclude } from '@/lib/queries'
 import { z } from 'zod'
 
 const carSchema = z.object({
@@ -32,9 +32,8 @@ const carSchema = z.object({
 export async function GET(req: NextRequest) {
 	try {
 		const { searchParams } = req.nextUrl
-		const page         = Math.max(1, Number(searchParams.get('page') ?? 1))
-		const limit        = Math.min(24, Math.max(1, Number(searchParams.get('limit') ?? 12)))
-		const skip         = (page - 1) * limit
+		const { page, limit, skip } = parsePagination(searchParams)
+
 		const search       = searchParams.get('search') ?? ''
 		const brand        = searchParams.get('brand') ?? ''
 		const status       = searchParams.get('status') ?? ''
@@ -42,8 +41,8 @@ export async function GET(req: NextRequest) {
 		const transmission = searchParams.get('transmission') ?? ''
 		const minPrice     = searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined
 		const maxPrice     = searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined
-		const minYear      = searchParams.get('minYear') ? Number(searchParams.get('minYear')) : undefined
-		const maxYear      = searchParams.get('maxYear') ? Number(searchParams.get('maxYear')) : undefined
+		const minYear      = searchParams.get('minYear')  ? Number(searchParams.get('minYear'))  : undefined
+		const maxYear      = searchParams.get('maxYear')  ? Number(searchParams.get('maxYear'))  : undefined
 		const maxMileage   = searchParams.get('maxMileage') ? Number(searchParams.get('maxMileage')) : undefined
 		const isFeatured   = searchParams.get('isFeatured') === 'true' ? true : undefined
 		const offerId      = searchParams.get('offerId') ?? ''
@@ -59,23 +58,14 @@ export async function GET(req: NextRequest) {
 				{ description: { contains: search, mode: 'insensitive' } },
 			]
 		}
-		if (brand) where.brand = { equals: brand, mode: 'insensitive' }
-		if (status && status !== 'ALL') where.status = status
-		if (fuelType) where.fuelType    = fuelType
-		if (transmission) where.transmission = transmission
-		if (isFeatured !== undefined) where.isFeatured = isFeatured
+		if (brand)                   where.brand        = { equals: brand, mode: 'insensitive' }
+		if (status && status !== 'ALL') where.status    = status
+		if (fuelType)                where.fuelType     = fuelType
+		if (transmission)            where.transmission = transmission
+		if (isFeatured !== undefined) where.isFeatured  = isFeatured
 
 		if (offerId) {
-			where.offers = {
-				some: {
-					offerId: offerId,
-					offer: {
-						isActive:  true,
-						startDate: { lte: new Date() },
-						endDate:   { gte: new Date() },
-					},
-				},
-			}
+			where.offers = { some: { offerId, offer: getActiveOfferFilter() } }
 		}
 
 		if (minPrice || maxPrice) {
@@ -102,18 +92,7 @@ export async function GET(req: NextRequest) {
 		const [cars, total] = await Promise.all([
 			prisma.car.findMany({
 				where,
-				include: {
-					offers: {
-						include: { offer: true },
-						where: {
-							offer: {
-								isActive: true,
-								startDate: { lte: new Date() },
-								endDate:   { gte: new Date() },
-							},
-						},
-					},
-				},
+				include: { offers: getActiveOffersInclude() },
 				orderBy: orderByMap[sortBy] ?? { createdAt: 'desc' },
 				skip,
 				take: limit,
@@ -123,58 +102,40 @@ export async function GET(req: NextRequest) {
 
 		return NextResponse.json({
 			success: true,
-			data: cars,
-			meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+			data:    cars,
+			meta:    { total, page, limit, totalPages: Math.ceil(total / limit) },
 		})
 	} catch (err) {
 		console.error('[GET /api/cars]', err)
-		return NextResponse.json({ success: false, error: 'Erreur serveur' }, { status: 500 })
+		return apiError('Erreur serveur')
 	}
 }
 
 export async function POST(req: NextRequest) {
 	try {
-		const session = await getServerSession(authOptions)
-		if (!session?.user) {
-			return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 })
-		}
+		const session = await requireSession()
+		if (!session) return apiError('Non autorisé', 401)
 
-		const body = await req.json()
+		const body   = await req.json()
 		const parsed = carSchema.safeParse(body)
-		if (!parsed.success) {
-			return NextResponse.json(
-				{ success: false, error: 'Données invalides', details: parsed.error.flatten() },
-				{ status: 400 }
-			)
-		}
+		if (!parsed.success) return validationError(parsed.error.flatten())
 
 		const car = await prisma.car.create({ data: parsed.data })
 
-		await prisma.auditLog.create({
-			data: {
-				adminId:  session.user.id,
-				action:   'CREATE',
-				entity:   'Car',
-				entityId: car.id,
-				details:  { title: car.title, brand: car.brand },
-			},
-		})
+		await createAuditLog(session.user.id, 'CREATE', 'Car', car.id, { title: car.title, brand: car.brand })
 
-		try {
-			await pusherServer.trigger(CHANNELS.cars, EVENTS.carCreated, {
+		await safePusher(
+			() => pusherServer.trigger(CHANNELS.cars, EVENTS.carCreated, {
 				...car,
 				offers:    [],
 				timestamp: new Date().toISOString(),
-			})
-			console.log('[POST /api/cars] Pusher carCreated OK :', car.id)
-		} catch (pusherErr) {
-			console.error('[POST /api/cars] Pusher broadcast échoué (non-critique) :', pusherErr)
-		}
-		// ─────────────────────────────────────────────────────────────────────
+			}),
+			'POST /api/cars'
+		)
 
 		return NextResponse.json({ success: true, data: car }, { status: 201 })
 	} catch (err) {
 		console.error('[POST /api/cars]', err)
-		return NextResponse.json({ success: false, error: 'Erreur serveur' }, { status: 500 })
+		return apiError('Erreur serveur')
 	}
 }

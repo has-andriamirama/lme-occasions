@@ -1,9 +1,10 @@
 // src/app/api/payments/create-checkout/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { z } from 'zod'
 import prisma from '@/lib/db'
 import { createCheckoutSession } from '@/lib/stripe'
 import { createInstallments } from '@/lib/installments'
+import { apiError, validationError } from '@/lib/api'
+import { z } from 'zod'
 
 const schema = z.object({
 	carId:           z.string().cuid(),
@@ -17,12 +18,7 @@ export async function POST(req: NextRequest) {
 	try {
 		const body   = await req.json()
 		const parsed = schema.safeParse(body)
-		if (!parsed.success) {
-			return NextResponse.json(
-				{ success: false, error: 'Données invalides', details: parsed.error.flatten() },
-				{ status: 400 }
-			)
-		}
+		if (!parsed.success) return validationError(parsed.error.flatten())
 
 		const { carId, clientName, clientEmail, clientPhone, installmentType } = parsed.data
 		const appUrl = process.env.NEXT_PUBLIC_APP_URL!
@@ -43,15 +39,9 @@ export async function POST(req: NextRequest) {
 
 			const reservation = await tx.reservation.create({
 				data: {
-					carId,
-					clientName,
-					clientEmail,
-					clientPhone,
-					depositAmount,
-					totalPrice: car.price,
-					installmentType,
-					status: 'PENDING',
-					expiresAt,
+					carId, clientName, clientEmail, clientPhone,
+					depositAmount, totalPrice: car.price,
+					installmentType, status: 'PENDING', expiresAt,
 				},
 			})
 
@@ -62,39 +52,31 @@ export async function POST(req: NextRequest) {
 
 		const { car, reservation, depositAmount } = result
 
-		const session = await createCheckoutSession({
+		const stripeSession = await createCheckoutSession({
 			carId,
 			carTitle: car.title,
-			price: car.price,
+			price:    car.price,
 			depositAmount,
-			clientName,
-			clientEmail,
-			clientPhone,
+			clientName, clientEmail, clientPhone,
 			installmentType,
 			reservationId: reservation.id,
 			successUrl: `${appUrl}/cars/${carId}?success=true&reservation=${reservation.id}`,
-			cancelUrl: `${appUrl}/cars/${carId}?cancelled=true`,
+			cancelUrl:  `${appUrl}/cars/${carId}?cancelled=true`,
 		})
 
 		await prisma.reservation.update({
 			where: { id: reservation.id },
-			data: { paymentSessionId: session.id },
+			data:  { paymentSessionId: stripeSession.id },
 		})
 
-		return NextResponse.json({ success: true, data: { url: session.url, sessionId: session.id } })
+		return NextResponse.json({ success: true, data: { url: stripeSession.url, sessionId: stripeSession.id } })
 	} catch (err: any) {
 		console.error('[POST /api/payments/create-checkout]', err)
 
-		if (err.message === 'CAR_NOT_FOUND') {
-			return NextResponse.json({ success: false, error: 'Véhicule introuvable' }, { status: 404 })
-		}
+		if (err.message === 'CAR_NOT_FOUND')     return apiError('Véhicule introuvable', 404)
 		if (err.message === 'CAR_NOT_AVAILABLE') {
-			return NextResponse.json(
-				{ success: false, error: 'Ce véhicule n\'est plus disponible à la réservation.' },
-				{ status: 409 }
-			)
+			return apiError("Ce véhicule n'est plus disponible à la réservation.", 409)
 		}
-
-		return NextResponse.json({ success: false, error: 'Erreur lors de la création du paiement' }, { status: 500 })
+		return apiError('Erreur lors de la création du paiement')
 	}
 }

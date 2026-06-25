@@ -1,14 +1,10 @@
 // src/app/api/reservations/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/db'
 import { broadcastCarUpdate, broadcastAdminNotification, EVENTS } from '@/lib/pusher'
-import {
-	sendReservationConfirmedToClient,
-	sendReservationNotificationToAdmin,
-} from '@/lib/mail'
+import { sendReservationConfirmedToClient, sendReservationNotificationToAdmin } from '@/lib/mail'
 import { createInstallments } from '@/lib/installments'
+import { requireSession, apiError, validationError, parsePagination, createAuditLog, safePusher } from '@/lib/api'
 import { z } from 'zod'
 
 const createReservationSchema = z.object({
@@ -22,25 +18,21 @@ const createReservationSchema = z.object({
 	expiresAt:       z.string().datetime(),
 	notes:           z.string().max(2000).optional(),
 }).refine((d) => d.depositAmount <= d.totalPrice, {
-	message: 'L\'acompte ne peut pas dépasser le prix total',
+	message: "L'acompte ne peut pas dépasser le prix total",
 	path:    ['depositAmount'],
 })
 
 export async function POST(req: NextRequest) {
 	try {
-		const session = await getServerSession(authOptions)
-		if (!session?.user) return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 })
+		const session = await requireSession()
+		if (!session) return apiError('Non autorisé', 401)
 
 		const body   = await req.json()
 		const parsed = createReservationSchema.safeParse(body)
-		if (!parsed.success) {
-			return NextResponse.json({ success: false, error: 'Données invalides', details: parsed.error.flatten() }, { status: 400 })
-		}
+		if (!parsed.success) return validationError(parsed.error.flatten())
 
-		const {
-			carId, clientName, clientEmail, clientPhone,
-			totalPrice, depositAmount, installmentType, expiresAt, notes,
-		} = parsed.data
+		const { carId, clientName, clientEmail, clientPhone,
+			totalPrice, depositAmount, installmentType, expiresAt, notes } = parsed.data
 
 		let result
 		try {
@@ -49,60 +41,37 @@ export async function POST(req: NextRequest) {
 					where:  { id: carId },
 					select: { id: true, title: true, brand: true, model: true, year: true, status: true },
 				})
-
 				if (!car)                       throw new Error('CAR_NOT_FOUND')
 				if (car.status !== 'AVAILABLE') throw new Error('CAR_NOT_AVAILABLE')
 
 				const reservation = await tx.reservation.create({
 					data: {
-						carId,
-						clientName,
-						clientEmail,
-						clientPhone,
-						totalPrice,
-						depositAmount,
-						installmentType,
-						status: 'CONFIRMED',
-						reservedAt: new Date(),
-						confirmedAt: new Date(),
-						expiresAt: new Date(expiresAt),
-						notes: notes ?? null,
+						carId, clientName, clientEmail, clientPhone,
+						totalPrice, depositAmount, installmentType,
+						status: 'CONFIRMED', reservedAt: new Date(), confirmedAt: new Date(),
+						expiresAt: new Date(expiresAt), notes: notes ?? null,
 					},
 				})
-
 				await tx.car.update({ where: { id: carId }, data: { status: 'RESERVED' } })
-
 				await createInstallments(tx, reservation.id, totalPrice, depositAmount, installmentType)
-
 				return { car, reservation }
 			})
 		} catch (txErr: unknown) {
 			const msg = txErr instanceof Error ? txErr.message : ''
-			if (msg === 'CAR_NOT_FOUND') {
-				return NextResponse.json({ success: false, error: 'Véhicule introuvable' }, { status: 404 })
-			}
+			if (msg === 'CAR_NOT_FOUND')     return apiError('Véhicule introuvable', 404)
 			if (msg === 'CAR_NOT_AVAILABLE') {
-				return NextResponse.json(
-					{ success: false, error: 'Ce véhicule n\'est plus disponible (déjà réservé ou vendu).' },
-					{ status: 409 },
-				)
+				return apiError("Ce véhicule n'est plus disponible (déjà réservé ou vendu).", 409)
 			}
 			throw txErr
 		}
 
 		const { car, reservation } = result
 
-		await prisma.auditLog.create({
-			data: {
-				adminId:  session.user.id,
-				action:   'CREATE',
-				entity:   'Reservation',
-				entityId: reservation.id,
-				details:  { carId, clientName, depositAmount, totalPrice, installmentType, manual: true },
-			},
+		await createAuditLog(session.user.id, 'CREATE', 'Reservation', reservation.id, {
+			carId, clientName, depositAmount, totalPrice, installmentType, manual: true,
 		})
 
-		try {
+		await safePusher(async () => {
 			await broadcastCarUpdate({ id: carId, status: 'RESERVED', title: car.title })
 			await broadcastAdminNotification(EVENTS.newReservation, {
 				reservationId: reservation.id,
@@ -110,34 +79,20 @@ export async function POST(req: NextRequest) {
 				clientName,
 				depositAmount,
 			})
-		} catch (pusherErr) {
-			console.error('[POST /api/reservations] Pusher broadcast échoué (non-critique) :', pusherErr)
-		}
+		}, 'POST /api/reservations')
 
 		await Promise.all([
 			sendReservationConfirmedToClient({
-				clientName,
-				clientEmail,
-				carTitle: car.title,
-				carBrand: car.brand,
-				carModel: car.model,
-				carYear: car.year,
-				depositAmount,
-				totalPrice,
-				reservationId: reservation.id,
-				installmentType,
+				clientName, clientEmail,
+				carTitle: car.title, carBrand: car.brand, carModel: car.model, carYear: car.year,
+				depositAmount, totalPrice, reservationId: reservation.id, installmentType,
 			}).then(() =>
 				prisma.reservation.update({ where: { id: reservation.id }, data: { emailSentToClient: true } })
 			),
 			sendReservationNotificationToAdmin({
-				clientName,
-				clientEmail,
-				clientPhone,
-				carTitle:      car.title,
-				depositAmount,
-				totalPrice,
-				reservationId: reservation.id,
-				expiresAt:     reservation.expiresAt,
+				clientName, clientEmail, clientPhone,
+				carTitle: car.title, depositAmount, totalPrice,
+				reservationId: reservation.id, expiresAt: reservation.expiresAt,
 			}).then(() =>
 				prisma.reservation.update({ where: { id: reservation.id }, data: { emailSentToAdmin: true } })
 			),
@@ -148,18 +103,18 @@ export async function POST(req: NextRequest) {
 		return NextResponse.json({ success: true, data: reservation }, { status: 201 })
 	} catch (err) {
 		console.error('[POST /api/reservations]', err)
-		return NextResponse.json({ success: false, error: 'Erreur serveur' }, { status: 500 })
+		return apiError('Erreur serveur')
 	}
 }
 
 export async function GET(req: NextRequest) {
 	try {
-		const session = await getServerSession(authOptions)
-		if (!session?.user) return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 })
+		const session = await requireSession()
+		if (!session) return apiError('Non autorisé', 401)
 
-		const page   = Math.max(1, Number(req.nextUrl.searchParams.get('page') ?? 1))
-		const limit  = Math.min(50, Number(req.nextUrl.searchParams.get('limit') ?? 20))
-		const status = req.nextUrl.searchParams.get('status') ?? ''
+		const { searchParams } = req.nextUrl
+		const { page, limit, skip } = parsePagination(searchParams, { defaultLimit: 20, maxLimit: 50 })
+		const status = searchParams.get('status') ?? ''
 
 		const where: Record<string, unknown> = {}
 		if (status) where.status = status
@@ -172,7 +127,7 @@ export async function GET(req: NextRequest) {
 					paymentInstallments: { select: { paidAmount: true } },
 				},
 				orderBy: { reservedAt: 'desc' },
-				skip: (page - 1) * limit,
+				skip,
 				take: limit,
 			}),
 			prisma.reservation.count({ where }),
@@ -180,11 +135,11 @@ export async function GET(req: NextRequest) {
 
 		return NextResponse.json({
 			success: true,
-			data: reservations,
-			meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+			data:    reservations,
+			meta:    { total, page, limit, totalPages: Math.ceil(total / limit) },
 		})
 	} catch (err) {
 		console.error('[GET /api/reservations]', err)
-		return NextResponse.json({ success: false, error: 'Erreur serveur' }, { status: 500 })
+		return apiError('Erreur serveur')
 	}
 }

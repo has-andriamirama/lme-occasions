@@ -1,8 +1,8 @@
 // src/app/api/admins/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions, hashPassword, validatePassword } from '@/lib/auth'
+import { hashPassword, validatePassword } from '@/lib/auth'
 import prisma from '@/lib/db'
+import { requireSuperAdmin, apiError, validationError, createAuditLog } from '@/lib/api'
 import { z } from 'zod'
 
 const createSchema = z.object({
@@ -11,17 +11,10 @@ const createSchema = z.object({
 	password: z.string().min(8),
 })
 
-async function requireSuperAdmin() {
-	const session = await getServerSession(authOptions)
-	if (!session?.user) return null
-	if (session.user.role !== 'SUPER_ADMIN') return null
-	return session
-}
-
 export async function GET(_req: NextRequest) {
 	try {
 		const session = await requireSuperAdmin()
-		if (!session) return NextResponse.json({ success: false, error: 'Super Admin requis' }, { status: 403 })
+		if (!session) return apiError('Super Admin requis', 403)
 
 		const admins = await prisma.admin.findMany({
 			select: {
@@ -32,32 +25,27 @@ export async function GET(_req: NextRequest) {
 		})
 		return NextResponse.json({ success: true, data: admins })
 	} catch (err) {
-		return NextResponse.json({ success: false, error: 'Erreur serveur' }, { status: 500 })
+		console.error('[GET /api/admins]', err)
+		return apiError('Erreur serveur')
 	}
 }
 
 export async function POST(req: NextRequest) {
 	try {
 		const session = await requireSuperAdmin()
-		if (!session) return NextResponse.json({ success: false, error: 'Super Admin requis' }, { status: 403 })
+		if (!session) return apiError('Super Admin requis', 403)
 
 		const body   = await req.json()
 		const parsed = createSchema.safeParse(body)
-		if (!parsed.success) {
-			return NextResponse.json({ success: false, error: 'Données invalides', details: parsed.error.flatten() }, { status: 400 })
-		}
+		if (!parsed.success) return validationError(parsed.error.flatten())
 
 		const validation = validatePassword(parsed.data.password)
-		if (!validation.valid) {
-			return NextResponse.json({ success: false, error: validation.errors.join(', ') }, { status: 400 })
-		}
+		if (!validation.valid) return apiError(validation.errors.join(', '), 400)
 
 		const existing = await prisma.admin.findFirst({
 			where: { OR: [{ username: parsed.data.username }, { email: parsed.data.email }] },
 		})
-		if (existing) {
-			return NextResponse.json({ success: false, error: 'Identifiant ou email déjà utilisé' }, { status: 409 })
-		}
+		if (existing) return apiError('Identifiant ou email déjà utilisé', 409)
 
 		const admin = await prisma.admin.create({
 			data: {
@@ -70,12 +58,11 @@ export async function POST(req: NextRequest) {
 			select: { id: true, username: true, email: true, role: true, isActive: true, createdAt: true },
 		})
 
-		await prisma.auditLog.create({
-			data: { adminId: session.user.id, action: 'CREATE', entity: 'Admin', entityId: admin.id },
-		})
+		await createAuditLog(session.user.id, 'CREATE', 'Admin', admin.id)
 
 		return NextResponse.json({ success: true, data: admin }, { status: 201 })
 	} catch (err) {
-		return NextResponse.json({ success: false, error: 'Erreur serveur' }, { status: 500 })
+		console.error('[POST /api/admins]', err)
+		return apiError('Erreur serveur')
 	}
 }

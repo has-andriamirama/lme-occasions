@@ -1,66 +1,42 @@
 // src/components/admin/admins/AdminActions.tsx
 'use client'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Trash2 } from 'lucide-react'
-import toast from 'react-hot-toast'
-import ConfirmModal from '@/components/admin/shared/ConfirmModal'
-import AdminForm from '@/components/admin/admins/AdminForm'
+import ConfirmModal     from '@/components/admin/shared/ConfirmModal'
+import ActionIconButton from '@/components/admin/shared/ActionIconButton'
+import AdminForm        from '@/components/admin/admins/AdminForm'
+import { useDeleteAction } from '@/hooks/useDeleteAction'
 
 interface AdminLite {
-	id: string
+	id:       string
 	username: string
-	email: string
-	role: string
+	email:    string
+	role:     string
 }
 
 interface Props {
-	admin: AdminLite
+	admin:  AdminLite
 	isSelf: boolean
 }
 
 export default function AdminActions({ admin, isSelf }: Props) {
-	const router = useRouter()
-	const [confirm, setConfirm] = useState(false)
-	const [loading, setLoading] = useState(false)
-
-	async function handleDelete() {
-		setLoading(true)
-		try {
-			const res  = await fetch(`/api/admins/${admin.id}`, { method: 'DELETE' })
-			const data = await res.json()
-			if (!data.success) { toast.error(data.error); return }
-			toast.success('Administrateur supprimé')
-			setConfirm(false)
-			router.refresh()
-		} catch {
-			toast.error('Erreur réseau')
-		} finally {
-			setLoading(false)
-		}
-	}
+	const { confirm, setConfirm, loading, handleDelete } = useDeleteAction({
+		url:            `/api/admins/${admin.id}`,
+		successMessage: 'Administrateur supprimé',
+	})
 
 	return (
 		<div className="flex items-center justify-center gap-1">
 			<AdminForm mode="edit" admin={admin} isSelf={isSelf} />
 
-			{!isSelf ? (
-				<button
-					onClick={() => setConfirm(true)}
-					title="Supprimer"
-					className="p-1.5 text-dark-400 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-all"
-				>
-					<Trash2 className="w-4 h-4" />
-				</button>
-			) : (
-				<button
-					disabled
-					title="Impossible de supprimer votre propre compte"
-					className="p-1.5 text-dark-600 cursor-not-allowed rounded-lg"
-				>
-					<Trash2 className="w-4 h-4" />
-				</button>
-			)}
+			<ActionIconButton
+				as="button"
+				variant="danger"
+				title={isSelf ? 'Impossible de supprimer votre propre compte' : 'Supprimer'}
+				disabled={isSelf}
+				onClick={() => setConfirm(true)}
+			>
+				<Trash2 className="w-4 h-4" />
+			</ActionIconButton>
 
 			<ConfirmModal
 				open={confirm}
