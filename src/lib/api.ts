@@ -1,6 +1,7 @@
 // src/lib/api.ts
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { Prisma } from '@prisma/client'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/db'
 
@@ -55,7 +56,7 @@ export function createAuditLog(
 	action:   string,
 	entity:   string,
 	entityId: string,
-	details?: Record<string, unknown>
+	details?: Prisma.InputJsonObject
 ) {
 	return prisma.auditLog.create({
 		data: { adminId, action, entity, entityId, ...(details ? { details } : {}) },
