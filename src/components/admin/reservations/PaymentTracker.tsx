@@ -55,7 +55,6 @@ function InstallmentRow({ installment, totalInstallments, disabled, onAction }: 
 
 	return (
 		<tr className={`border-b border-dark-800 last:border-0 transition-colors ${isPaid ? '' : 'bg-amber-500/3'}`}>
-			{/* Numéro */}
 			<td className="px-4 py-3.5 w-10">
 				<div
 					className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold
@@ -67,7 +66,6 @@ function InstallmentRow({ installment, totalInstallments, disabled, onAction }: 
 				</div>
 			</td>
 
-			{/* Label */}
 			<td className="px-4 py-3.5">
 				<p className="text-sm font-medium text-white">
 					{totalInstallments === 1
@@ -82,12 +80,10 @@ function InstallmentRow({ installment, totalInstallments, disabled, onAction }: 
 				)}
 			</td>
 
-			{/* Montant attendu */}
 			<td className="px-4 py-3.5 text-right hidden sm:table-cell">
 				<span className="text-sm text-dark-400">{formatPrice(installment.expectedAmount)}</span>
 			</td>
 
-			{/* Montant encaissé */}
 			<td className="px-4 py-3.5 text-right">
 				{isPaid ? (
 					<span className="text-sm font-bold text-emerald-400">
@@ -98,7 +94,6 @@ function InstallmentRow({ installment, totalInstallments, disabled, onAction }: 
 				)}
 			</td>
 
-			{/* Date */}
 			<td className="px-4 py-3.5 text-center hidden md:table-cell">
 				{installment.paidAt ? (
 					<span className="text-xs text-dark-400">{formatDate(installment.paidAt)}</span>
@@ -107,7 +102,6 @@ function InstallmentRow({ installment, totalInstallments, disabled, onAction }: 
 				)}
 			</td>
 
-			{/* Action */}
 			<td className="px-4 py-3.5 text-right">
 				<button
 					onClick={() => onAction(installment)}
@@ -140,7 +134,6 @@ export default function PaymentTracker({
 	const [installments, setInstallments] = useState<PaymentInstallmentSerialized[]>(initialInstallments)
 	const [currentStatus, setCurrentStatus] = useState(reservationStatus)
 
-	// ── Modal ─────────────────────────────────────────────────────────────────
 	const [modal, setModal] = useState<{
 		installment: PaymentInstallmentSerialized
 		formAmount:  string
@@ -148,17 +141,17 @@ export default function PaymentTracker({
 		formNotes:   string
 	} | null>(null)
 
-	const [saving,  setSaving]  = useState(false)
+	const [saving,  setSaving] = useState(false)
 	const [resetting, setResetting] = useState(false)
 
-	const totalFromInstallments = installments.reduce((s, i) => s + (i.paidAmount ?? 0), 0)
-	const totalPaid             = depositAmount + totalFromInstallments
-	const remaining             = Math.max(0, totalPrice - totalPaid)
-	const progressPercent       = Math.min(100, Math.round((totalPaid / totalPrice) * 100))
-	const isFullyPaid           = totalPaid >= totalPrice
-	const paidCount             = installments.filter((i) => i.paidAmount !== null).length
-	const isCompleted           = currentStatus === 'COMPLETED'
-	const isCancelled           = ['CANCELLED', 'EXPIRED'].includes(currentStatus)
+	const totalFromInstallments  = installments.reduce((s, i) => s + (i.paidAmount ?? 0), 0)
+	const totalPaid              = depositAmount + totalFromInstallments
+	const remaining              = Math.max(0, totalPrice - totalPaid)
+	const progressPercent        = Math.min(100, Math.round((totalPaid / totalPrice) * 100))
+	const isFullyPaid            = totalPaid >= totalPrice
+	const paidCount              = installments.filter((i) => i.paidAmount !== null).length
+	const isCompleted            = currentStatus === 'COMPLETED'
+	const isCancelled            = ['CANCELLED', 'EXPIRED'].includes(currentStatus)
 	const isAwaitingConfirmation = ['PENDING', 'PAID'].includes(currentStatus)
 
 	const openModal = useCallback((inst: PaymentInstallmentSerialized) => {
@@ -295,10 +288,8 @@ export default function PaymentTracker({
 
 	return (
 		<>
-			{/* ── Bloc suivi ─────────────────────────────────────────────────────── */}
 			<div className="space-y-4">
 
-				{/* En-tête : progression globale */}
 				<div className="card p-5">
 					<div className="flex items-start justify-between gap-4 mb-4">
 						<div>
@@ -335,7 +326,6 @@ export default function PaymentTracker({
 						</div>
 					</div>
 
-					{/* Barre de progression */}
 					<div className="h-2 bg-dark-700 rounded-full overflow-hidden">
 						<div
 							className={`h-full rounded-full transition-all duration-500
@@ -346,7 +336,6 @@ export default function PaymentTracker({
 					<p className="text-xs text-dark-500 mt-1.5">{progressPercent} % du total encaissé</p>
 				</div>
 
-				{/* Tableau des tranches */}
 				<div className="card overflow-hidden">
 					<div className="px-4 py-3 border-b border-dark-800">
 						<p className="text-sm font-medium text-white">Détail des encaissements</p>
@@ -365,7 +354,6 @@ export default function PaymentTracker({
 								</tr>
 							</thead>
 							<tbody>
-								{/* Ligne acompte (lecture seule) */}
 								<tr className="border-b border-dark-800">
 									<td className="px-4 py-3.5 w-10">
 										<div className="w-7 h-7 rounded-full flex items-center justify-center bg-blue-500/10">
@@ -390,7 +378,6 @@ export default function PaymentTracker({
 									</td>
 								</tr>
 
-								{/* Lignes tranches */}
 								{installments.map((inst) => (
 									<InstallmentRow
 										key={inst.id}
@@ -434,7 +421,6 @@ export default function PaymentTracker({
 					)}
 				</div>
 
-				{/* Alerte clôture imminente */}
 				{!isCompleted && isFullyPaid && (
 					<div className="card p-4 border border-emerald-500/30 bg-emerald-500/5 flex items-start gap-3">
 						<TrendingUp className="w-5 h-5 text-emerald-400 mt-0.5 shrink-0" />
@@ -445,14 +431,12 @@ export default function PaymentTracker({
 				)}
 			</div>
 
-			{/* ── Modale de saisie / modification ─────────────────────────────────── */}
 			{modal && (
 				<div
 					className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-sm"
 					onClick={(e) => { if (e.target === e.currentTarget) closeModal() }}
 				>
 					<div className="bg-dark-900 border border-dark-700 rounded-2xl w-full max-w-md shadow-2xl">
-						{/* En-tête modale */}
 						<div className="flex items-start justify-between p-6 pb-4">
 							<div>
 								<h3 className="text-base font-semibold text-white">
@@ -473,7 +457,6 @@ export default function PaymentTracker({
 						</div>
 
 						<div className="px-6 pb-6 space-y-4">
-							{/* Montant */}
 							<div>
 								<label className="block text-xs font-medium text-dark-300 mb-1.5">
 									Montant réellement encaissé (€) <span className="text-red-400">*</span>
@@ -496,7 +479,6 @@ export default function PaymentTracker({
 								</p>
 							</div>
 
-							{/* Date */}
 							<div>
 								<label className="block text-xs font-medium text-dark-300 mb-1.5">
 									Date du paiement <span className="text-red-400">*</span>
@@ -509,7 +491,6 @@ export default function PaymentTracker({
 								/>
 							</div>
 
-							{/* Notes */}
 							<div>
 								<label className="block text-xs font-medium text-dark-300 mb-1.5">
 									Notes (optionnel)
@@ -523,7 +504,6 @@ export default function PaymentTracker({
 								/>
 							</div>
 
-							{/* Alerte clôture automatique imminente */}
 							{modalWillComplete && !isCompleted && (
 								<div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
 									<p className="text-xs text-emerald-300 flex items-start gap-2">
@@ -536,7 +516,6 @@ export default function PaymentTracker({
 								</div>
 							)}
 
-							{/* Boutons */}
 							<div className="flex gap-3 pt-1">
 								<button
 									onClick={handleSave}

@@ -72,11 +72,11 @@ export default function OfferForm({ initialData, mode, availableCars }: Props) {
 
 	function validate(): boolean {
 		const e: Record<string, string> = {}
-		if (!form.name.trim())              e.name = 'Nom requis'
-		if (form.value <= 0)                e.value = 'Valeur invalide'
+		if (!form.name.trim()) e.name = 'Nom requis'
+		if (form.value <= 0) e.value = 'Valeur invalide'
 		if (form.type === 'PERCENTAGE' && form.value > 100) e.value = 'Maximum 100%'
-		if (!form.startDate)                e.startDate = 'Date de début requise'
-		if (!form.endDate)                  e.endDate = 'Date de fin requise'
+		if (!form.startDate) e.startDate = 'Date de début requise'
+		if (!form.endDate) e.endDate = 'Date de fin requise'
 		if (form.startDate && form.endDate && new Date(form.endDate) <= new Date(form.startDate)) {
 			e.endDate = 'Doit être après la date de début'
 		}

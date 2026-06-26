@@ -13,7 +13,7 @@ interface Props {
 
 export default function AdminCarsActions({ carId, carTitle, status }: Props) {
 	const { confirm, setConfirm, loading, handleDelete } = useDeleteAction({
-		url:            `/api/cars/${carId}`,
+		url: `/api/cars/${carId}`,
 		successMessage: 'Véhicule supprimé',
 	})
 

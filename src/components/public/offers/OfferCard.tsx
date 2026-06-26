@@ -26,8 +26,8 @@ const STATUS_BADGE_CLASS = {
 } as const
 
 export default function OfferCard({ offer, now }: { offer: OfferWithCars; now?: Date }) {
-	const status   = getOfferStatus(offer, now)
-	const active   = status === 'ACTIVE'
+	const status = getOfferStatus(offer, now)
+	const active = status === 'ACTIVE'
 	const daysLeft = getDaysLeft(offer.endDate)
 	const StatusIcon = STATUS_ICON[status]
 
@@ -40,13 +40,11 @@ export default function OfferCard({ offer, now }: { offer: OfferWithCars; now?: 
 					? 'border-brand-500/30 hover:border-brand-500/50 hover:shadow-brand'
 					: 'border-dark-700 opacity-70 hover:opacity-90',
 			)}>
-			{/* Glow */}
 			{active && (
 				<div className="absolute top-0 right-0 w-40 h-40 bg-brand-500/8 rounded-full blur-3xl -translate-y-10 translate-x-10 pointer-events-none" />
 			)}
 
 			<div className="relative flex items-start gap-4">
-				{/* Icon */}
 				<div className={cn(
 					'flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center border',
 					active
@@ -56,7 +54,6 @@ export default function OfferCard({ offer, now }: { offer: OfferWithCars; now?: 
 					<Tag className={cn('w-6 h-6', active ? 'text-brand-400' : 'text-dark-400')} />
 				</div>
 
-				{/* Badge status */}
 				<div className="ml-auto flex-shrink-0">
 					<span className={cn('inline-flex items-center gap-1 text-xs font-semibold rounded-full px-2.5 py-1 border', STATUS_BADGE_CLASS[status])}>
 						<StatusIcon className="w-3 h-3" /> {getOfferStatusLabel(status)}
@@ -64,14 +61,12 @@ export default function OfferCard({ offer, now }: { offer: OfferWithCars; now?: 
 				</div>
 			</div>
 
-			{/* Content */}
 			<div className="flex-1">
 				<h3 className="font-display font-bold text-white text-lg mb-1 line-clamp-1">{offer.name}</h3>
 				{offer.description && (
 					<p className="text-sm text-dark-400 line-clamp-2 mb-3">{offer.description}</p>
 				)}
 
-				{/* Discount badge */}
 				<div className={cn(
 					'inline-flex items-center font-black text-2xl px-4 py-2 rounded-xl mb-3',
 					active ? 'bg-brand-500 text-dark-950' : 'bg-dark-700 text-dark-300',
@@ -82,7 +77,6 @@ export default function OfferCard({ offer, now }: { offer: OfferWithCars; now?: 
 				</div>
 			</div>
 
-			{/* Meta */}
 			<div className="space-y-1.5 text-xs text-dark-500">
 				<div className="flex items-center gap-2">
 					<Clock className="w-3.5 h-3.5 text-brand-500/70 flex-shrink-0" />

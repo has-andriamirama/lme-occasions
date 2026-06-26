@@ -4,4 +4,4 @@ Disallow: /admin/
 Disallow: /api/
 Disallow: /login
 
-Sitemap: https://www.lmeoccasions.com/sitemap.xml
+Sitemap: https://lme-occasions.vercel.app/sitemap.xml
