@@ -41,3 +41,17 @@ export async function recreateInstallments(
 	await tx.paymentInstallment.deleteMany({ where: { reservationId } })
 	await createInstallments(tx, reservationId, totalPrice, depositAmount, installmentType)
 }
+
+export function calculateRemainingExpectedAmount(
+	installments:  { paidAmount: number | null }[],
+	totalPrice:    number,
+	depositAmount: number,
+): number | null {
+	const paidOnInstallments = installments.reduce((sum, i) => sum + (i.paidAmount ?? 0), 0)
+	const unpaidCount        = installments.filter((i) => i.paidAmount === null).length
+
+	if (unpaidCount === 0) return null
+
+	const remainingBalance = Math.max(0, totalPrice - depositAmount - paidOnInstallments)
+	return Math.round((remainingBalance / unpaidCount) * 100) / 100
+}

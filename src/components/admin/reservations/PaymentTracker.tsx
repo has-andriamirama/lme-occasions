@@ -193,20 +193,7 @@ export default function PaymentTracker({
 			const json = await res.json()
 			if (!res.ok) throw new Error(json.error ?? 'Erreur serveur')
 
-			setInstallments((prev) =>
-				prev.map((i) =>
-					i.id === modal.installment.id
-						? {
-								...i,
-								paidAmount: amount,
-								paidAt: modal.formDate
-									? new Date(modal.formDate).toISOString()
-									: new Date().toISOString(),
-								notes: modal.formNotes || null,
-							}
-						: i,
-				),
-			)
+			setInstallments(json.data.installments)
 
 			if (json.data?.autoCompleted) {
 				setCurrentStatus('COMPLETED')
@@ -242,13 +229,7 @@ export default function PaymentTracker({
 			const json = await res.json()
 			if (!res.ok) throw new Error(json.error ?? 'Erreur serveur')
 
-			setInstallments((prev) =>
-				prev.map((i) =>
-					i.id === modal.installment.id
-						? { ...i, paidAmount: null, paidAt: null, notes: modal.formNotes || null }
-						: i,
-				),
-			)
+			setInstallments(json.data.installments)
 
 			toast.success('Tranche remise à « impayée »')
 			closeModal()

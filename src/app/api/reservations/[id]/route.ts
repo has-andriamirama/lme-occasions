@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
 import { broadcastCarUpdate, broadcastReservationUpdated, broadcastReservationCancelled } from '@/lib/pusher'
 import { sendReservationConfirmedToClient } from '@/lib/mail'
-import { getInstallmentCount, recreateInstallments } from '@/lib/installments'
+import { recreateInstallments, calculateRemainingExpectedAmount } from '@/lib/installments'
 import { requireSession, apiError, validationError, createAuditLog, safePusher } from '@/lib/api'
 import { z } from 'zod'
 
@@ -80,13 +80,17 @@ export async function PUT(
 			if (typeChanged) {
 				await recreateInstallments(tx, params.id, nextTotalPrice, nextDeposit, data.installmentType!)
 			} else if (data.totalPrice !== undefined || data.depositAmount !== undefined) {
-				const count       = getInstallmentCount(existing.installmentType ?? 'FULL')
-				const balance     = nextTotalPrice - nextDeposit
-				const newExpected = Math.round((balance / count) * 100) / 100
-				await tx.paymentInstallment.updateMany({
-					where: { reservationId: params.id, paidAmount: null },
-					data:  { expectedAmount: newExpected },
-				})
+				const newExpected = calculateRemainingExpectedAmount(
+					existing.paymentInstallments,
+					nextTotalPrice,
+					nextDeposit,
+				)
+				if (newExpected !== null) {
+					await tx.paymentInstallment.updateMany({
+						where: { reservationId: params.id, paidAmount: null },
+						data:  { expectedAmount: newExpected },
+					})
+				}
 			}
 
 			return reservation

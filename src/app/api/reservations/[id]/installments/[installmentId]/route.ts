@@ -4,6 +4,7 @@ import prisma from '@/lib/db'
 import { broadcastCarUpdate, broadcastReservationUpdated } from '@/lib/pusher'
 import { requireSession, apiError, validationError, createAuditLog, safePusher } from '@/lib/api'
 import { computePaymentSummary } from '@/lib/queries'
+import { calculateRemainingExpectedAmount } from '@/lib/installments'
 import { z } from 'zod'
 
 const updateInstallmentSchema = z.object({
@@ -45,18 +46,39 @@ export async function PUT(
 		const targetInstallment = reservation.paymentInstallments.find((i) => i.id === params.installmentId)
 		if (!targetInstallment) return apiError('Tranche introuvable', 404)
 
-		const updatedInstallment = await prisma.paymentInstallment.update({
-			where: { id: params.installmentId },
-			data: {
-				paidAmount: paidAmount ?? null,
-				paidAt:     paidAmount ? (paidAt ? new Date(paidAt) : new Date()) : null,
-				notes:      notes ?? null,
-			},
+		const installmentsAfterThisUpdate = reservation.paymentInstallments.map((i) =>
+			i.id === params.installmentId ? { ...i, paidAmount: paidAmount ?? null } : i
+		)
+		const newExpectedForRemaining = calculateRemainingExpectedAmount(
+			installmentsAfterThisUpdate,
+			reservation.totalPrice,
+			reservation.depositAmount,
+		)
+
+		await prisma.$transaction(async (tx) => {
+			await tx.paymentInstallment.update({
+				where: { id: params.installmentId },
+				data: {
+					paidAmount: paidAmount ?? null,
+					paidAt:     paidAmount ? (paidAt ? new Date(paidAt) : new Date()) : null,
+					notes:      notes ?? null,
+				},
+			})
+
+			if (newExpectedForRemaining !== null) {
+				await tx.paymentInstallment.updateMany({
+					where: { reservationId: params.id, paidAmount: null },
+					data:  { expectedAmount: newExpectedForRemaining },
+				})
+			}
 		})
 
 		const freshInstallments = await prisma.paymentInstallment.findMany({
-			where: { reservationId: params.id },
+			where:   { reservationId: params.id },
+			orderBy: { installmentNumber: 'asc' },
 		})
+
+		const updatedInstallment = freshInstallments.find((i) => i.id === params.installmentId)!
 
 		const summary = computePaymentSummary({
 			depositAmount: reservation.depositAmount,
@@ -110,7 +132,8 @@ export async function PUT(
 		return NextResponse.json({
 			success: true,
 			data: {
-				installment: updatedInstallment,
+				installment:  updatedInstallment,
+				installments: freshInstallments,
 				summary: {
 					depositAmount: reservation.depositAmount,
 					totalPrice:    reservation.totalPrice,
