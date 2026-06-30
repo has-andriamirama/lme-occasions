@@ -134,7 +134,7 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
 	useCarUpdates({
 		onCreate: (newCar) => {
 			if (page !== 1) return
-			if (filters.sortBy !== 'newest') return  // tri autres que "Plus récents" → pas d'insertion locale fiable
+			if (filters.sortBy !== 'newest') return
 			if (!carMatchesFilters(newCar, filters)) return
 			setCars((prev) => {
 				if (prev.some((c) => c.id === newCar.id)) return prev

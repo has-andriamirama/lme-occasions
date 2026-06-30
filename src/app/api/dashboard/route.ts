@@ -57,7 +57,7 @@ export async function GET() {
 			data: {
 				totalCars, availableCars, reservedCars, soldCars,
 				totalReservations, activeReservations, pendingContacts,
-				totalRevenue:   totalRevenueAgg._sum.depositAmount   ?? 0,
+				totalRevenue: totalRevenueAgg._sum.depositAmount   ?? 0,
 				monthlyRevenue: monthlyRevenueAgg._sum.depositAmount ?? 0,
 				recentReservations,
 				recentContacts,
