@@ -121,7 +121,7 @@ export default function ReservationList({ initialReservations, status, page, tot
 				return next
 			})
 		},
-		onDelete: (reservationId) => {
+		onCancel: (reservationId) => {
 			setReservations((prev) => {
 				if (!prev.some((r) => r.id === reservationId)) return prev
 				if (status && status !== 'CANCELLED') {

@@ -8,7 +8,7 @@ export type { ReservationBroadcastPayload }
 interface Handlers {
 	onCreate?: (reservation: ReservationBroadcastPayload) => void
 	onChange?: (reservation: ReservationBroadcastPayload) => void
-	onDelete?: (reservationId: string, carId: string) => void
+	onCancel?: (reservationId: string, carId: string) => void
 }
 
 export function useReservationUpdates(handlers: Handlers) {
@@ -32,18 +32,18 @@ export function useReservationUpdates(handlers: Handlers) {
 		const onChange = (data: { reservation: ReservationBroadcastPayload }) => {
 			handlersRef.current.onChange?.(data.reservation)
 		}
-		const onDelete = (data: { reservationId: string; carId: string }) => {
-			handlersRef.current.onDelete?.(data.reservationId, data.carId)
+		const onCancel = (data: { reservationId: string; carId: string }) => {
+			handlersRef.current.onCancel?.(data.reservationId, data.carId)
 		}
 
 		channel.bind(EVENTS.reservationCreated, onCreate)
 		channel.bind(EVENTS.reservationUpdated, onChange)
-		channel.bind(EVENTS.reservationCancelled, onDelete)
+		channel.bind(EVENTS.reservationCancelled, onCancel)
 
 		return () => {
 			channel.unbind(EVENTS.reservationCreated, onCreate)
 			channel.unbind(EVENTS.reservationUpdated, onChange)
-			channel.unbind(EVENTS.reservationCancelled, onDelete)
+			channel.unbind(EVENTS.reservationCancelled, onCancel)
 		}
 	}, [])
 }
