@@ -46,6 +46,27 @@ export async function PUT(
 		const targetInstallment = reservation.paymentInstallments.find((i) => i.id === params.installmentId)
 		if (!targetInstallment) return apiError('Tranche introuvable', 404)
 
+		// ── BUG 1 : garde anti-dépassement du prix total ──────────────────────
+		// S'applique uniquement quand on enregistre un montant (pas lors d'un reset à null).
+		if (paidAmount !== null) {
+			const othersPaid = reservation.paymentInstallments
+				.filter((i) => i.id !== params.installmentId)
+				.reduce((sum, i) => sum + (i.paidAmount ?? 0), 0)
+
+			// Montant maximum que cette tranche peut absorber sans dépasser le prix total
+			const maxAllowed = reservation.totalPrice - reservation.depositAmount - othersPaid
+
+			// Comparaison en centimes pour éviter les erreurs de flottants
+			if (Math.round(paidAmount * 100) > Math.round(maxAllowed * 100)) {
+				return apiError(
+					`Le montant saisi (${paidAmount.toFixed(2)} €) ferait dépasser le prix total. ` +
+					`Maximum autorisé pour cette tranche : ${maxAllowed.toFixed(2)} €`,
+					400
+				)
+			}
+		}
+		// ─────────────────────────────────────────────────────────────────────
+
 		const installmentsAfterThisUpdate = reservation.paymentInstallments.map((i) =>
 			i.id === params.installmentId ? { ...i, paidAmount: paidAmount ?? null } : i
 		)
@@ -87,13 +108,21 @@ export async function PUT(
 		})
 
 		let autoCompleted = false
+		let autoReverted  = false
 
+		// ── Auto-finalisation : total atteint + réservation Confirmée ─────────
 		if (summary.isFullyPaid && reservation.status === 'CONFIRMED') {
 			const now = new Date()
 
 			await prisma.$transaction(async (tx) => {
-				await tx.reservation.update({ where: { id: params.id }, data: { status: 'COMPLETED', completedAt: now } })
-				await tx.car.update({ where: { id: reservation.carId }, data: { status: 'SOLD' } })
+				await tx.reservation.update({
+					where: { id: params.id },
+					data:  { status: 'COMPLETED', completedAt: now },
+				})
+				await tx.car.update({
+					where: { id: reservation.carId },
+					data:  { status: 'SOLD' },
+				})
 			})
 
 			await safePusher(async () => {
@@ -115,10 +144,51 @@ export async function PUT(
 					completedAt:     now,
 					notes:           reservation.notes,
 				})
-			}, 'PUT /installments/:id')
+			}, 'PUT /installments/:id (auto-complete)')
 
 			autoCompleted = true
 		}
+
+		// ── BUG 3 : Auto-retour : total non atteint + réservation Finalisée ──
+		// Cas typique : on remet une tranche à « impayée » ou on réduit son montant
+		// après que la réservation ait été auto-finalisée. La réservation repasse à
+		// Confirmée et la voiture repasse à Réservée.
+		if (!summary.isFullyPaid && reservation.status === 'COMPLETED') {
+			await prisma.$transaction(async (tx) => {
+				await tx.reservation.update({
+					where: { id: params.id },
+					data:  { status: 'CONFIRMED', completedAt: null },
+				})
+				await tx.car.update({
+					where: { id: reservation.carId },
+					data:  { status: 'RESERVED' },
+				})
+			})
+
+			await safePusher(async () => {
+				await broadcastCarUpdate({ id: reservation.carId, status: 'RESERVED', title: reservation.car.title })
+				await broadcastReservationUpdated({
+					id:              reservation.id,
+					carId:           reservation.carId,
+					clientName:      reservation.clientName,
+					clientEmail:     reservation.clientEmail,
+					clientPhone:     reservation.clientPhone,
+					depositAmount:   reservation.depositAmount,
+					totalPrice:      reservation.totalPrice,
+					installmentType: reservation.installmentType,
+					status:          'CONFIRMED',
+					reservedAt:      reservation.reservedAt,
+					expiresAt:       reservation.expiresAt,
+					paidAt:          reservation.paidAt,
+					confirmedAt:     reservation.confirmedAt,
+					completedAt:     null,
+					notes:           reservation.notes,
+				})
+			}, 'PUT /installments/:id (auto-revert)')
+
+			autoReverted = true
+		}
+		// ─────────────────────────────────────────────────────────────────────
 
 		await createAuditLog(session.user.id, 'UPDATE', 'PaymentInstallment', updatedInstallment.id, {
 			reservationId:     params.id,
@@ -127,7 +197,15 @@ export async function PUT(
 			paidAmountAfter:   paidAmount,
 			totalPaid:         summary.totalPaid,
 			autoCompleted,
+			autoReverted,
 		})
+
+		// Le statut effectif de la réservation après cette opération
+		const effectiveStatus = autoCompleted
+			? 'COMPLETED'
+			: autoReverted
+				? 'CONFIRMED'
+				: reservation.status
 
 		return NextResponse.json({
 			success: true,
@@ -135,12 +213,13 @@ export async function PUT(
 				installment:  updatedInstallment,
 				installments: freshInstallments,
 				summary: {
-					depositAmount: reservation.depositAmount,
-					totalPrice:    reservation.totalPrice,
+					depositAmount:     reservation.depositAmount,
+					totalPrice:        reservation.totalPrice,
 					...summary,
-					reservationStatus: autoCompleted ? 'COMPLETED' : reservation.status,
+					reservationStatus: effectiveStatus,
 				},
 				autoCompleted,
+				autoReverted,
 			},
 		})
 	} catch (err) {
