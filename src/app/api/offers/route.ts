@@ -1,7 +1,7 @@
 // src/app/api/offers/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
-import { broadcastOfferChange } from '@/lib/pusher'
+import { broadcastOfferCreated } from '@/lib/pusher'
 import { requireSession, apiError, validationError, parsePagination, createAuditLog, safePusher } from '@/lib/api'
 import { z } from 'zod'
 
@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
 		await createAuditLog(session.user.id, 'CREATE', 'Offer', offer.id, { name: offer.name })
 
 		await safePusher(
-			() => broadcastOfferChange({ ...offer, carIds: finalCarIds }),
+			() => broadcastOfferCreated({ ...offer, carIds: finalCarIds }),
 			'POST /api/offers'
 		)
 

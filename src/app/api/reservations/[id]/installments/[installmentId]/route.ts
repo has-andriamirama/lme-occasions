@@ -1,7 +1,7 @@
 // src/app/api/reservations/[id]/installments/[installmentId]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
-import { broadcastCarUpdate } from '@/lib/pusher'
+import { broadcastCarUpdate, broadcastReservationUpdated } from '@/lib/pusher'
 import { requireSession, apiError, validationError, createAuditLog, safePusher } from '@/lib/api'
 import { computePaymentSummary } from '@/lib/queries'
 import { z } from 'zod'
@@ -67,15 +67,33 @@ export async function PUT(
 		let autoCompleted = false
 
 		if (summary.isFullyPaid && reservation.status === 'CONFIRMED') {
+			const now = new Date()
+
 			await prisma.$transaction(async (tx) => {
-				await tx.reservation.update({ where: { id: params.id }, data: { status: 'COMPLETED', completedAt: new Date() } })
+				await tx.reservation.update({ where: { id: params.id }, data: { status: 'COMPLETED', completedAt: now } })
 				await tx.car.update({ where: { id: reservation.carId }, data: { status: 'SOLD' } })
 			})
 
-			await safePusher(
-				() => broadcastCarUpdate({ id: reservation.carId, status: 'SOLD', title: reservation.car.title }),
-				'PUT /installments/:id'
-			)
+			await safePusher(async () => {
+				await broadcastCarUpdate({ id: reservation.carId, status: 'SOLD', title: reservation.car.title })
+				await broadcastReservationUpdated({
+					id:              reservation.id,
+					carId:           reservation.carId,
+					clientName:      reservation.clientName,
+					clientEmail:     reservation.clientEmail,
+					clientPhone:     reservation.clientPhone,
+					depositAmount:   reservation.depositAmount,
+					totalPrice:      reservation.totalPrice,
+					installmentType: reservation.installmentType,
+					status:          'COMPLETED',
+					reservedAt:      reservation.reservedAt,
+					expiresAt:       reservation.expiresAt,
+					paidAt:          reservation.paidAt,
+					confirmedAt:     reservation.confirmedAt,
+					completedAt:     now,
+					notes:           reservation.notes,
+				})
+			}, 'PUT /installments/:id')
 
 			autoCompleted = true
 		}

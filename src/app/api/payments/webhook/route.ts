@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { constructWebhookEvent } from '@/lib/stripe'
 import prisma from '@/lib/db'
-import { broadcastCarUpdate, broadcastAdminNotification, EVENTS } from '@/lib/pusher'
+import { broadcastCarUpdate, broadcastReservationCreated } from '@/lib/pusher'
 import { sendPaymentReceivedToClient, sendReservationNotificationToAdmin } from '@/lib/mail'
 import { safePusher } from '@/lib/api'
 
@@ -71,11 +71,21 @@ export async function POST(req: NextRequest) {
 
 				await safePusher(async () => {
 					await broadcastCarUpdate({ id: carId, status: 'RESERVED', title: paid.car.title })
-					await broadcastAdminNotification(EVENTS.newReservation, {
-						reservationId: paid.id,
-						carTitle:      paid.car.title,
+					await broadcastReservationCreated({
+						id:              paid.id,
+						carId,
+						car:             { id: paid.car.id, title: paid.car.title, brand: paid.car.brand, model: paid.car.model, mainImage: paid.car.mainImage },
 						clientName,
-						depositAmount: Number(depositAmount),
+						clientEmail,
+						clientPhone,
+						depositAmount:   paid.depositAmount,
+						totalPrice:      paid.totalPrice,
+						installmentType: paid.installmentType,
+						status:          paid.status,
+						reservedAt:      paid.reservedAt,
+						expiresAt:       paid.expiresAt,
+						paidAt:          paid.paidAt,
+						notes:           paid.notes,
 					})
 				}, 'Webhook')
 

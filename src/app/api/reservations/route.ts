@@ -1,7 +1,7 @@
 // src/app/api/reservations/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
-import { broadcastCarUpdate, broadcastAdminNotification, EVENTS } from '@/lib/pusher'
+import { broadcastCarUpdate, broadcastReservationCreated } from '@/lib/pusher'
 import { sendReservationConfirmedToClient, sendReservationNotificationToAdmin } from '@/lib/mail'
 import { createInstallments } from '@/lib/installments'
 import { requireSession, apiError, validationError, parsePagination, createAuditLog, safePusher } from '@/lib/api'
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 			result = await prisma.$transaction(async (tx) => {
 				const car = await tx.car.findUnique({
 					where:  { id: carId },
-					select: { id: true, title: true, brand: true, model: true, year: true, status: true },
+					select: { id: true, title: true, brand: true, model: true, year: true, status: true, mainImage: true },
 				})
 				if (!car)                       throw new Error('CAR_NOT_FOUND')
 				if (car.status !== 'AVAILABLE') throw new Error('CAR_NOT_AVAILABLE')
@@ -73,11 +73,21 @@ export async function POST(req: NextRequest) {
 
 		await safePusher(async () => {
 			await broadcastCarUpdate({ id: carId, status: 'RESERVED', title: car.title })
-			await broadcastAdminNotification(EVENTS.newReservation, {
-				reservationId: reservation.id,
-				carTitle:      car.title,
+			await broadcastReservationCreated({
+				id:              reservation.id,
+				carId,
+				car:             { id: car.id, title: car.title, brand: car.brand, model: car.model, mainImage: car.mainImage },
 				clientName,
+				clientEmail,
+				clientPhone,
 				depositAmount,
+				totalPrice,
+				installmentType,
+				status:          reservation.status,
+				reservedAt:      reservation.reservedAt,
+				expiresAt:       reservation.expiresAt,
+				confirmedAt:     reservation.confirmedAt,
+				notes:           reservation.notes,
 			})
 		}, 'POST /api/reservations')
 

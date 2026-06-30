@@ -1,7 +1,7 @@
 // src/app/api/reservations/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
-import { broadcastCarUpdate } from '@/lib/pusher'
+import { broadcastCarUpdate, broadcastReservationUpdated, broadcastReservationCancelled } from '@/lib/pusher'
 import { sendReservationConfirmedToClient } from '@/lib/mail'
 import { getInstallmentCount, recreateInstallments } from '@/lib/installments'
 import { requireSession, apiError, validationError, createAuditLog, safePusher } from '@/lib/api'
@@ -94,6 +94,11 @@ export async function PUT(
 
 		await createAuditLog(session.user.id, 'UPDATE', 'Reservation', params.id, { changes: data, typeChanged })
 
+		await safePusher(
+			() => broadcastReservationUpdated({ ...updated }),
+			'PUT /api/reservations/:id'
+		)
+
 		return NextResponse.json({ success: true, data: updated, message: 'Réservation mise à jour' })
 	} catch (err) {
 		console.error('[PUT /api/reservations/:id]', err)
@@ -131,16 +136,18 @@ export async function PATCH(
 			return apiError('Réservation déjà traitée', 400)
 		}
 
+		const now = new Date()
+
 		await prisma.$transaction(async (tx) => {
 			if (action === 'CONFIRM') {
 				await tx.reservation.update({
 					where: { id: params.id },
-					data:  { status: 'CONFIRMED', confirmedAt: new Date(), notes: notes ?? reservation.notes },
+					data:  { status: 'CONFIRMED', confirmedAt: now, notes: notes ?? reservation.notes },
 				})
 			} else if (action === 'COMPLETE') {
 				await tx.reservation.update({
 					where: { id: params.id },
-					data:  { status: 'COMPLETED', completedAt: new Date(), notes: notes ?? reservation.notes },
+					data:  { status: 'COMPLETED', completedAt: now, notes: notes ?? reservation.notes },
 				})
 				await tx.car.update({ where: { id: reservation.carId }, data: { status: 'SOLD' } })
 			} else {
@@ -155,13 +162,48 @@ export async function PATCH(
 			}
 		})
 
-		if (action !== 'CONFIRM') {
-			const newCarStatus = action === 'COMPLETE' ? 'SOLD' : 'AVAILABLE'
-			await safePusher(
-				() => broadcastCarUpdate({ id: reservation.carId, status: newCarStatus, title: reservation.car.title }),
-				'PATCH /api/reservations/:id'
-			)
-		}
+		await safePusher(async () => {
+			if (action === 'CONFIRM') {
+				await broadcastReservationUpdated({
+					id:              reservation.id,
+					carId:           reservation.carId,
+					clientName:      reservation.clientName,
+					clientEmail:     reservation.clientEmail,
+					clientPhone:     reservation.clientPhone,
+					depositAmount:   reservation.depositAmount,
+					totalPrice:      reservation.totalPrice,
+					installmentType: reservation.installmentType,
+					status:          'CONFIRMED',
+					reservedAt:      reservation.reservedAt,
+					expiresAt:       reservation.expiresAt,
+					paidAt:          reservation.paidAt,
+					confirmedAt:     now,
+					notes:           notes ?? reservation.notes,
+				})
+			} else if (action === 'COMPLETE') {
+				await broadcastCarUpdate({ id: reservation.carId, status: 'SOLD', title: reservation.car.title })
+				await broadcastReservationUpdated({
+					id:              reservation.id,
+					carId:           reservation.carId,
+					clientName:      reservation.clientName,
+					clientEmail:     reservation.clientEmail,
+					clientPhone:     reservation.clientPhone,
+					depositAmount:   reservation.depositAmount,
+					totalPrice:      reservation.totalPrice,
+					installmentType: reservation.installmentType,
+					status:          'COMPLETED',
+					reservedAt:      reservation.reservedAt,
+					expiresAt:       reservation.expiresAt,
+					paidAt:          reservation.paidAt,
+					confirmedAt:     reservation.confirmedAt,
+					completedAt:     now,
+					notes:           notes ?? reservation.notes,
+				})
+			} else {
+				await broadcastCarUpdate({ id: reservation.carId, status: 'AVAILABLE', title: reservation.car.title })
+				await broadcastReservationCancelled(reservation.id, reservation.carId)
+			}
+		}, 'PATCH /api/reservations/:id')
 
 		if (action === 'CONFIRM') {
 			sendReservationConfirmedToClient({

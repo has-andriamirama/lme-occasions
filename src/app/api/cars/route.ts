@@ -1,7 +1,7 @@
 // src/app/api/cars/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
-import { pusherServer, CHANNELS, EVENTS } from '@/lib/pusher'
+import { broadcastCarCreated } from '@/lib/pusher'
 import { requireSession, apiError, validationError, parsePagination, createAuditLog, safePusher } from '@/lib/api'
 import { getActiveOfferFilter, getActiveOffersInclude } from '@/lib/queries'
 import { z } from 'zod'
@@ -125,11 +125,7 @@ export async function POST(req: NextRequest) {
 		await createAuditLog(session.user.id, 'CREATE', 'Car', car.id, { title: car.title, brand: car.brand })
 
 		await safePusher(
-			() => pusherServer.trigger(CHANNELS.cars, EVENTS.carCreated, {
-				...car,
-				offers:    [],
-				timestamp: new Date().toISOString(),
-			}),
+			() => broadcastCarCreated({ ...car, offers: [] }),
 			'POST /api/cars'
 		)
 

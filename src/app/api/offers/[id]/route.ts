@@ -1,7 +1,7 @@
 // src/app/api/offers/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
-import { broadcastOfferChange, broadcastOfferDeleted } from '@/lib/pusher'
+import { broadcastOfferUpdated, broadcastOfferDeleted } from '@/lib/pusher'
 import { requireSession, apiError, validationError, createAuditLog, safePusher } from '@/lib/api'
 import { z } from 'zod'
 
@@ -101,7 +101,7 @@ export async function PATCH(
 
 		await createAuditLog(session.user.id, 'UPDATE', 'Offer', params.id, { changes: parsed.data })
 		await safePusher(
-			() => broadcastOfferChange({ ...updatedOffer, carIds: finalCarIds }),
+			() => broadcastOfferUpdated({ ...updatedOffer, carIds: finalCarIds }),
 			'PATCH /api/offers/:id'
 		)
 

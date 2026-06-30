@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
 import { sendContactEmail } from '@/lib/mail'
-import { broadcastAdminNotification, EVENTS } from '@/lib/pusher'
+import { broadcastContactCreated } from '@/lib/pusher'
 import { requireSession, apiError, validationError, parsePagination } from '@/lib/api'
 import { z } from 'zod'
 
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
 		Promise.all([
 			sendContactEmail(parsed.data),
-			broadcastAdminNotification(EVENTS.newContact, { contactId: contact.id, name: parsed.data.name }),
+			broadcastContactCreated({ contactId: contact.id, name: parsed.data.name }),
 		]).catch(console.error)
 
 		return NextResponse.json({ success: true, message: 'Message envoyé avec succès !' }, { status: 201 })
