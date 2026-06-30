@@ -72,6 +72,9 @@ export default function AllCarsPreview({ cars: initialCars }: { cars: CarWithOff
 	})
 
 	useOfferUpdates({
+		onCreate: (offer) => {
+			setCars((prev) => applyOfferChange(prev, offer))
+		},
 		onChange: (offer) => {
 			setCars((prev) => applyOfferChange(prev, offer))
 		},

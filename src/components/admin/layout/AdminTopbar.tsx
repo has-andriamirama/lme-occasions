@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Bell, Search } from 'lucide-react'
 import { getPusherClient, CHANNELS, EVENTS } from '@/lib/pusher'
+import { useReservationUpdates } from '@/hooks/useReservationUpdates'
 import { formatDateTime } from '@/lib/utils'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
@@ -28,23 +29,25 @@ export default function AdminTopbar({ user }: Props) {
 
 	const unread = notifications.filter((n) => !n.read).length
 
-	useEffect(() => {
-		const pusher  = getPusherClient()
-		const channel = pusher.subscribe(CHANNELS.admin)
-
-		channel.bind(EVENTS.newReservation, (data: any) => {
+	useReservationUpdates({
+		onCreate: (reservation) => {
 			setNotifications((prev) => [{
 				id:       crypto.randomUUID(),
 				type:     'reservation',
 				title:    'Nouvelle réservation',
-				subtitle: `${data.clientName} — ${data.carTitle}`,
+				subtitle: `${reservation.clientName} — ${reservation.car?.title ?? 'Véhicule'}`,
 				href:     '/admin/reservations',
 				at:       new Date().toISOString(),
 				read:     false,
 			}, ...prev.slice(0, 19)])
-		})
+		},
+	})
 
-		channel.bind(EVENTS.newContact, (data: any) => {
+	useEffect(() => {
+		const pusher  = getPusherClient()
+		const channel = pusher.subscribe(CHANNELS.admin)
+
+		const onContactCreated = (data: { contactId: string; name: string }) => {
 			setNotifications((prev) => [{
 				id:       crypto.randomUUID(),
 				type:     'contact',
@@ -54,10 +57,12 @@ export default function AdminTopbar({ user }: Props) {
 				at:       new Date().toISOString(),
 				read:     false,
 			}, ...prev.slice(0, 19)])
-		})
+		}
+
+		channel.bind(EVENTS.contactCreated, onContactCreated)
 
 		return () => {
-			channel.unbind_all()
+			channel.unbind(EVENTS.contactCreated, onContactCreated)
 			pusher.unsubscribe(CHANNELS.admin)
 		}
 	}, [])

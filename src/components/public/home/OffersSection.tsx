@@ -16,9 +16,26 @@ export function OffersSection({ offers: initialOffers }: { offers: any[] }) {
 	const now = useNow(15000)
 
 	useOfferUpdates({
+		onCreate: (offer) => {
+			setOffers((prev) => {
+				if (prev.some((o) => o.id === offer.id)) return prev
+
+				const incoming = {
+					...offer,
+					cars: offer.carIds.map((id: string) => ({ car: { id } })),
+				}
+				const isActive = getOfferStatus(incoming, now) === 'ACTIVE'
+
+				if (isActive && prev.length < MAX_HOME_OFFERS) {
+					return [...prev, incoming]
+				}
+				return prev
+			})
+		},
 		onChange: (offer) => {
 			setOffers((prev) => {
 				const idx = prev.findIndex((o) => o.id === offer.id)
+				if (idx === -1) return prev
 
 				const incoming = {
 					...offer,
@@ -26,19 +43,12 @@ export function OffersSection({ offers: initialOffers }: { offers: any[] }) {
 				}
 				const isNowActive = getOfferStatus(incoming, now) === 'ACTIVE'
 
-				if (idx !== -1) {
-					if (!isNowActive) {
-						return prev.filter((o) => o.id !== offer.id)
-					}
-					const next = [...prev]
-					next[idx] = { ...next[idx], ...incoming }
-					return next
+				if (!isNowActive) {
+					return prev.filter((o) => o.id !== offer.id)
 				}
-
-				if (isNowActive && prev.length < MAX_HOME_OFFERS) {
-					return [...prev, incoming]
-				}
-				return prev
+				const next = [...prev]
+				next[idx] = { ...next[idx], ...incoming }
+				return next
 			})
 		},
 		onDelete: (offerId) => {

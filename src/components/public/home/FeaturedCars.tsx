@@ -83,6 +83,9 @@ export default function FeaturedCars({ cars: initialCars }: { cars: CarWithOffer
 	})
 
 	useOfferUpdates({
+		onCreate: (offer) => {
+			setCars((prev) => applyOfferChange(prev, offer))
+		},
 		onChange: (offer) => {
 			setCars((prev) => applyOfferChange(prev, offer))
 		},

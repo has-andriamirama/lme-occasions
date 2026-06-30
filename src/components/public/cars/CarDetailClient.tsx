@@ -73,6 +73,13 @@ export default function CarDetailClient({ car: initialCar, paymentSuccess, payme
 	})
 
 	useOfferUpdates({
+		onCreate: (offer) => {
+			setCar((prev) => {
+				const isLinked = offer.carIds.includes(prev.id)
+				if (isLinked) return { ...prev, offers: [{ offer: offer as any }] }
+				return prev
+			})
+		},
 		onChange: (offer) => {
 			setCar((prev) => {
 				const isLinked = offer.carIds.includes(prev.id)

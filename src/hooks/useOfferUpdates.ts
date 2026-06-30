@@ -6,6 +6,7 @@ import { getPusherClient, CHANNELS, EVENTS, type OfferBroadcastPayload } from '@
 export type { OfferBroadcastPayload }
 
 interface Handlers {
+	onCreate?: (offer: OfferBroadcastPayload) => void
 	onChange?: (offer: OfferBroadcastPayload) => void
 	onDelete?: (offerId: string, carIds: string[]) => void
 }
@@ -25,6 +26,9 @@ export function useOfferUpdates(handlers: Handlers) {
 
 		const channel = pusher.subscribe(CHANNELS.offers)
 
+		const onCreate = (data: { offer: OfferBroadcastPayload }) => {
+			handlersRef.current.onCreate?.(data.offer)
+		}
 		const onChange = (data: { offer: OfferBroadcastPayload }) => {
 			handlersRef.current.onChange?.(data.offer)
 		}
@@ -32,11 +36,13 @@ export function useOfferUpdates(handlers: Handlers) {
 			handlersRef.current.onDelete?.(data.offerId, data.carIds)
 		}
 
-		channel.bind(EVENTS.offerChanged, onChange)
+		channel.bind(EVENTS.offerCreated, onCreate)
+		channel.bind(EVENTS.offerUpdated, onChange)
 		channel.bind(EVENTS.offerDeleted, onDelete)
 
 		return () => {
-			channel.unbind(EVENTS.offerChanged, onChange)
+			channel.unbind(EVENTS.offerCreated, onCreate)
+			channel.unbind(EVENTS.offerUpdated, onChange)
 			channel.unbind(EVENTS.offerDeleted, onDelete)
 		}
 	}, [])

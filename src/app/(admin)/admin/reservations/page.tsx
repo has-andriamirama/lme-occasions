@@ -6,7 +6,7 @@ import { Plus } from 'lucide-react'
 import Link from 'next/link'
 import AdminPageHeader from '@/components/admin/shared/AdminPageHeader'
 import AdminFilterTabs from '@/components/admin/shared/AdminFilterTabs'
-import ReservationsListClient, { type ReservationRow } from '@/components/admin/reservations/ReservationsListClient'
+import ReservationList, { type ReservationRow } from '@/components/admin/reservations/ReservationList'
 
 export const metadata: Metadata = { title: 'Réservations' }
 
@@ -97,7 +97,7 @@ export default async function ReservationsPage({
 				{ label: 'Annulées',   href: '/admin/reservations?status=CANCELLED',  active: status === 'CANCELLED' },
 			]} />
 
-			<ReservationsListClient
+			<ReservationList
 				initialReservations={rows}
 				status={status}
 				page={page}

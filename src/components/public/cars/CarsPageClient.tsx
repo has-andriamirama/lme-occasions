@@ -155,6 +155,9 @@ export default function CarsPageClient({ brands }: { brands: string[] }) {
 	})
 
 	useOfferUpdates({
+		onCreate: (incoming) => {
+			setCars((prev) => applyOfferChange(prev, incoming))
+		},
 		onChange: (incoming) => {
 			setCars((prev) => applyOfferChange(prev, incoming))
 

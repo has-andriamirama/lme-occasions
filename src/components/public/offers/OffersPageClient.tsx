@@ -69,9 +69,42 @@ export default function OffersPageClient() {
 	const now = useNow(15000)
 
 	useOfferUpdates({
+		onCreate: (offer) => {
+			if (page !== 1) return
+			if (filters.sortBy !== 'newest') return
+
+			const normalized = {
+				...offer,
+				startDate: new Date(offer.startDate),
+				endDate:   new Date(offer.endDate),
+				cars:      offer.carIds.map((id: string) => ({ car: { id } })),
+			}
+
+			const isActive = getOfferStatus(normalized, now) === 'ACTIVE'
+
+			if (filters.status === 'ACTIVE' && !isActive) return
+			if (filters.status === 'INACTIVE' && isActive) return
+
+			if (filters.type && normalized.type !== filters.type) return
+
+			if (filters.search) {
+				const q = filters.search.toLowerCase()
+				const matched =
+					normalized.name?.toLowerCase().includes(q) ||
+					normalized.description?.toLowerCase().includes(q)
+				if (!matched) return
+			}
+
+			setOffers((prev) => {
+				if (prev.some((o) => o.id === normalized.id)) return prev
+				setMeta((m) => ({ ...m, total: m.total + 1 }))
+				return [normalized, ...prev]
+			})
+		},
 		onChange: (offer) => {
 			setOffers((prev) => {
 				const idx = prev.findIndex((o) => o.id === offer.id)
+				if (idx === -1) return prev
 
 				const normalized = {
 					...offer,
@@ -80,32 +113,9 @@ export default function OffersPageClient() {
 					cars:      offer.carIds.map((id: string) => ({ car: { id } })),
 				}
 
-				if (idx !== -1) {
-					const next = [...prev]
-					next[idx]  = { ...next[idx], ...normalized }
-					return next
-				}
-
-				if (page !== 1) return prev
-				if (filters.sortBy !== 'newest') return prev
-
-				const isActive = getOfferStatus(normalized, now) === 'ACTIVE'
-
-				if (filters.status === 'ACTIVE' && !isActive) return prev
-				if (filters.status === 'INACTIVE' && isActive) return prev
-
-				if (filters.type && normalized.type !== filters.type) return prev
-
-				if (filters.search) {
-					const q = filters.search.toLowerCase()
-					const matched =
-						normalized.name?.toLowerCase().includes(q) ||
-						normalized.description?.toLowerCase().includes(q)
-					if (!matched) return prev
-				}
-
-				setMeta((m) => ({ ...m, total: m.total + 1 }))
-				return [normalized, ...prev]
+				const next = [...prev]
+				next[idx]  = { ...next[idx], ...normalized }
+				return next
 			})
 		},
 		onDelete: (offerId) => {
