@@ -166,10 +166,6 @@ export default function PaymentTracker({
 
 	const closeModal = useCallback(() => setModal(null), [])
 
-	// ── BUG 1 + BUG 2 : solde maximum autorisé pour la tranche en cours ──────
-	// = prix total − acompte − somme des paiements des AUTRES tranches
-	// C'est aussi le "solde restant" que le client peut régler en une seule fois
-	// (Bug 2 : paiement anticipé, peu importe le nombre de tranches prévu).
 	const modalMaxAllowed = (() => {
 		if (!modal) return 0
 		const othersPaid = installments
@@ -177,8 +173,7 @@ export default function PaymentTracker({
 			.reduce((s, i) => s + (i.paidAmount ?? 0), 0)
 		return Math.max(0, totalPrice - depositAmount - othersPaid)
 	})()
-	// ─────────────────────────────────────────────────────────────────────────
-
+	
 	const handleSave = useCallback(async () => {
 		if (!modal) return
 
@@ -188,9 +183,6 @@ export default function PaymentTracker({
 			return
 		}
 
-		// ── BUG 1 : validation côté client anti-dépassement ───────────────────
-		// On recalcule ici (et pas seulement via modalMaxAllowed) pour se prémunir
-		// de tout problème de closure périmée sur les dépendances du useCallback.
 		const othersPaid = installments
 			.filter((i) => i.id !== modal.installment.id)
 			.reduce((s, i) => s + (i.paidAmount ?? 0), 0)
@@ -203,8 +195,7 @@ export default function PaymentTracker({
 			)
 			return
 		}
-		// ─────────────────────────────────────────────────────────────────────
-
+		
 		setSaving(true)
 		try {
 			const res = await fetch(
@@ -225,7 +216,6 @@ export default function PaymentTracker({
 
 			setInstallments(json.data.installments)
 
-			// ── BUG 3 : mise à jour du statut après réponse API ───────────────
 			if (json.data?.autoCompleted) {
 				setCurrentStatus('COMPLETED')
 				toast.success(
@@ -233,7 +223,6 @@ export default function PaymentTracker({
 					{ duration: 5000 }
 				)
 			} else if (json.data?.autoReverted) {
-				// Le montant modifié ne couvre plus le total : retour en arrière automatique
 				setCurrentStatus('CONFIRMED')
 				toast.success(
 					'Paiement modifié — le total n\'atteint plus le prix de vente : ' +
@@ -243,8 +232,7 @@ export default function PaymentTracker({
 			} else {
 				toast.success('Paiement enregistré')
 			}
-			// ─────────────────────────────────────────────────────────────────
-
+			
 			closeModal()
 			router.refresh()
 		} catch (err) {
@@ -274,7 +262,6 @@ export default function PaymentTracker({
 
 			setInstallments(json.data.installments)
 
-			// ── BUG 3 : retour automatique à Confirmée si réservation était Finalisée ──
 			if (json.data?.autoReverted) {
 				setCurrentStatus('CONFIRMED')
 				toast.success(
@@ -285,8 +272,7 @@ export default function PaymentTracker({
 			} else {
 				toast.success('Tranche remise à « impayée »')
 			}
-			// ─────────────────────────────────────────────────────────────────────
-
+			
 			closeModal()
 			router.refresh()
 		} catch (err) {
@@ -410,7 +396,7 @@ export default function PaymentTracker({
 										<span className="text-xs text-dark-400">{formatDate(depositDate)}</span>
 									</td>
 									<td className="px-4 py-3.5 text-right">
-										<span className="text-xs text-dark-600 italic">non modifiable ici</span>
+										<span className="text-xs text-dark-600">—</span>
 									</td>
 								</tr>
 
@@ -513,16 +499,14 @@ export default function PaymentTracker({
 									<span className="absolute right-3 top-1/2 -translate-y-1/2 text-dark-500 text-sm">€</span>
 								</div>
 
-								{/* ── BUG 1 + BUG 2 : info solde restant + bouton "Tout régler" ── */}
 								<div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
 									<p className="text-xs text-dark-500">
 										Peut différer du montant suggéré.
 									</p>
 									<p className="text-xs text-dark-400">
-										Solde restant max :{' '}
+										Solde restant :{' '}
 										<span className="text-white font-medium">{formatPrice(modalMaxAllowed)}</span>
 									</p>
-									{/* BUG 2 : paiement anticipé — le client peut solder en une fois */}
 									{modalMaxAllowed > 0 && (
 										<button
 											type="button"
@@ -531,13 +515,12 @@ export default function PaymentTracker({
 													m ? { ...m, formAmount: String(modalMaxAllowed) } : m
 												)
 											}
-											className="text-xs text-brand-400 hover:text-brand-300 transition-colors underline underline-offset-2"
+											className="text-xs text-brand-400 hover:text-brand-300 transition-colors"
 										>
-											Tout régler maintenant
+											Tout régler
 										</button>
 									)}
 								</div>
-								{/* ─────────────────────────────────────────────────────────────── */}
 							</div>
 
 							<div>
