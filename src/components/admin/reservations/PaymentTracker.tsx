@@ -691,7 +691,7 @@ export default function PaymentTracker({
 						</>
 					) : ''
 				}
-				confirmLabel="Remettre à impayée"
+				confirmLabel="Remettre"
 				confirmVariant="danger"
 				loading={resetting}
 				onConfirm={handleConfirmReset}
