@@ -55,3 +55,62 @@ export function calculateRemainingExpectedAmount(
 	const remainingBalance = Math.max(0, totalPrice - depositAmount - paidOnInstallments)
 	return Math.round((remainingBalance / unpaidCount) * 100) / 100
 }
+
+export interface InstallmentLike {
+	id?:               string
+	installmentNumber: number
+	paidAmount:        number | null
+}
+
+export function getLastPaidInstallmentNumber(installments: InstallmentLike[]): number {
+	return installments.reduce(
+		(max, i) => (i.paidAmount !== null ? Math.max(max, i.installmentNumber) : max),
+		0,
+	)
+}
+
+export interface InstallmentPermissions {
+	isPaid: boolean
+	isLastPaid: boolean
+	isNextPayable: boolean
+	canEnterOrEdit: boolean
+	canReset: boolean
+}
+
+export function getInstallmentPermissions(
+	installment:  InstallmentLike,
+	installments: InstallmentLike[],
+): InstallmentPermissions {
+	const lastPaidNumber = getLastPaidInstallmentNumber(installments)
+	const isPaid          = installment.paidAmount !== null
+	const isLastPaid       = isPaid && installment.installmentNumber === lastPaidNumber
+	const isNextPayable    = !isPaid && installment.installmentNumber === lastPaidNumber + 1
+
+	return {
+		isPaid,
+		isLastPaid,
+		isNextPayable,
+		canEnterOrEdit: isLastPaid || isNextPayable,
+		canReset:       isLastPaid,
+	}
+}
+
+export function isFinalInstallment(
+	installment: { installmentNumber: number },
+	totalCount:  number,
+): boolean {
+	return installment.installmentNumber === totalCount
+}
+
+export function computeMaxAllowedForInstallment(
+	targetId:      string | undefined,
+	installments:  InstallmentLike[],
+	totalPrice:    number,
+	depositAmount: number,
+): number {
+	const othersPaid = installments
+		.filter((i) => i.id !== targetId)
+		.reduce((sum, i) => sum + (i.paidAmount ?? 0), 0)
+
+	return Math.max(0, Math.round((totalPrice - depositAmount - othersPaid) * 100) / 100)
+}

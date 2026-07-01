@@ -4,7 +4,12 @@ import prisma from '@/lib/db'
 import { broadcastCarUpdate, broadcastReservationUpdated } from '@/lib/pusher'
 import { requireSession, apiError, validationError, createAuditLog, safePusher } from '@/lib/api'
 import { computePaymentSummary } from '@/lib/queries'
-import { calculateRemainingExpectedAmount } from '@/lib/installments'
+import {
+	calculateRemainingExpectedAmount,
+	getInstallmentPermissions,
+	isFinalInstallment,
+	computeMaxAllowedForInstallment,
+} from '@/lib/installments'
 import { z } from 'zod'
 
 const updateInstallmentSchema = z.object({
@@ -46,18 +51,45 @@ export async function PUT(
 		const targetInstallment = reservation.paymentInstallments.find((i) => i.id === params.installmentId)
 		if (!targetInstallment) return apiError('Tranche introuvable', 404)
 
-		// ── BUG 1 : garde anti-dépassement du prix total ──────────────────────
-		// S'applique uniquement quand on enregistre un montant (pas lors d'un reset à null).
+		const totalInstallmentsCount = reservation.paymentInstallments.length
+
+		const permissions = getInstallmentPermissions(targetInstallment, reservation.paymentInstallments)
+
 		if (paidAmount !== null) {
-			const othersPaid = reservation.paymentInstallments
-				.filter((i) => i.id !== params.installmentId)
-				.reduce((sum, i) => sum + (i.paidAmount ?? 0), 0)
+			if (!permissions.canEnterOrEdit) {
+				return apiError(
+					permissions.isPaid
+						? 'Cette tranche est verrouillée : seule la dernière tranche réglée peut être modifiée.'
+						: "Impossible de saisir cette tranche : la tranche précédente doit d'abord être réglée.",
+					400
+				)
+			}
+		} else if (!permissions.canReset) {
+			return apiError(
+				permissions.isPaid
+					? 'Cette tranche est verrouillée : seule la dernière tranche réglée peut être remise à impayée.'
+					: "Cette tranche n'est pas réglée : aucun paiement à annuler.",
+				400
+			)
+		}
+		
+		if (paidAmount !== null) {
+			const maxAllowed = computeMaxAllowedForInstallment(
+				params.installmentId,
+				reservation.paymentInstallments,
+				reservation.totalPrice,
+				reservation.depositAmount,
+			)
 
-			// Montant maximum que cette tranche peut absorber sans dépasser le prix total
-			const maxAllowed = reservation.totalPrice - reservation.depositAmount - othersPaid
-
-			// Comparaison en centimes pour éviter les erreurs de flottants
-			if (Math.round(paidAmount * 100) > Math.round(maxAllowed * 100)) {
+			if (isFinalInstallment(targetInstallment, totalInstallmentsCount)) {
+				if (Math.round(paidAmount * 100) !== Math.round(maxAllowed * 100)) {
+					return apiError(
+						"Il s'agit de la dernière tranche : le montant doit obligatoirement correspondre " +
+						`au solde restant, soit ${maxAllowed.toFixed(2)} €.`,
+						400
+					)
+				}
+			} else if (Math.round(paidAmount * 100) > Math.round(maxAllowed * 100)) {
 				return apiError(
 					`Le montant saisi (${paidAmount.toFixed(2)} €) ferait dépasser le prix total. ` +
 					`Maximum autorisé pour cette tranche : ${maxAllowed.toFixed(2)} €`,
@@ -65,8 +97,7 @@ export async function PUT(
 				)
 			}
 		}
-		// ─────────────────────────────────────────────────────────────────────
-
+		
 		const installmentsAfterThisUpdate = reservation.paymentInstallments.map((i) =>
 			i.id === params.installmentId ? { ...i, paidAmount: paidAmount ?? null } : i
 		)
@@ -110,7 +141,6 @@ export async function PUT(
 		let autoCompleted = false
 		let autoReverted  = false
 
-		// ── Auto-finalisation : total atteint + réservation Confirmée ─────────
 		if (summary.isFullyPaid && reservation.status === 'CONFIRMED') {
 			const now = new Date()
 
@@ -149,10 +179,6 @@ export async function PUT(
 			autoCompleted = true
 		}
 
-		// ── BUG 3 : Auto-retour : total non atteint + réservation Finalisée ──
-		// Cas typique : on remet une tranche à « impayée » ou on réduit son montant
-		// après que la réservation ait été auto-finalisée. La réservation repasse à
-		// Confirmée et la voiture repasse à Réservée.
 		if (!summary.isFullyPaid && reservation.status === 'COMPLETED') {
 			await prisma.$transaction(async (tx) => {
 				await tx.reservation.update({
@@ -188,8 +214,7 @@ export async function PUT(
 
 			autoReverted = true
 		}
-		// ─────────────────────────────────────────────────────────────────────
-
+		
 		await createAuditLog(session.user.id, 'UPDATE', 'PaymentInstallment', updatedInstallment.id, {
 			reservationId:     params.id,
 			installmentNumber: targetInstallment.installmentNumber,
@@ -200,7 +225,6 @@ export async function PUT(
 			autoReverted,
 		})
 
-		// Le statut effectif de la réservation après cette opération
 		const effectiveStatus = autoCompleted
 			? 'COMPLETED'
 			: autoReverted
