@@ -1,7 +1,7 @@
 // src/app/api/reservations/[id]/installments/[installmentId]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
-import { broadcastCarUpdate, broadcastReservationUpdated } from '@/lib/pusher'
+import { broadcastCarUpdated, broadcastReservationUpdated } from '@/lib/pusher'
 import { requireSession, apiError, validationError, createAuditLog, safePusher } from '@/lib/api'
 import { computePaymentSummary } from '@/lib/queries'
 import {
@@ -156,7 +156,7 @@ export async function PUT(
 			})
 
 			await safePusher(async () => {
-				await broadcastCarUpdate({ id: reservation.carId, status: 'SOLD', title: reservation.car.title })
+				await broadcastCarUpdated({ id: reservation.carId, status: 'SOLD', title: reservation.car.title })
 				await broadcastReservationUpdated({
 					id:              reservation.id,
 					carId:           reservation.carId,
@@ -192,7 +192,7 @@ export async function PUT(
 			})
 
 			await safePusher(async () => {
-				await broadcastCarUpdate({ id: reservation.carId, status: 'RESERVED', title: reservation.car.title })
+				await broadcastCarUpdated({ id: reservation.carId, status: 'RESERVED', title: reservation.car.title })
 				await broadcastReservationUpdated({
 					id:              reservation.id,
 					carId:           reservation.carId,

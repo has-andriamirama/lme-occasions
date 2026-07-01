@@ -79,9 +79,9 @@ export default function NewsletterPopup() {
 
 							<ul className="space-y-2.5 mb-6">
 								{[
-									{ icon: Gift,  text: 'Offres exclusives et promotions réservées aux abonnés' },
-									{ icon: Bell,  text: 'Alertes dès qu\'un véhicule de votre choix arrive' },
-									{ icon: Mail,  text: 'Conseils d\'achat de nos experts automobile' },
+									{ icon: Gift, text: 'Offres exclusives et promotions réservées aux abonnés' },
+									{ icon: Bell, text: 'Alertes dès qu\'un véhicule de votre choix arrive' },
+									{ icon: Mail, text: 'Conseils d\'achat de nos experts automobile' },
 								].map(({ icon: Icon, text }) => (
 									<li key={text} className="flex items-center gap-3 text-sm text-dark-300">
 										<div className="w-7 h-7 rounded-lg bg-brand-500/10 border border-brand-500/20 flex items-center justify-center shrink-0">
@@ -103,7 +103,7 @@ export default function NewsletterPopup() {
 								/>
 								<button type="submit" disabled={loading} className="btn-primary w-full">
 									{loading
-										? <><Loader2 className="w-4 h-4 animate-spin" /> Inscription…</>
+										? <><Loader2 className="w-4 h-4 animate-spin" /> Inscription...</>
 										: <><Sparkles className="w-4 h-4" /> S'inscrire gratuitement</>}
 								</button>
 							</form>

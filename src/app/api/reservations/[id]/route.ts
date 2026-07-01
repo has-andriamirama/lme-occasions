@@ -1,7 +1,7 @@
 // src/app/api/reservations/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
-import { broadcastCarUpdate, broadcastReservationUpdated, broadcastReservationCancelled } from '@/lib/pusher'
+import { broadcastCarUpdated, broadcastReservationUpdated, broadcastReservationCancelled } from '@/lib/pusher'
 import { sendReservationConfirmedToClient } from '@/lib/mail'
 import { recreateInstallments, calculateRemainingExpectedAmount } from '@/lib/installments'
 import { requireSession, apiError, validationError, createAuditLog, safePusher } from '@/lib/api'
@@ -185,7 +185,7 @@ export async function PATCH(
 					notes:           notes ?? reservation.notes,
 				})
 			} else if (action === 'COMPLETE') {
-				await broadcastCarUpdate({ id: reservation.carId, status: 'SOLD', title: reservation.car.title })
+				await broadcastCarUpdated({ id: reservation.carId, status: 'SOLD', title: reservation.car.title })
 				await broadcastReservationUpdated({
 					id:              reservation.id,
 					carId:           reservation.carId,
@@ -204,7 +204,7 @@ export async function PATCH(
 					notes:           notes ?? reservation.notes,
 				})
 			} else {
-				await broadcastCarUpdate({ id: reservation.carId, status: 'AVAILABLE', title: reservation.car.title })
+				await broadcastCarUpdated({ id: reservation.carId, status: 'AVAILABLE', title: reservation.car.title })
 				await broadcastReservationCancelled(reservation.id, reservation.carId)
 			}
 		}, 'PATCH /api/reservations/:id')

@@ -94,7 +94,7 @@ export async function broadcastCarCreated(car: CarBroadcastPayload & { offers?: 
 	})
 }
 
-export async function broadcastCarUpdate(payload: CarBroadcastPayload) {
+export async function broadcastCarUpdated(payload: CarBroadcastPayload) {
 	await pusherServer.trigger(CHANNELS.cars, EVENTS.carUpdated, {
 		...payload, timestamp: new Date().toISOString(),
 	})

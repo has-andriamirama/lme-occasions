@@ -104,7 +104,7 @@ export default function PublicFooter() {
 
 				<div className="border-t border-dark-800 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
 					<p className="text-xs text-dark-500">
-						© {year} EXXE. Tous droits réservés.
+						&copy; {year} EXXE. Tous droits réservés.
 					</p>
 					<p className="text-xs text-dark-600">
 						Fait avec ❤️ · Paiement sécurisé Stripe

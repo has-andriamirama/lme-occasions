@@ -1,7 +1,7 @@
 // src/app/api/cars/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
-import { broadcastCarUpdate, broadcastCarDeleted } from '@/lib/pusher'
+import { broadcastCarUpdated, broadcastCarDeleted } from '@/lib/pusher'
 import { requireSession, apiError, validationError, createAuditLog, safePusher } from '@/lib/api'
 import { getActiveOffersInclude } from '@/lib/queries'
 import { z } from 'zod'
@@ -66,7 +66,7 @@ export async function PATCH(
 
 		if (Object.keys(parsed.data).length > 0) {
 			await safePusher(
-				() => broadcastCarUpdate({ id: updated.id, ...parsed.data }),
+				() => broadcastCarUpdated({ id: updated.id, ...parsed.data }),
 				'PATCH /api/cars/:id'
 			)
 		}

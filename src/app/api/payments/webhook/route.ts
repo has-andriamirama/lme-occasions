@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { constructWebhookEvent } from '@/lib/stripe'
 import prisma from '@/lib/db'
-import { broadcastCarUpdate, broadcastReservationCreated } from '@/lib/pusher'
+import { broadcastCarUpdated, broadcastReservationCreated } from '@/lib/pusher'
 import { sendPaymentReceivedToClient, sendReservationNotificationToAdmin } from '@/lib/mail'
 import { safePusher } from '@/lib/api'
 
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
 				if (!paid) { console.log('[Webhook] Réservation payée introuvable après transaction'); break }
 
 				await safePusher(async () => {
-					await broadcastCarUpdate({ id: carId, status: 'RESERVED', title: paid.car.title })
+					await broadcastCarUpdated({ id: carId, status: 'RESERVED', title: paid.car.title })
 					await broadcastReservationCreated({
 						id:              paid.id,
 						carId,
