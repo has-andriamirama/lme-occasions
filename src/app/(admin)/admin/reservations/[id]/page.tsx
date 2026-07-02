@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import prisma from '@/lib/db'
 import { formatPrice, formatDateTime } from '@/lib/utils'
+import { isEditableReservationStatus, isFullyCoveredByDeposit } from '@/lib/installments'
 import PaymentTracker from '@/components/admin/reservations/PaymentTracker'
 import ReservationActions from '@/components/admin/reservations/ReservationActions'
 
@@ -52,7 +53,7 @@ export default async function ReservationDetailPage({
 	if (!reservation) notFound()
 
 	const statusMeta = STATUS_META[reservation.status] ?? STATUS_META.CANCELLED
-	const isEditable = ['PENDING', 'PAID', 'CONFIRMED'].includes(reservation.status)
+	const isEditable = isEditableReservationStatus(reservation.status, reservation.paymentInstallments.length)
 
 	const installmentsSerialized = reservation.paymentInstallments.map((i) => ({
 		id:                i.id,
@@ -68,6 +69,9 @@ export default async function ReservationDetailPage({
 		0,
 	)
 	const totalEncaissed = reservation.depositAmount + totalFromInstallments
+
+	const soldViaDepositOnly = reservation.paymentInstallments.length === 0
+		&& isFullyCoveredByDeposit(reservation.depositAmount, reservation.totalPrice)
 
 	return (
 		<div className="space-y-6 max-w-5xl">
@@ -102,7 +106,11 @@ export default async function ReservationDetailPage({
 						</Link>
 					)}
 					{isEditable && (
-						<ReservationActions reservationId={params.id} status={reservation.status} />
+						<ReservationActions
+							reservationId={params.id}
+							status={reservation.status}
+							installmentsCount={reservation.paymentInstallments.length}
+						/>
 					)}
 				</div>
 			</div>
@@ -194,7 +202,9 @@ export default async function ReservationDetailPage({
 					<div>
 						<p className="text-xs text-dark-500 mb-1">Modalité</p>
 						<p className="text-sm font-medium text-white">
-							{INSTALLMENT_LABEL[reservation.installmentType ?? 'FULL']}
+							{soldViaDepositOnly
+								? 'Payé intégralement à la réservation'
+								: INSTALLMENT_LABEL[reservation.installmentType ?? 'FULL']}
 						</p>
 					</div>
 				</div>

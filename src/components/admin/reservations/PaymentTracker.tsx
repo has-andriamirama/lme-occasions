@@ -21,6 +21,7 @@ import {
 	getInstallmentPermissions,
 	isFinalInstallment,
 	computeMaxAllowedForInstallment,
+	isFullyCoveredByDeposit,
 	type InstallmentPermissions,
 } from '@/lib/installments'
 import ActionIconButton from '@/components/admin/shared/ActionIconButton'
@@ -131,10 +132,6 @@ function InstallmentRow({
 				{!isPaid && isBlocked && (
 					<p className="text-xs text-dark-500 mt-0.5">Tranche précédente à régler d&apos;abord</p>
 				)}
-			</td>
-
-			<td className="px-4 py-3.5 text-right hidden sm:table-cell">
-				<span className="text-sm text-dark-400">{formatPrice(installment.expectedAmount)}</span>
 			</td>
 
 			<td className="px-4 py-3.5 text-right">
@@ -371,6 +368,20 @@ export default function PaymentTracker({
 		: false
 
 	if (installments.length === 0) {
+		if (isFullyCoveredByDeposit(depositAmount, totalPrice)) {
+			return (
+				<div className="card p-6 flex items-start gap-3 border border-brand-500/20 bg-brand-500/5">
+					<CheckCircle2 className="w-5 h-5 text-brand-400 mt-0.5 shrink-0" />
+					<div>
+						<p className="text-sm text-white font-medium">Véhicule réglé intégralement à la réservation</p>
+						<p className="text-xs text-dark-400 mt-1">
+							L&apos;acompte de {formatPrice(depositAmount)} couvrait déjà la totalité du prix de vente
+							({formatPrice(totalPrice)}) — aucune tranche de paiement n&apos;était nécessaire.
+						</p>
+					</div>
+				</div>
+			)
+		}
 		return (
 			<div className="card p-6 flex items-start gap-3">
 				<Info className="w-5 h-5 text-dark-500 mt-0.5 shrink-0" />
@@ -446,7 +457,6 @@ export default function PaymentTracker({
 								<tr className="border-b border-dark-800 text-xs text-dark-500 uppercase tracking-wider">
 									<th className="text-left px-4 py-2.5 font-medium w-10" />
 									<th className="text-left px-4 py-2.5 font-medium">Tranche</th>
-									<th className="text-right px-4 py-2.5 font-medium hidden sm:table-cell">Attendu</th>
 									<th className="text-right px-4 py-2.5 font-medium">Encaissé</th>
 									<th className="text-center px-4 py-2.5 font-medium hidden md:table-cell">Date</th>
 									<th className="text-center px-4 py-2.5 font-medium w-28">Actions</th>
@@ -462,9 +472,6 @@ export default function PaymentTracker({
 									<td className="px-4 py-3.5">
 										<p className="text-sm font-medium text-white">Acompte initial</p>
 										<p className="text-xs text-dark-500">Versé à la réservation</p>
-									</td>
-									<td className="px-4 py-3.5 text-right hidden sm:table-cell">
-										<span className="text-sm text-dark-500">—</span>
 									</td>
 									<td className="px-4 py-3.5 text-right">
 										<span className="text-sm font-bold text-blue-400">{formatPrice(depositAmount)}</span>

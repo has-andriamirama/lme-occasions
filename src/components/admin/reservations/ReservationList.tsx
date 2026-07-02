@@ -214,7 +214,11 @@ export default function ReservationList({ initialReservations, status, page, tot
 												<span className={`badge ${meta.color}`}>{meta.icon}{meta.label}</span>
 											</td>
 											<td className="px-4 py-3">
-												<ReservationActions reservationId={r.id} status={r.status} />
+												<ReservationActions
+													reservationId={r.id}
+													status={r.status}
+													installmentsCount={r.paymentInstallments.length}
+												/>
 											</td>
 										</tr>
 									)

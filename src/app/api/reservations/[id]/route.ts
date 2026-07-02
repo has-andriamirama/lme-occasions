@@ -1,9 +1,14 @@
 // src/app/api/reservations/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
-import { broadcastCarUpdated, broadcastReservationUpdated, broadcastReservationCancelled } from '@/lib/pusher'
+import { broadcastCarUpdate, broadcastReservationUpdated, broadcastReservationCancelled } from '@/lib/pusher'
 import { sendReservationConfirmedToClient } from '@/lib/mail'
-import { recreateInstallments, calculateRemainingExpectedAmount } from '@/lib/installments'
+import {
+	recreateInstallments,
+	calculateRemainingExpectedAmount,
+	isFullyCoveredByDeposit,
+	isEditableReservationStatus,
+} from '@/lib/installments'
 import { requireSession, apiError, validationError, createAuditLog, safePusher } from '@/lib/api'
 import { z } from 'zod'
 
@@ -37,11 +42,14 @@ export async function PUT(
 
 		const existing = await prisma.reservation.findUnique({
 			where:   { id: params.id },
-			include: { paymentInstallments: { select: { paidAmount: true } } },
+			include: {
+				car:                 { select: { id: true, title: true } },
+				paymentInstallments: { select: { paidAmount: true } },
+			},
 		})
 		if (!existing) return apiError('Réservation introuvable', 404)
 
-		if (!['PENDING', 'PAID', 'CONFIRMED'].includes(existing.status)) {
+		if (!isEditableReservationStatus(existing.status, existing.paymentInstallments.length)) {
 			return apiError('Cette réservation est déjà finalisée ou annulée et ne peut plus être modifiée.', 400)
 		}
 
@@ -62,6 +70,31 @@ export async function PUT(
 			)
 		}
 
+		const wasFullyCoveredByDeposit    = existing.status === 'COMPLETED'
+		const willBeFullyCoveredByDeposit = isFullyCoveredByDeposit(nextDeposit, nextTotalPrice)
+
+		if (!wasFullyCoveredByDeposit && willBeFullyCoveredByDeposit && hasAnyPayment) {
+			return apiError(
+				"Impossible de régler la totalité via l'acompte : des tranches de paiement ont déjà été " +
+				'enregistrées pour cette réservation. Utilisez le suivi des paiements pour finaliser la vente.',
+				400
+			)
+		}
+
+		const now = new Date()
+
+		let statusUpdate: {
+			status?:      'CONFIRMED' | 'COMPLETED'
+			completedAt?: Date | null
+			confirmedAt?: Date | null
+		} = {}
+
+		if (!wasFullyCoveredByDeposit && willBeFullyCoveredByDeposit) {
+			statusUpdate = { status: 'COMPLETED', completedAt: now, confirmedAt: existing.confirmedAt ?? now }
+		} else if (wasFullyCoveredByDeposit && !willBeFullyCoveredByDeposit) {
+			statusUpdate = { status: 'CONFIRMED', completedAt: null, confirmedAt: existing.confirmedAt ?? now }
+		}
+		
 		const updated = await prisma.$transaction(async (tx) => {
 			const reservation = await tx.reservation.update({
 				where: { id: params.id },
@@ -74,10 +107,20 @@ export async function PUT(
 					installmentType: data.installmentType,
 					expiresAt:       data.expiresAt ? new Date(data.expiresAt) : undefined,
 					notes:           data.notes,
+					...statusUpdate,
 				},
 			})
 
-			if (typeChanged) {
+			if (!wasFullyCoveredByDeposit && willBeFullyCoveredByDeposit) {
+				await tx.paymentInstallment.deleteMany({ where: { reservationId: params.id } })
+				await tx.car.update({ where: { id: existing.carId }, data: { status: 'SOLD' } })
+			} else if (wasFullyCoveredByDeposit && !willBeFullyCoveredByDeposit) {
+				await recreateInstallments(
+					tx, params.id, nextTotalPrice, nextDeposit,
+					data.installmentType ?? existing.installmentType ?? 'FULL',
+				)
+				await tx.car.update({ where: { id: existing.carId }, data: { status: 'RESERVED' } })
+			} else if (typeChanged) {
 				await recreateInstallments(tx, params.id, nextTotalPrice, nextDeposit, data.installmentType!)
 			} else if (data.totalPrice !== undefined || data.depositAmount !== undefined) {
 				const newExpected = calculateRemainingExpectedAmount(
@@ -96,12 +139,23 @@ export async function PUT(
 			return reservation
 		})
 
-		await createAuditLog(session.user.id, 'UPDATE', 'Reservation', params.id, { changes: data, typeChanged })
+		await createAuditLog(session.user.id, 'UPDATE', 'Reservation', params.id, {
+			changes: data, typeChanged,
+			fullyCoveredTransition: wasFullyCoveredByDeposit !== willBeFullyCoveredByDeposit
+				? (willBeFullyCoveredByDeposit ? 'BECAME_COMPLETED_VIA_DEPOSIT' : 'REVERTED_TO_CONFIRMED')
+				: undefined,
+		})
 
-		await safePusher(
-			() => broadcastReservationUpdated({ ...updated }),
-			'PUT /api/reservations/:id'
-		)
+		await safePusher(async () => {
+			if (wasFullyCoveredByDeposit !== willBeFullyCoveredByDeposit) {
+				await broadcastCarUpdate({
+					id:     existing.carId,
+					status: willBeFullyCoveredByDeposit ? 'SOLD' : 'RESERVED',
+					title:  existing.car.title,
+				})
+			}
+			await broadcastReservationUpdated({ ...updated })
+		}, 'PUT /api/reservations/:id')
 
 		return NextResponse.json({ success: true, data: updated, message: 'Réservation mise à jour' })
 	} catch (err) {
@@ -185,7 +239,7 @@ export async function PATCH(
 					notes:           notes ?? reservation.notes,
 				})
 			} else if (action === 'COMPLETE') {
-				await broadcastCarUpdated({ id: reservation.carId, status: 'SOLD', title: reservation.car.title })
+				await broadcastCarUpdate({ id: reservation.carId, status: 'SOLD', title: reservation.car.title })
 				await broadcastReservationUpdated({
 					id:              reservation.id,
 					carId:           reservation.carId,
@@ -204,7 +258,7 @@ export async function PATCH(
 					notes:           notes ?? reservation.notes,
 				})
 			} else {
-				await broadcastCarUpdated({ id: reservation.carId, status: 'AVAILABLE', title: reservation.car.title })
+				await broadcastCarUpdate({ id: reservation.carId, status: 'AVAILABLE', title: reservation.car.title })
 				await broadcastReservationCancelled(reservation.id, reservation.carId)
 			}
 		}, 'PATCH /api/reservations/:id')

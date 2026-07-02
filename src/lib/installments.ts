@@ -114,3 +114,16 @@ export function computeMaxAllowedForInstallment(
 
 	return Math.max(0, Math.round((totalPrice - depositAmount - othersPaid) * 100) / 100)
 }
+
+export function isFullyCoveredByDeposit(depositAmount: number, totalPrice: number): boolean {
+	if (totalPrice <= 0) return false
+	return Math.round(depositAmount * 100) >= Math.round(totalPrice * 100)
+}
+
+export function isEditableReservationStatus(
+	status:            string,
+	installmentsCount: number,
+): boolean {
+	if (['PENDING', 'PAID', 'CONFIRMED'].includes(status)) return true
+	return status === 'COMPLETED' && installmentsCount === 0
+}

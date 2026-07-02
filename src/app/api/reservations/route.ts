@@ -1,9 +1,9 @@
 // src/app/api/reservations/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
-import { broadcastCarUpdated, broadcastReservationCreated } from '@/lib/pusher'
+import { broadcastCarUpdate, broadcastReservationCreated } from '@/lib/pusher'
 import { sendReservationConfirmedToClient, sendReservationNotificationToAdmin } from '@/lib/mail'
-import { createInstallments } from '@/lib/installments'
+import { createInstallments, isFullyCoveredByDeposit } from '@/lib/installments'
 import { requireSession, apiError, validationError, parsePagination, createAuditLog, safePusher } from '@/lib/api'
 import { z } from 'zod'
 
@@ -34,6 +34,8 @@ export async function POST(req: NextRequest) {
 		const { carId, clientName, clientEmail, clientPhone,
 			totalPrice, depositAmount, installmentType, expiresAt, notes } = parsed.data
 
+		const fullyCoveredByDeposit = isFullyCoveredByDeposit(depositAmount, totalPrice)
+
 		let result
 		try {
 			result = await prisma.$transaction(async (tx) => {
@@ -44,16 +46,29 @@ export async function POST(req: NextRequest) {
 				if (!car)                       throw new Error('CAR_NOT_FOUND')
 				if (car.status !== 'AVAILABLE') throw new Error('CAR_NOT_AVAILABLE')
 
+				const now = new Date()
+
 				const reservation = await tx.reservation.create({
 					data: {
 						carId, clientName, clientEmail, clientPhone,
 						totalPrice, depositAmount, installmentType,
-						status: 'CONFIRMED', reservedAt: new Date(), confirmedAt: new Date(),
-						expiresAt: new Date(expiresAt), notes: notes ?? null,
+						status:      fullyCoveredByDeposit ? 'COMPLETED' : 'CONFIRMED',
+						reservedAt:  now,
+						confirmedAt: now,
+						completedAt: fullyCoveredByDeposit ? now : null,
+						expiresAt:   new Date(expiresAt), notes: notes ?? null,
 					},
 				})
-				await tx.car.update({ where: { id: carId }, data: { status: 'RESERVED' } })
-				await createInstallments(tx, reservation.id, totalPrice, depositAmount, installmentType)
+
+				await tx.car.update({
+					where: { id: carId },
+					data:  { status: fullyCoveredByDeposit ? 'SOLD' : 'RESERVED' },
+				})
+
+				if (!fullyCoveredByDeposit) {
+					await createInstallments(tx, reservation.id, totalPrice, depositAmount, installmentType)
+				}
+
 				return { car, reservation }
 			})
 		} catch (txErr: unknown) {
@@ -69,10 +84,15 @@ export async function POST(req: NextRequest) {
 
 		await createAuditLog(session.user.id, 'CREATE', 'Reservation', reservation.id, {
 			carId, clientName, depositAmount, totalPrice, installmentType, manual: true,
+			fullyCoveredByDeposit,
 		})
 
 		await safePusher(async () => {
-			await broadcastCarUpdated({ id: carId, status: 'RESERVED', title: car.title })
+			await broadcastCarUpdate({
+				id:    carId,
+				status: fullyCoveredByDeposit ? 'SOLD' : 'RESERVED',
+				title: car.title,
+			})
 			await broadcastReservationCreated({
 				id:              reservation.id,
 				carId,
@@ -87,6 +107,7 @@ export async function POST(req: NextRequest) {
 				reservedAt:      reservation.reservedAt,
 				expiresAt:       reservation.expiresAt,
 				confirmedAt:     reservation.confirmedAt,
+				completedAt:     reservation.completedAt,
 				notes:           reservation.notes,
 			})
 		}, 'POST /api/reservations')

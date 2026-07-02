@@ -164,7 +164,9 @@ export async function sendReservationConfirmedToClient(data: {
 	reservationId: string
 	installmentType?: 'FULL' | 'THREE_TIMES' | 'FOUR_TIMES' | null
 }) {
-	const balance = data.totalPrice - data.depositAmount
+	const balance = Math.max(0, data.totalPrice - data.depositAmount)
+	const isPaidInFull = balance <= 0
+
 	const installmentLabel: Record<string, string> = {
 		FULL:        `le règlement comptant du solde restant (${balance.toLocaleString('fr-FR')} €)`,
 		THREE_TIMES: `le règlement du solde en 3 fois (soit environ ${(balance / 3).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} € par échéance)`,
@@ -191,10 +193,17 @@ export async function sendReservationConfirmedToClient(data: {
 				<span class="info-value">${balance.toLocaleString('fr-FR')} €</span></div>
 		</div>
 
+		${isPaidInFull ? `
+		<div class="alert">
+			<strong>Véhicule réglé intégralement !</strong> Votre acompte couvre la totalité du prix de vente.
+			Notre équipe vous contactera pour organiser la remise des clés et les démarches administratives.
+		</div>
+		` : `
 		<div class="alert">
 			<strong>Prochaine étape :</strong> ${nextStep}.
 			Notre équipe reste à votre disposition en agence pour organiser ce règlement.
 		</div>
+		`}
 
 		<a href="${APP_URL}/contact" class="btn">Nous contacter</a>
 	`)

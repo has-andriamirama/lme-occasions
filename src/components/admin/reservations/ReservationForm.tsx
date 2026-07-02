@@ -2,9 +2,10 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertCircle, Loader2, Info, Car as CarIcon, Tag } from 'lucide-react'
+import { AlertCircle, Loader2, Info, Car as CarIcon, Tag, CheckCircle2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cn, formatPrice } from '@/lib/utils'
+import { isFullyCoveredByDeposit } from '@/lib/installments'
 
 interface CarOfferInfo {
 	id: string
@@ -128,7 +129,9 @@ export default function ReservationForm({ mode, availableCars, defaultExpiresAt,
 			if (!data.success) { toast.error(data.error ?? 'Erreur'); return }
 			toast.success(
 				mode === 'create'
-					? 'Réservation créée ! Les emails de confirmation ont été envoyés.'
+					? (depositCoversTotal
+						? 'Vente finalisée ! Le véhicule est marqué vendu. Les emails de confirmation ont été envoyés.'
+						: 'Réservation créée ! Les emails de confirmation ont été envoyés.')
 					: 'Réservation mise à jour !',
 			)
 			router.push('/admin/reservations')
@@ -140,8 +143,9 @@ export default function ReservationForm({ mode, availableCars, defaultExpiresAt,
 		}
 	}
 
-	const remaining   = Math.max(0, (form.totalPrice || 0) - (form.depositAmount || 0))
-	const selectedCar = mode === 'create' ? availableCars.find((c) => c.id === form.carId) : undefined
+	const remaining         = Math.max(0, (form.totalPrice || 0) - (form.depositAmount || 0))
+	const depositCoversTotal = isFullyCoveredByDeposit(form.depositAmount || 0, form.totalPrice || 0)
+	const selectedCar       = mode === 'create' ? availableCars.find((c) => c.id === form.carId) : undefined
 
 	return (
 		<form onSubmit={handleSubmit} className="space-y-8 max-w-4xl">
@@ -264,16 +268,30 @@ export default function ReservationForm({ mode, availableCars, defaultExpiresAt,
 					</p>
 				)}
 
-				<Field label="Mode de règlement du solde">
-					<select value={form.installmentType} onChange={(e) => set('installmentType', e.target.value)} className="input-base">
-						{INSTALLMENT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-					</select>
-				</Field>
+				{depositCoversTotal ? (
+					<div className="flex items-start gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+						<CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+						<p className="text-sm text-emerald-200/90">
+							L'acompte couvre déjà la totalité du prix de vente — il n'y a plus de solde à échelonner.
+							{mode === 'create'
+								? ' Cette réservation sera directement créée au statut « Finalisée » et le véhicule marqué « Vendu », sans aucune tranche de paiement à saisir.'
+								: ' Après enregistrement, cette réservation passera directement au statut « Finalisée » et le véhicule sera marqué « Vendu », sans aucune tranche de paiement à saisir.'}
+						</p>
+					</div>
+				) : (
+					<>
+						<Field label="Mode de règlement du solde">
+							<select value={form.installmentType} onChange={(e) => set('installmentType', e.target.value)} className="input-base">
+								{INSTALLMENT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+							</select>
+						</Field>
 
-				<div className="flex items-center justify-between rounded-xl border border-dark-700 bg-dark-900/50 px-4 py-3">
-					<span className="text-sm text-dark-400">Solde restant à régler</span>
-					<span className="text-lg font-display font-bold text-white">{formatPrice(remaining)}</span>
-				</div>
+						<div className="flex items-center justify-between rounded-xl border border-dark-700 bg-dark-900/50 px-4 py-3">
+							<span className="text-sm text-dark-400">Solde restant à régler</span>
+							<span className="text-lg font-display font-bold text-white">{formatPrice(remaining)}</span>
+						</div>
+					</>
+				)}
 			</section>
 
 			<section className="card p-6 space-y-5">
@@ -306,7 +324,9 @@ export default function ReservationForm({ mode, availableCars, defaultExpiresAt,
 				<button type="submit" disabled={loading} className="btn-primary px-8">
 					{loading
 						? <><Loader2 className="w-4 h-4 animate-spin" /> Enregistrement…</>
-						: mode === 'create' ? 'Créer la réservation' : 'Mettre à jour'}
+						: mode === 'create'
+							? (depositCoversTotal ? 'Créer et finaliser la vente' : 'Créer la réservation')
+							: 'Mettre à jour'}
 				</button>
 				<button type="button" onClick={() => router.back()} className="btn-secondary">
 					Annuler

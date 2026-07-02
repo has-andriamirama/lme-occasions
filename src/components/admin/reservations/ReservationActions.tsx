@@ -6,21 +6,23 @@ import { XCircle, CheckCircle2, Pencil, Eye } from 'lucide-react'
 import toast from 'react-hot-toast'
 import ConfirmModal     from '@/components/admin/shared/ConfirmModal'
 import ActionIconButton from '@/components/admin/shared/ActionIconButton'
+import { isEditableReservationStatus } from '@/lib/installments'
 
 interface Props {
-	reservationId: string
-	status:        string
+	reservationId:     string
+	status:            string
+	installmentsCount: number
 }
 
 type ModalType = 'confirm' | 'cancel' | null
 
-export default function ReservationActions({ reservationId, status }: Props) {
+export default function ReservationActions({ reservationId, status, installmentsCount }: Props) {
 	const router                        = useRouter()
 	const [modal,   setModal]           = useState<ModalType>(null)
 	const [loading, setLoading]         = useState(false)
 
 	const canConfirm = status === 'PAID'
-	const canEdit    = ['PENDING', 'PAID', 'CONFIRMED'].includes(status)
+	const canEdit    = isEditableReservationStatus(status, installmentsCount)
 	const canCancel  = ['PENDING', 'PAID', 'CONFIRMED'].includes(status)
 
 	async function handleAction(action: 'CONFIRM' | 'CANCEL') {
