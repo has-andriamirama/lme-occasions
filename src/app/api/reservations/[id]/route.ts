@@ -2,18 +2,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
 import { broadcastCarUpdated, broadcastReservationUpdated, broadcastReservationCancelled } from '@/lib/pusher'
-import {
-	sendReservationConfirmedToClient,
-	sendPaymentConfirmationToClient,
-	sendPaymentConfirmationToAdmin,
-} from '@/lib/mail'
+import { sendReservationConfirmedToClient } from '@/lib/mail'
 import {
 	recreateInstallments,
 	calculateRemainingExpectedAmount,
 	isFullyCoveredByDeposit,
 	isEditableReservationStatus,
 } from '@/lib/installments'
-import { issueDepositInvoice } from '@/lib/invoice'
 import { requireSession, apiError, validationError, createAuditLog, safePusher } from '@/lib/api'
 import { z } from 'zod'
 
@@ -48,7 +43,7 @@ export async function PUT(
 		const existing = await prisma.reservation.findUnique({
 			where:   { id: params.id },
 			include: {
-				car:                 { select: { id: true, title: true, brand: true, model: true, year: true } },
+				car:                 { select: { id: true, title: true } },
 				paymentInstallments: { select: { paidAmount: true } },
 			},
 		})
@@ -161,59 +156,6 @@ export async function PUT(
 			}
 			await broadcastReservationUpdated({ ...updated })
 		}, 'PUT /api/reservations/:id')
-
-		const depositChanged = data.depositAmount !== undefined
-			&& Math.round(data.depositAmount * 100) !== Math.round(existing.depositAmount * 100)
-
-		if (depositChanged) {
-			try {
-				const paidOnInstallments = existing.paymentInstallments.reduce((s, i) => s + (i.paidAmount ?? 0), 0)
-				const totalPaidToDate    = nextDeposit + paidOnInstallments
-
-				const invoice = await issueDepositInvoice({
-					reservationId:  params.id,
-					amount:         nextDeposit,
-					paidAt:         now,
-					isModification: true,
-					context: {
-						clientName:  updated.clientName,
-						clientEmail: updated.clientEmail,
-						clientPhone: updated.clientPhone,
-						carTitle:    existing.car.title,
-						carBrand:    existing.car.brand,
-						carModel:    existing.car.model,
-						carYear:     existing.car.year,
-						totalPrice:      nextTotalPrice,
-						totalPaidToDate,
-					},
-				})
-
-				const paymentEmailPayload = {
-					clientName:  updated.clientName,
-					clientEmail: updated.clientEmail,
-					clientPhone: updated.clientPhone,
-					carTitle:    existing.car.title,
-					carBrand:    existing.car.brand,
-					carModel:    existing.car.model,
-					carYear:     existing.car.year,
-					reservationId:  params.id,
-					paymentLabel:   'Acompte à la réservation',
-					amount:         nextDeposit,
-					totalPaid:      totalPaidToDate,
-					totalPrice:     nextTotalPrice,
-					invoiceUrl:     invoice?.pdfUrl ?? null,
-					isModification: true,
-					isReset:        false,
-				}
-
-				await Promise.all([
-					sendPaymentConfirmationToClient(paymentEmailPayload),
-					sendPaymentConfirmationToAdmin(paymentEmailPayload),
-				])
-			} catch (invoiceErr) {
-				console.error('[PUT /api/reservations/:id] Facture/email de paiement échoués (non-critique) :', invoiceErr)
-			}
-		}
 
 		return NextResponse.json({ success: true, data: updated, message: 'Réservation mise à jour' })
 	} catch (err) {

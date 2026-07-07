@@ -10,8 +10,6 @@ import {
 	isFinalInstallment,
 	computeMaxAllowedForInstallment,
 } from '@/lib/installments'
-import { issueInstallmentInvoice, voidInstallmentInvoice } from '@/lib/invoice'
-import { sendPaymentConfirmationToClient, sendPaymentConfirmationToAdmin } from '@/lib/mail'
 import { z } from 'zod'
 
 const updateInstallmentSchema = z.object({
@@ -37,7 +35,7 @@ export async function PUT(
 		const reservation = await prisma.reservation.findUnique({
 			where:   { id: params.id },
 			include: {
-				car:                 { select: { id: true, title: true, brand: true, model: true, year: true } },
+				car:                 { select: { id: true, title: true } },
 				paymentInstallments: { orderBy: { installmentNumber: 'asc' } },
 			},
 		})
@@ -100,9 +98,6 @@ export async function PUT(
 			}
 		}
 		
-		const wasAlreadyPaid  = targetInstallment.paidAmount !== null
-		const previousAmount  = targetInstallment.paidAmount
-
 		const installmentsAfterThisUpdate = reservation.paymentInstallments.map((i) =>
 			i.id === params.installmentId ? { ...i, paidAmount: paidAmount ?? null } : i
 		)
@@ -236,68 +231,6 @@ export async function PUT(
 				? 'CONFIRMED'
 				: reservation.status
 
-		const paymentLabel = totalInstallmentsCount > 1
-			? `Tranche ${targetInstallment.installmentNumber} / ${totalInstallmentsCount}`
-			: 'Solde'
-
-		try {
-			let invoiceUrl: string | null = null
-
-			if (paidAmount !== null) {
-				const invoice = await issueInstallmentInvoice({
-					reservationId:     params.id,
-					installmentId:     params.installmentId,
-					installmentNumber: targetInstallment.installmentNumber,
-					totalInstallments: totalInstallmentsCount,
-					amount:            paidAmount,
-					paidAt:            updatedInstallment.paidAt ?? new Date(),
-					isModification:    wasAlreadyPaid,
-					context: {
-						clientName:  reservation.clientName,
-						clientEmail: reservation.clientEmail,
-						clientPhone: reservation.clientPhone,
-						carTitle:    reservation.car.title,
-						carBrand:    reservation.car.brand,
-						carModel:    reservation.car.model,
-						carYear:     reservation.car.year,
-						totalPrice:      reservation.totalPrice,
-						totalPaidToDate: summary.totalPaid,
-					},
-				})
-				invoiceUrl = invoice?.pdfUrl ?? null
-			} else {
-				await voidInstallmentInvoice(params.installmentId)
-			}
-
-			const paymentEmailPayload = {
-				clientName:  reservation.clientName,
-				clientEmail: reservation.clientEmail,
-				clientPhone: reservation.clientPhone,
-				carTitle:    reservation.car.title,
-				carBrand:    reservation.car.brand,
-				carModel:    reservation.car.model,
-				carYear:     reservation.car.year,
-				reservationId:  params.id,
-				paymentLabel,
-				amount:         paidAmount !== null ? paidAmount : (previousAmount ?? 0),
-				totalPaid:      summary.totalPaid,
-				totalPrice:     reservation.totalPrice,
-				invoiceUrl,
-				isModification: paidAmount !== null && wasAlreadyPaid,
-				isReset:        paidAmount === null,
-			}
-
-			await Promise.all([
-				sendPaymentConfirmationToClient(paymentEmailPayload),
-				sendPaymentConfirmationToAdmin(paymentEmailPayload),
-			])
-		} catch (invoiceErr) {
-			console.error(
-				'[PUT /api/reservations/:id/installments/:installmentId] Facture/email de paiement échoués (non-critique) :',
-				invoiceErr
-			)
-		}
-		
 		return NextResponse.json({
 			success: true,
 			data: {

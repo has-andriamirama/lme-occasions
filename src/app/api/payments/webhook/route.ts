@@ -3,13 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { constructWebhookEvent } from '@/lib/stripe'
 import prisma from '@/lib/db'
 import { broadcastCarUpdated, broadcastReservationCreated } from '@/lib/pusher'
-import {
-	sendPaymentReceivedToClient,
-	sendReservationNotificationToAdmin,
-	sendPaymentConfirmationToClient,
-	sendPaymentConfirmationToAdmin,
-} from '@/lib/mail'
-import { issueDepositInvoice } from '@/lib/invoice'
+import { sendPaymentReceivedToClient, sendReservationNotificationToAdmin } from '@/lib/mail'
 import { safePusher } from '@/lib/api'
 
 export async function POST(req: NextRequest) {
@@ -123,41 +117,6 @@ export async function POST(req: NextRequest) {
 				]).catch((mailErr) =>
 					console.error('[Webhook] Email échoué (non-critique) :', mailErr)
 				)
-
-				// ── Facture de l'acompte + email de confirmation de paiement ────────
-				try {
-					const invoice = await issueDepositInvoice({
-						reservationId:  paid.id,
-						amount:         paid.depositAmount,
-						paidAt:         paid.paidAt ?? new Date(),
-						isModification: false,
-						context: {
-							clientName, clientEmail, clientPhone: paid.clientPhone,
-							carTitle: paid.car.title, carBrand: paid.car.brand, carModel: paid.car.model, carYear: paid.car.year,
-							totalPrice: paid.totalPrice, totalPaidToDate: paid.depositAmount,
-						},
-					})
-
-					const paymentEmailPayload = {
-						clientName, clientEmail, clientPhone: paid.clientPhone,
-						carTitle: paid.car.title, carBrand: paid.car.brand, carModel: paid.car.model, carYear: paid.car.year,
-						reservationId:  paid.id,
-						paymentLabel:   'Acompte à la réservation',
-						amount:         paid.depositAmount,
-						totalPaid:      paid.depositAmount,
-						totalPrice:     paid.totalPrice,
-						invoiceUrl:     invoice?.pdfUrl ?? null,
-						isModification: false,
-						isReset:        false,
-					}
-
-					await Promise.all([
-						sendPaymentConfirmationToClient(paymentEmailPayload),
-						sendPaymentConfirmationToAdmin(paymentEmailPayload),
-					])
-				} catch (invoiceErr) {
-					console.error('[Webhook] Facture/email de paiement échoués (non-critique) :', invoiceErr)
-				}
 
 				console.log('[Webhook] checkout.session.completed traité avec succès')
 				break

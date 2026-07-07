@@ -15,7 +15,6 @@ import {
 	TrendingUp,
 	Info,
 	Lock,
-	Receipt,
 } from 'lucide-react'
 import { formatPrice, formatDate } from '@/lib/utils'
 import {
@@ -35,7 +34,6 @@ export interface PaymentInstallmentSerialized {
 	paidAmount:        number | null
 	paidAt:            string | null
 	notes:             string | null
-	invoiceUrl:        string | null
 }
 
 export interface PaymentTrackerProps {
@@ -46,38 +44,12 @@ export interface PaymentTrackerProps {
 	installmentType:   'FULL' | 'THREE_TIMES' | 'FOUR_TIMES'
 	reservationStatus: string
 	installments:      PaymentInstallmentSerialized[]
-	depositInvoiceUrl: string | null
 }
 
 const INSTALLMENT_LABEL: Record<string, string> = {
 	FULL:        'Paiement intégral du solde',
 	THREE_TIMES: 'Paiement en 3 fois',
 	FOUR_TIMES:  'Paiement en 4 fois',
-}
-
-function InvoiceLinkButton({ url, title }: { url: string | null; title: string }) {
-	if (!url) {
-		return (
-			<button
-				disabled
-				title="Aucune facture disponible"
-				className="p-1.5 rounded-lg text-dark-600 cursor-not-allowed"
-			>
-				<Receipt className="w-4 h-4" />
-			</button>
-		)
-	}
-	return (
-		<a
-			href={url}
-			target="_blank"
-			rel="noopener noreferrer"
-			title={title}
-			className="p-1.5 rounded-lg transition-all text-dark-400 hover:text-brand-400 hover:bg-dark-700"
-		>
-			<Receipt className="w-4 h-4" />
-		</a>
-	)
 }
 
 interface InstallmentRowProps {
@@ -201,17 +173,6 @@ function InstallmentRow({
 					>
 						<RotateCcw className="w-4 h-4" />
 					</ActionIconButton>
-
-					<InvoiceLinkButton
-						url={installment.invoiceUrl}
-						title={
-							installment.invoiceUrl
-								? 'Télécharger la facture de cette tranche'
-								: isPaid
-									? 'Facture indisponible'
-									: 'Aucune facture (tranche non réglée)'
-						}
-					/>
 				</div>
 			</td>
 		</tr>
@@ -226,7 +187,6 @@ export default function PaymentTracker({
 	installmentType,
 	reservationStatus,
 	installments: initialInstallments,
-	depositInvoiceUrl,
 }: PaymentTrackerProps) {
 	const router = useRouter()
 
@@ -412,17 +372,13 @@ export default function PaymentTracker({
 			return (
 				<div className="card p-6 flex items-start gap-3 border border-brand-500/20 bg-brand-500/5">
 					<CheckCircle2 className="w-5 h-5 text-brand-400 mt-0.5 shrink-0" />
-					<div className="flex-1">
+					<div>
 						<p className="text-sm text-white font-medium">Véhicule réglé intégralement à la réservation</p>
 						<p className="text-xs text-dark-400 mt-1">
 							L&apos;acompte de {formatPrice(depositAmount)} couvrait déjà la totalité du prix de vente
 							({formatPrice(totalPrice)}) — aucune tranche de paiement n&apos;était nécessaire.
 						</p>
 					</div>
-					<InvoiceLinkButton
-						url={depositInvoiceUrl}
-						title={depositInvoiceUrl ? "Télécharger la facture de l'acompte" : 'Facture indisponible'}
-					/>
 				</div>
 			)
 		}
@@ -523,13 +479,8 @@ export default function PaymentTracker({
 									<td className="px-4 py-3.5 text-center hidden md:table-cell">
 										<span className="text-xs text-dark-400">{formatDate(depositDate)}</span>
 									</td>
-									<td className="px-4 py-3.5">
-										<div className="flex items-center justify-center">
-											<InvoiceLinkButton
-												url={depositInvoiceUrl}
-												title={depositInvoiceUrl ? "Télécharger la facture de l'acompte" : 'Facture indisponible'}
-											/>
-										</div>
+									<td className="px-4 py-3.5 text-right">
+										<span className="text-xs text-dark-600">—</span>
 									</td>
 								</tr>
 
@@ -743,8 +694,7 @@ export default function PaymentTracker({
 							sera annulé et redeviendra à saisir. Si la réservation avait été finalisée
 							automatiquement grâce à ce paiement, elle repassera au statut{' '}
 							<span className="text-white font-medium">Confirmée</span> et le véhicule à{' '}
-							<span className="text-white font-medium">Réservé</span>. La facture de cette
-							tranche sera supprimée.
+							<span className="text-white font-medium">Réservé</span>.
 						</>
 					) : ''
 				}
