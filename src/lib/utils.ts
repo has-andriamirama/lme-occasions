@@ -15,6 +15,15 @@ export function formatPrice(price: number, currency = 'EUR'): string {
 	}).format(price)
 }
 
+export function formatPriceExact(price: number, currency = 'EUR'): string {
+	return new Intl.NumberFormat('fr-FR', {
+		style: 'currency',
+		currency,
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2,
+	}).format(price)
+}
+
 export function formatMileage(mileage: number): string {
 	return new Intl.NumberFormat('fr-FR').format(mileage) + ' km'
 }

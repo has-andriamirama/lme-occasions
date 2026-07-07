@@ -47,6 +47,7 @@ export default async function ReservationDetailPage({
 		include: {
 			car: true,
 			paymentInstallments: { orderBy: { installmentNumber: 'asc' } },
+			invoices: true,
 		},
 	})
 
@@ -55,6 +56,8 @@ export default async function ReservationDetailPage({
 	const statusMeta = STATUS_META[reservation.status] ?? STATUS_META.CANCELLED
 	const isEditable = isEditableReservationStatus(reservation.status, reservation.paymentInstallments.length)
 
+	const depositInvoiceUrl = reservation.invoices.find((inv) => inv.depositForId === reservation.id)?.pdfUrl ?? null
+
 	const installmentsSerialized = reservation.paymentInstallments.map((i) => ({
 		id:                i.id,
 		installmentNumber: i.installmentNumber,
@@ -62,6 +65,7 @@ export default async function ReservationDetailPage({
 		paidAmount:        i.paidAmount,
 		paidAt:            i.paidAt?.toISOString() ?? null,
 		notes:             i.notes,
+		invoiceUrl:        reservation.invoices.find((inv) => inv.installmentId === i.id)?.pdfUrl ?? null,
 	}))
 
 	const totalFromInstallments = installmentsSerialized.reduce(
@@ -290,6 +294,7 @@ export default async function ReservationDetailPage({
 				installmentType={(reservation.installmentType ?? 'FULL') as 'FULL' | 'THREE_TIMES' | 'FOUR_TIMES'}
 				reservationStatus={reservation.status}
 				installments={installmentsSerialized}
+				depositInvoiceUrl={depositInvoiceUrl}
 			/>
 
 			{reservation.notes && (

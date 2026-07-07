@@ -148,6 +148,7 @@ model Reservation {
 	car                 Car               @relation(fields: [carId], references: [id])
 	
 	paymentInstallments PaymentInstallment[]
+	invoices            Invoice[]
 
 	@@map("reservations")
 }
@@ -180,9 +181,42 @@ model PaymentInstallment {
 	updatedAt         DateTime    @updatedAt
 
 	reservation       Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+	invoice           Invoice?
 
 	@@unique([reservationId, installmentNumber])
 	@@map("payment_installments")
+}
+
+// ─── FACTURES (NOUVEAU) ────────────────────────────────────
+model Invoice {
+	id            String      @id @default(cuid())
+	number        String      @unique
+
+	reservationId String
+	depositForId  String?     @unique
+	installmentId String?     @unique
+
+	kind          InvoiceKind
+	label         String
+	amount        Float
+	paidAt        DateTime
+
+	pdfUrl        String
+	pdfPublicId   String
+
+	createdAt     DateTime    @default(now())
+	updatedAt     DateTime    @updatedAt
+
+	reservation   Reservation         @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+	installment   PaymentInstallment? @relation(fields: [installmentId], references: [id], onDelete: Cascade)
+
+	@@index([reservationId])
+	@@map("invoices")
+}
+
+enum InvoiceKind {
+	DEPOSIT
+	INSTALLMENT
 }
 
 // ─── CONTACTS ─────────────────────────────────────────────

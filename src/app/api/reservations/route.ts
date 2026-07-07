@@ -2,8 +2,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
 import { broadcastCarUpdated, broadcastReservationCreated } from '@/lib/pusher'
-import { sendReservationConfirmedToClient, sendReservationNotificationToAdmin } from '@/lib/mail'
+import {
+	sendReservationConfirmedToClient,
+	sendReservationNotificationToAdmin,
+	sendPaymentConfirmationToClient,
+	sendPaymentConfirmationToAdmin,
+} from '@/lib/mail'
 import { createInstallments, isFullyCoveredByDeposit } from '@/lib/installments'
+import { issueDepositInvoice } from '@/lib/invoice'
 import { requireSession, apiError, validationError, parsePagination, createAuditLog, safePusher } from '@/lib/api'
 import { z } from 'zod'
 
@@ -130,6 +136,40 @@ export async function POST(req: NextRequest) {
 		]).catch((mailErr) =>
 			console.error('[POST /api/reservations] Email échoué (non-critique) :', mailErr)
 		)
+
+		try {
+			const invoice = await issueDepositInvoice({
+				reservationId:  reservation.id,
+				amount:         depositAmount,
+				paidAt:         reservation.reservedAt,
+				isModification: false,
+				context: {
+					clientName, clientEmail, clientPhone,
+					carTitle: car.title, carBrand: car.brand, carModel: car.model, carYear: car.year,
+					totalPrice, totalPaidToDate: depositAmount,
+				},
+			})
+
+			const paymentEmailPayload = {
+				clientName, clientEmail, clientPhone,
+				carTitle: car.title, carBrand: car.brand, carModel: car.model, carYear: car.year,
+				reservationId:  reservation.id,
+				paymentLabel:   'Acompte à la réservation',
+				amount:         depositAmount,
+				totalPaid:      depositAmount,
+				totalPrice,
+				invoiceUrl:     invoice?.pdfUrl ?? null,
+				isModification: false,
+				isReset:        false,
+			}
+
+			await Promise.all([
+				sendPaymentConfirmationToClient(paymentEmailPayload),
+				sendPaymentConfirmationToAdmin(paymentEmailPayload),
+			])
+		} catch (invoiceErr) {
+			console.error('[POST /api/reservations] Facture/email de paiement échoués (non-critique) :', invoiceErr)
+		}
 
 		return NextResponse.json({ success: true, data: reservation }, { status: 201 })
 	} catch (err) {
