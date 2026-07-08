@@ -1,18 +1,56 @@
-// src/app/api/reservations/[id]/installments/[installmentId]/route.ts
+// src/app/api/reservations/[id]/balance/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
 import { broadcastCarUpdated, broadcastReservationUpdated } from '@/lib/pusher'
 import { requireSession, apiError, validationError, createAuditLog, safePusher } from '@/lib/api'
 import { computePaymentSummary } from '@/lib/queries'
-import {
-	calculateRemainingExpectedAmount,
-	getInstallmentPermissions,
-	isFinalInstallment,
-	computeMaxAllowedForInstallment,
-} from '@/lib/installments'
+import { computeBalanceExpectedAmount } from '@/lib/balance'
 import { z } from 'zod'
 
-const updateInstallmentSchema = z.object({
+export async function GET(
+	_req: NextRequest,
+	{ params }: { params: { id: string } }
+) {
+	try {
+		const session = await requireSession()
+		if (!session) return apiError('Non autorisé', 401)
+
+		const reservation = await prisma.reservation.findUnique({
+			where:  { id: params.id },
+			select: {
+				depositAmount:   true,
+				totalPrice:      true,
+				status:          true,
+				installmentType: true,
+				balancePayment:  true,
+			},
+		})
+		if (!reservation) return apiError('Réservation introuvable', 404)
+
+		const summary = computePaymentSummary({
+			depositAmount:  reservation.depositAmount,
+			totalPrice:     reservation.totalPrice,
+			balancePayment: reservation.balancePayment,
+		})
+
+		return NextResponse.json({
+			success: true,
+			data: {
+				balancePayment: reservation.balancePayment,
+				summary: {
+					depositAmount: reservation.depositAmount,
+					totalPrice:    reservation.totalPrice,
+					...summary,
+				},
+			},
+		})
+	} catch (err) {
+		console.error('[GET /api/reservations/:id/balance]', err)
+		return apiError('Erreur serveur')
+	}
+}
+
+const updateBalancePaymentSchema = z.object({
 	paidAmount: z.number().positive().nullable(),
 	paidAt:     z.string().datetime().optional().nullable(),
 	notes:      z.string().max(1000).optional().nullable(),
@@ -20,14 +58,14 @@ const updateInstallmentSchema = z.object({
 
 export async function PUT(
 	req: NextRequest,
-	{ params }: { params: { id: string; installmentId: string } }
+	{ params }: { params: { id: string } }
 ) {
 	try {
 		const session = await requireSession()
 		if (!session) return apiError('Non autorisé', 401)
 
 		const body   = await req.json()
-		const parsed = updateInstallmentSchema.safeParse(body)
+		const parsed = updateBalancePaymentSchema.safeParse(body)
 		if (!parsed.success) return validationError(parsed.error.flatten())
 
 		const { paidAmount, paidAt, notes } = parsed.data
@@ -35,107 +73,56 @@ export async function PUT(
 		const reservation = await prisma.reservation.findUnique({
 			where:   { id: params.id },
 			include: {
-				car:                 { select: { id: true, title: true } },
-				paymentInstallments: { orderBy: { installmentNumber: 'asc' } },
+				car:            { select: { id: true, title: true } },
+				balancePayment: true,
 			},
 		})
 		if (!reservation) return apiError('Réservation introuvable', 404)
 
 		if (!['CONFIRMED', 'COMPLETED'].includes(reservation.status)) {
 			return apiError(
-				"Cette réservation doit d'abord être confirmée par un admin avant de pouvoir enregistrer un paiement de tranche.",
+				"Cette réservation doit d'abord être confirmée par un admin avant de pouvoir enregistrer le paiement du reste.",
 				400
 			)
 		}
 
-		const targetInstallment = reservation.paymentInstallments.find((i) => i.id === params.installmentId)
-		if (!targetInstallment) return apiError('Tranche introuvable', 404)
-
-		const totalInstallmentsCount = reservation.paymentInstallments.length
-
-		const permissions = getInstallmentPermissions(targetInstallment, reservation.paymentInstallments)
-
-		if (paidAmount !== null) {
-			if (!permissions.canEnterOrEdit) {
-				return apiError(
-					permissions.isPaid
-						? 'Cette tranche est verrouillée : seule la dernière tranche réglée peut être modifiée.'
-						: "Impossible de saisir cette tranche : la tranche précédente doit d'abord être réglée.",
-					400
-				)
-			}
-		} else if (!permissions.canReset) {
-			return apiError(
-				permissions.isPaid
-					? 'Cette tranche est verrouillée : seule la dernière tranche réglée peut être remise à impayée.'
-					: "Cette tranche n'est pas réglée : aucun paiement à annuler.",
-				400
-			)
+		if (!reservation.balancePayment) {
+			return apiError("Aucun solde à payer pour cette réservation.", 404)
 		}
-		
-		if (paidAmount !== null) {
-			const maxAllowed = computeMaxAllowedForInstallment(
-				params.installmentId,
-				reservation.paymentInstallments,
-				reservation.totalPrice,
-				reservation.depositAmount,
-			)
 
-			if (isFinalInstallment(targetInstallment, totalInstallmentsCount)) {
-				if (Math.round(paidAmount * 100) !== Math.round(maxAllowed * 100)) {
-					return apiError(
-						"Il s'agit de la dernière tranche : le montant doit obligatoirement correspondre " +
-						`au solde restant, soit ${maxAllowed.toFixed(2)} €.`,
-						400
-					)
-				}
-			} else if (Math.round(paidAmount * 100) > Math.round(maxAllowed * 100)) {
+		if (paidAmount === null && reservation.balancePayment.paidAmount === null) {
+			return apiError("Ce solde n'est pas réglé : aucun paiement à annuler.", 400)
+		}
+
+		if (paidAmount !== null) {
+			const expectedAmount = computeBalanceExpectedAmount(reservation.totalPrice, reservation.depositAmount)
+
+			if (Math.round(paidAmount * 100) !== Math.round(expectedAmount * 100)) {
 				return apiError(
-					`Le montant saisi (${paidAmount.toFixed(2)} €) ferait dépasser le prix total. ` +
-					`Maximum autorisé pour cette tranche : ${maxAllowed.toFixed(2)} €`,
+					"Le montant doit obligatoirement correspondre au solde restant, soit " +
+					`${expectedAmount.toFixed(2)} €.`,
 					400
 				)
 			}
 		}
-		
-		const installmentsAfterThisUpdate = reservation.paymentInstallments.map((i) =>
-			i.id === params.installmentId ? { ...i, paidAmount: paidAmount ?? null } : i
-		)
-		const newExpectedForRemaining = calculateRemainingExpectedAmount(
-			installmentsAfterThisUpdate,
-			reservation.totalPrice,
-			reservation.depositAmount,
-		)
 
-		await prisma.$transaction(async (tx) => {
-			await tx.paymentInstallment.update({
-				where: { id: params.installmentId },
-				data: {
-					paidAmount: paidAmount ?? null,
-					paidAt:     paidAmount ? (paidAt ? new Date(paidAt) : new Date()) : null,
-					notes:      notes ?? null,
-				},
-			})
-
-			if (newExpectedForRemaining !== null) {
-				await tx.paymentInstallment.updateMany({
-					where: { reservationId: params.id, paidAmount: null },
-					data:  { expectedAmount: newExpectedForRemaining },
-				})
-			}
+		await prisma.balancePayment.update({
+			where: { id: reservation.balancePayment.id },
+			data: {
+				paidAmount: paidAmount ?? null,
+				paidAt:     paidAmount ? (paidAt ? new Date(paidAt) : new Date()) : null,
+				notes:      notes ?? null,
+			},
 		})
 
-		const freshInstallments = await prisma.paymentInstallment.findMany({
-			where:   { reservationId: params.id },
-			orderBy: { installmentNumber: 'asc' },
+		const updatedBalance = await prisma.balancePayment.findUniqueOrThrow({
+			where: { id: reservation.balancePayment.id },
 		})
-
-		const updatedInstallment = freshInstallments.find((i) => i.id === params.installmentId)!
 
 		const summary = computePaymentSummary({
-			depositAmount: reservation.depositAmount,
-			totalPrice:    reservation.totalPrice,
-			installments:  freshInstallments,
+			depositAmount:  reservation.depositAmount,
+			totalPrice:     reservation.totalPrice,
+			balancePayment: updatedBalance,
 		})
 
 		let autoCompleted = false
@@ -174,7 +161,7 @@ export async function PUT(
 					completedAt:     now,
 					notes:           reservation.notes,
 				})
-			}, 'PUT /installments/:id (auto-complete)')
+			}, 'PUT /balance (auto-complete)')
 
 			autoCompleted = true
 		}
@@ -210,17 +197,16 @@ export async function PUT(
 					completedAt:     null,
 					notes:           reservation.notes,
 				})
-			}, 'PUT /installments/:id (auto-revert)')
+			}, 'PUT /balance (auto-revert)')
 
 			autoReverted = true
 		}
-		
-		await createAuditLog(session.user.id, 'UPDATE', 'PaymentInstallment', updatedInstallment.id, {
-			reservationId:     params.id,
-			installmentNumber: targetInstallment.installmentNumber,
-			paidAmountBefore:  targetInstallment.paidAmount,
-			paidAmountAfter:   paidAmount,
-			totalPaid:         summary.totalPaid,
+
+		await createAuditLog(session.user.id, 'UPDATE', 'BalancePayment', updatedBalance.id, {
+			reservationId:    params.id,
+			paidAmountBefore: reservation.balancePayment.paidAmount,
+			paidAmountAfter:  paidAmount,
+			totalPaid:        summary.totalPaid,
 			autoCompleted,
 			autoReverted,
 		})
@@ -234,8 +220,7 @@ export async function PUT(
 		return NextResponse.json({
 			success: true,
 			data: {
-				installment:  updatedInstallment,
-				installments: freshInstallments,
+				balancePayment: updatedBalance,
 				summary: {
 					depositAmount:     reservation.depositAmount,
 					totalPrice:        reservation.totalPrice,
@@ -247,7 +232,7 @@ export async function PUT(
 			},
 		})
 	} catch (err) {
-		console.error('[PUT /api/reservations/:id/installments/:installmentId]', err)
+		console.error('[PUT /api/reservations/:id/balance]', err)
 		return apiError('Erreur serveur')
 	}
 }

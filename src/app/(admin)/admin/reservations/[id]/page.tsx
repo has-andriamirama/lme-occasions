@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import prisma from '@/lib/db'
 import { formatPrice, formatDateTime } from '@/lib/utils'
-import { isEditableReservationStatus, isFullyCoveredByDeposit } from '@/lib/installments'
+import { isEditableReservationStatus, isFullyCoveredByDeposit } from '@/lib/balance'
 import PaymentTracker from '@/components/admin/reservations/PaymentTracker'
 import ReservationActions from '@/components/admin/reservations/ReservationActions'
 
@@ -46,31 +46,26 @@ export default async function ReservationDetailPage({
 		where:   { id: params.id },
 		include: {
 			car: true,
-			paymentInstallments: { orderBy: { installmentNumber: 'asc' } },
+			balancePayment: true,
 		},
 	})
 
 	if (!reservation) notFound()
 
 	const statusMeta = STATUS_META[reservation.status] ?? STATUS_META.CANCELLED
-	const isEditable = isEditableReservationStatus(reservation.status, reservation.paymentInstallments.length)
+	const isEditable = isEditableReservationStatus(reservation.status, !!reservation.balancePayment)
 
-	const installmentsSerialized = reservation.paymentInstallments.map((i) => ({
-		id:                i.id,
-		installmentNumber: i.installmentNumber,
-		expectedAmount:    i.expectedAmount,
-		paidAmount:        i.paidAmount,
-		paidAt:            i.paidAt?.toISOString() ?? null,
-		notes:             i.notes,
-	}))
+	const balancePaymentSerialized = reservation.balancePayment ? {
+		id:             reservation.balancePayment.id,
+		expectedAmount: reservation.balancePayment.expectedAmount,
+		paidAmount:     reservation.balancePayment.paidAmount,
+		paidAt:         reservation.balancePayment.paidAt?.toISOString() ?? null,
+		notes:          reservation.balancePayment.notes,
+	} : null
 
-	const totalFromInstallments = installmentsSerialized.reduce(
-		(s, i) => s + (i.paidAmount ?? 0),
-		0,
-	)
-	const totalEncaissed = reservation.depositAmount + totalFromInstallments
+	const totalEncaissed = reservation.depositAmount + (balancePaymentSerialized?.paidAmount ?? 0)
 
-	const soldViaDepositOnly = reservation.paymentInstallments.length === 0
+	const soldViaDepositOnly = !reservation.balancePayment
 		&& isFullyCoveredByDeposit(reservation.depositAmount, reservation.totalPrice)
 
 	return (
@@ -109,7 +104,7 @@ export default async function ReservationDetailPage({
 						<ReservationActions
 							reservationId={params.id}
 							status={reservation.status}
-							installmentsCount={reservation.paymentInstallments.length}
+							hasBalancePayment={!!reservation.balancePayment}
 						/>
 					)}
 				</div>
@@ -276,7 +271,7 @@ export default async function ReservationDetailPage({
 						<p className="text-sm text-blue-300 font-medium">En attente de présentation en agence</p>
 						<p className="text-xs text-dark-400 mt-0.5">
 							L&apos;acompte a été encaissé. Confirmez la réservation une fois que le client s&apos;est présenté
-							en agence — cela débloquera la saisie des paiements de tranche (comptant, 3x ou 4x).
+							en agence — cela débloquera la saisie du paiement du reste.
 						</p>
 					</div>
 				</div>
@@ -289,7 +284,7 @@ export default async function ReservationDetailPage({
 				totalPrice={reservation.totalPrice}
 				installmentType={(reservation.installmentType ?? 'FULL') as 'FULL' | 'THREE_TIMES' | 'FOUR_TIMES'}
 				reservationStatus={reservation.status}
-				installments={installmentsSerialized}
+				balancePayment={balancePaymentSerialized}
 			/>
 
 			{reservation.notes && (

@@ -4,11 +4,11 @@ import prisma from '@/lib/db'
 import { broadcastCarUpdated, broadcastReservationUpdated, broadcastReservationCancelled } from '@/lib/pusher'
 import { sendReservationConfirmedToClient } from '@/lib/mail'
 import {
-	recreateInstallments,
-	calculateRemainingExpectedAmount,
+	recreateBalancePayment,
+	calculateUpdatedExpectedAmount,
 	isFullyCoveredByDeposit,
 	isEditableReservationStatus,
-} from '@/lib/installments'
+} from '@/lib/balance'
 import { requireSession, apiError, validationError, createAuditLog, safePusher } from '@/lib/api'
 import { z } from 'zod'
 
@@ -43,13 +43,13 @@ export async function PUT(
 		const existing = await prisma.reservation.findUnique({
 			where:   { id: params.id },
 			include: {
-				car:                 { select: { id: true, title: true } },
-				paymentInstallments: { select: { paidAmount: true } },
+				car:            { select: { id: true, title: true } },
+				balancePayment: { select: { id: true, paidAmount: true } },
 			},
 		})
 		if (!existing) return apiError('Réservation introuvable', 404)
 
-		if (!isEditableReservationStatus(existing.status, existing.paymentInstallments.length)) {
+		if (!isEditableReservationStatus(existing.status, !!existing.balancePayment)) {
 			return apiError('Cette réservation est déjà finalisée ou annulée et ne peut plus être modifiée.', 400)
 		}
 
@@ -60,26 +60,8 @@ export async function PUT(
 			return apiError("L'acompte ne peut pas dépasser le prix total", 400)
 		}
 
-		const typeChanged   = data.installmentType !== undefined && data.installmentType !== existing.installmentType
-		const hasAnyPayment = existing.paymentInstallments.some((i) => i.paidAmount !== null)
-
-		if (typeChanged && hasAnyPayment) {
-			return apiError(
-				"Impossible de modifier le type d'échéancier : au moins un paiement a déjà été enregistré. Contactez un super-admin si une correction est nécessaire.",
-				400
-			)
-		}
-
 		const wasFullyCoveredByDeposit    = existing.status === 'COMPLETED'
 		const willBeFullyCoveredByDeposit = isFullyCoveredByDeposit(nextDeposit, nextTotalPrice)
-
-		if (!wasFullyCoveredByDeposit && willBeFullyCoveredByDeposit && hasAnyPayment) {
-			return apiError(
-				"Impossible de régler la totalité via l'acompte : des tranches de paiement ont déjà été " +
-				'enregistrées pour cette réservation. Utilisez le suivi des paiements pour finaliser la vente.',
-				400
-			)
-		}
 
 		const now = new Date()
 
@@ -112,25 +94,20 @@ export async function PUT(
 			})
 
 			if (!wasFullyCoveredByDeposit && willBeFullyCoveredByDeposit) {
-				await tx.paymentInstallment.deleteMany({ where: { reservationId: params.id } })
+				await tx.balancePayment.deleteMany({ where: { reservationId: params.id } })
 				await tx.car.update({ where: { id: existing.carId }, data: { status: 'SOLD' } })
 			} else if (wasFullyCoveredByDeposit && !willBeFullyCoveredByDeposit) {
-				await recreateInstallments(
-					tx, params.id, nextTotalPrice, nextDeposit,
-					data.installmentType ?? existing.installmentType ?? 'FULL',
-				)
+				await recreateBalancePayment(tx, params.id, nextTotalPrice, nextDeposit)
 				await tx.car.update({ where: { id: existing.carId }, data: { status: 'RESERVED' } })
-			} else if (typeChanged) {
-				await recreateInstallments(tx, params.id, nextTotalPrice, nextDeposit, data.installmentType!)
 			} else if (data.totalPrice !== undefined || data.depositAmount !== undefined) {
-				const newExpected = calculateRemainingExpectedAmount(
-					existing.paymentInstallments,
+				const newExpected = calculateUpdatedExpectedAmount(
+					existing.balancePayment?.paidAmount ?? null,
 					nextTotalPrice,
 					nextDeposit,
 				)
-				if (newExpected !== null) {
-					await tx.paymentInstallment.updateMany({
-						where: { reservationId: params.id, paidAmount: null },
+				if (newExpected !== null && existing.balancePayment) {
+					await tx.balancePayment.update({
+						where: { id: existing.balancePayment.id },
 						data:  { expectedAmount: newExpected },
 					})
 				}
@@ -140,7 +117,7 @@ export async function PUT(
 		})
 
 		await createAuditLog(session.user.id, 'UPDATE', 'Reservation', params.id, {
-			changes: data, typeChanged,
+			changes: data,
 			fullyCoveredTransition: wasFullyCoveredByDeposit !== willBeFullyCoveredByDeposit
 				? (willBeFullyCoveredByDeposit ? 'BECAME_COMPLETED_VIA_DEPOSIT' : 'REVERTED_TO_CONFIRMED')
 				: undefined,
@@ -285,7 +262,7 @@ export async function PATCH(
 		})
 
 		const messages: Record<string, string> = {
-			CONFIRM:  'Réservation confirmée — les paiements de tranche peuvent maintenant être enregistrés.',
+			CONFIRM:  'Réservation confirmée — le paiement du reste peut maintenant être enregistré.',
 			COMPLETE: 'Vente finalisée manuellement',
 			CANCEL:   'Réservation annulée',
 		}

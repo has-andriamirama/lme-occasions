@@ -27,7 +27,7 @@ export default async function ReservationsPage({
 			where,
 			include: {
 				car: { select: { id: true, title: true, brand: true, model: true, mainImage: true } },
-				paymentInstallments: { select: { paidAmount: true } },
+				balancePayment: { select: { paidAmount: true } },
 			},
 			orderBy: { reservedAt: 'desc' },
 			skip:    (page - 1) * limit,
@@ -58,7 +58,7 @@ export default async function ReservationsPage({
 		depositAmount: r.depositAmount,
 		totalPrice:    r.totalPrice,
 		car:           r.car,
-		paymentInstallments: r.paymentInstallments,
+		balancePayment: r.balancePayment,
 	}))
 
 	return (

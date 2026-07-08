@@ -16,26 +16,22 @@ export function getActiveOffersInclude() {
 }
 
 interface PaymentSummaryInput {
-	depositAmount: number
-	totalPrice:    number
-	installments:  { paidAmount: number | null }[]
+	depositAmount:  number
+	totalPrice:     number
+	balancePayment: { paidAmount: number | null } | null
 }
 
 export function computePaymentSummary({
 	depositAmount,
 	totalPrice,
-	installments,
+	balancePayment,
 }: PaymentSummaryInput) {
-	const totalFromInstallments = installments.reduce(
-		(sum, i) => sum + (i.paidAmount ?? 0),
-		0
-	)
-	const totalPaid       = depositAmount + totalFromInstallments
+	const totalPaid       = depositAmount + (balancePayment?.paidAmount ?? 0)
 	const remaining       = Math.max(0, totalPrice - totalPaid)
 	const isFullyPaid     = totalPaid >= totalPrice
-	const paidCount       = installments.filter((i) => i.paidAmount !== null).length
-	const totalCount      = installments.length
+	const isBalancePaid   = balancePayment?.paidAmount != null
+	const hasBalance      = balancePayment !== null
 	const progressPercent = Math.min(100, Math.round((totalPaid / totalPrice) * 100))
 
-	return { totalPaid, remaining, isFullyPaid, paidCount, totalCount, progressPercent }
+	return { totalPaid, remaining, isFullyPaid, isBalancePaid, hasBalance, progressPercent }
 }

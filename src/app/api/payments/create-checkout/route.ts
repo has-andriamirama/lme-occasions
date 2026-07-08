@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
 import { createCheckoutSession } from '@/lib/stripe'
-import { createInstallments } from '@/lib/installments'
+import { createBalancePayment } from '@/lib/balance'
 import { apiError, validationError } from '@/lib/api'
 import { z } from 'zod'
 
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 				},
 			})
 
-			await createInstallments(tx, reservation.id, car.price, depositAmount, installmentType)
+			await createBalancePayment(tx, reservation.id, car.price, depositAmount)
 
 			return { car, reservation, depositAmount }
 		})

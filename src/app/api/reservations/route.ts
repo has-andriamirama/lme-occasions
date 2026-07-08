@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
 import { broadcastCarUpdated, broadcastReservationCreated } from '@/lib/pusher'
 import { sendReservationConfirmedToClient, sendReservationNotificationToAdmin } from '@/lib/mail'
-import { createInstallments, isFullyCoveredByDeposit } from '@/lib/installments'
+import { createBalancePayment, isFullyCoveredByDeposit } from '@/lib/balance'
 import { requireSession, apiError, validationError, parsePagination, createAuditLog, safePusher } from '@/lib/api'
 import { z } from 'zod'
 
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
 				})
 
 				if (!fullyCoveredByDeposit) {
-					await createInstallments(tx, reservation.id, totalPrice, depositAmount, installmentType)
+					await createBalancePayment(tx, reservation.id, totalPrice, depositAmount)
 				}
 
 				return { car, reservation }
@@ -155,7 +155,7 @@ export async function GET(req: NextRequest) {
 				where,
 				include: {
 					car: { select: { id: true, title: true, brand: true, model: true, mainImage: true } },
-					paymentInstallments: { select: { paidAmount: true } },
+					balancePayment: { select: { paidAmount: true } },
 				},
 				orderBy: { reservedAt: 'desc' },
 				skip,

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { ChevronLeft, Lock } from 'lucide-react'
 import prisma from '@/lib/db'
 import { formatDateTime } from '@/lib/utils'
-import { isEditableReservationStatus } from '@/lib/installments'
+import { isEditableReservationStatus } from '@/lib/balance'
 import ReservationForm from '@/components/admin/reservations/ReservationForm'
 
 export const metadata: Metadata = { title: 'Modifier la réservation' }
@@ -23,13 +23,13 @@ export default async function EditReservationPage({ params }: { params: { id: st
 	const reservation = await prisma.reservation.findUnique({
 		where:   { id: params.id },
 		include: {
-			car:                 { select: { id: true, title: true, brand: true, model: true, year: true, price: true } },
-			paymentInstallments: { select: { id: true } },
+			car:            { select: { id: true, title: true, brand: true, model: true, year: true, price: true } },
+			balancePayment: { select: { id: true } },
 		},
 	})
 	if (!reservation) notFound()
 
-	const editable = isEditableReservationStatus(reservation.status, reservation.paymentInstallments.length)
+	const editable = isEditableReservationStatus(reservation.status, !!reservation.balancePayment)
 
 	return (
 		<div className="space-y-6 max-w-4xl">
@@ -53,7 +53,7 @@ export default async function EditReservationPage({ params }: { params: { id: st
 							<p className="text-sm text-brand-200/90">
 								Cette vente a été finalisée directement via un acompte couvrant tout le prix. En abaissant
 								l&apos;acompte ci-dessous, la réservation repassera au statut « Confirmée » (véhicule « Réservé »)
-								et un échéancier de paiement sera recréé.
+								et le reste à payer sera recalculé.
 							</p>
 						</div>
 					)}

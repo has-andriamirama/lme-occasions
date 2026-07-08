@@ -6,23 +6,23 @@ import { XCircle, CheckCircle2, Pencil, Eye } from 'lucide-react'
 import toast from 'react-hot-toast'
 import ConfirmModal     from '@/components/admin/shared/ConfirmModal'
 import ActionIconButton from '@/components/admin/shared/ActionIconButton'
-import { isEditableReservationStatus } from '@/lib/installments'
+import { isEditableReservationStatus } from '@/lib/balance'
 
 interface Props {
 	reservationId:     string
 	status:            string
-	installmentsCount: number
+	hasBalancePayment: boolean
 }
 
 type ModalType = 'confirm' | 'cancel' | null
 
-export default function ReservationActions({ reservationId, status, installmentsCount }: Props) {
+export default function ReservationActions({ reservationId, status, hasBalancePayment }: Props) {
 	const router                        = useRouter()
 	const [modal,   setModal]           = useState<ModalType>(null)
 	const [loading, setLoading]         = useState(false)
 
 	const canConfirm = status === 'PAID'
-	const canEdit    = isEditableReservationStatus(status, installmentsCount)
+	const canEdit    = isEditableReservationStatus(status, hasBalancePayment)
 	const canCancel  = ['PENDING', 'PAID', 'CONFIRMED'].includes(status)
 
 	async function handleAction(action: 'CONFIRM' | 'CANCEL') {
@@ -97,8 +97,8 @@ export default function ReservationActions({ reservationId, status, installments
 				description={
 					<>
 						Le client s&apos;est présenté en agence. La réservation passera au statut{' '}
-						<span className="text-white font-medium">Confirmée</span> et les paiements
-						de tranche pourront être enregistrés.
+						<span className="text-white font-medium">Confirmée</span> et le paiement
+						du reste pourra être enregistré.
 					</>
 				}
 				confirmLabel="Confirmer la réservation"

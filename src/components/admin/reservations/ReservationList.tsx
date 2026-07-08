@@ -19,7 +19,7 @@ export interface ReservationRow {
 	depositAmount: number
 	totalPrice:    number
 	car:           { id: string; title: string; brand: string; model: string; mainImage: string }
-	paymentInstallments: { paidAmount: number | null }[]
+	balancePayment: { paidAmount: number | null } | null
 }
 
 const STATUS_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -32,12 +32,12 @@ const STATUS_META: Record<string, { label: string; color: string; icon: React.Re
 }
 
 function PaymentProgress({
-	status, installments, depositAmount, totalPrice,
+	status, balancePayment, depositAmount, totalPrice,
 }: {
-	status:       string
-	installments: { paidAmount: number | null }[]
-	depositAmount: number
-	totalPrice:   number
+	status:         string
+	balancePayment: { paidAmount: number | null } | null
+	depositAmount:  number
+	totalPrice:     number
 }) {
 	if (['EXPIRED', 'CANCELLED', 'PENDING'].includes(status)) {
 		return <span className="text-xs text-dark-600">—</span>
@@ -49,21 +49,20 @@ function PaymentProgress({
 			</span>
 		)
 	}
-	if (installments.length === 0) return <span className="text-xs text-dark-500">—</span>
+	if (!balancePayment) return <span className="text-xs text-dark-500">—</span>
 
-	const paidCount  = installments.filter((i) => i.paidAmount !== null).length
-	const totalCount = installments.length
-	const totalPaid  = depositAmount + installments.reduce((s, i) => s + (i.paidAmount ?? 0), 0)
-	const percent    = Math.min(100, Math.round((totalPaid / totalPrice) * 100))
+	const isPaid    = balancePayment.paidAmount !== null
+	const totalPaid = depositAmount + (balancePayment.paidAmount ?? 0)
+	const percent   = Math.min(100, Math.round((totalPaid / totalPrice) * 100))
 
 	return (
 		<div className="space-y-1">
 			<span className="text-xs text-dark-300">
-				{paidCount}/{totalCount} tranche{totalCount > 1 ? 's' : ''}
+				{isPaid ? 'Solde réglé' : 'Reste à régler'}
 			</span>
 			<div className="h-1 w-16 bg-dark-700 rounded-full overflow-hidden">
 				<div
-					className={`h-full rounded-full ${paidCount === totalCount ? 'bg-emerald-500' : 'bg-brand-500'}`}
+					className={`h-full rounded-full ${isPaid ? 'bg-emerald-500' : 'bg-brand-500'}`}
 					style={{ width: `${percent}%` }}
 				/>
 			</div>
@@ -99,7 +98,7 @@ export default function ReservationList({ initialReservations, status, page, tot
 					depositAmount: incoming.depositAmount,
 					totalPrice:    incoming.totalPrice,
 					car,
-					paymentInstallments: [],
+					balancePayment: null,
 				}, ...prev]
 			})
 		},
@@ -194,7 +193,7 @@ export default function ReservationList({ initialReservations, status, page, tot
 											<td className="px-4 py-3 text-center hidden lg:table-cell">
 												<PaymentProgress
 													status={r.status}
-													installments={r.paymentInstallments}
+													balancePayment={r.balancePayment}
 													depositAmount={r.depositAmount}
 													totalPrice={r.totalPrice}
 												/>
@@ -217,7 +216,7 @@ export default function ReservationList({ initialReservations, status, page, tot
 												<ReservationActions
 													reservationId={r.id}
 													status={r.status}
-													installmentsCount={r.paymentInstallments.length}
+													hasBalancePayment={!!r.balancePayment}
 												/>
 											</td>
 										</tr>

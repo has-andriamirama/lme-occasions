@@ -17,23 +17,16 @@ import {
 	Lock,
 } from 'lucide-react'
 import { formatPrice, formatDate } from '@/lib/utils'
-import {
-	getInstallmentPermissions,
-	isFinalInstallment,
-	computeMaxAllowedForInstallment,
-	isFullyCoveredByDeposit,
-	type InstallmentPermissions,
-} from '@/lib/installments'
+import { isFullyCoveredByDeposit } from '@/lib/balance'
 import ActionIconButton from '@/components/admin/shared/ActionIconButton'
 import ConfirmModal     from '@/components/admin/shared/ConfirmModal'
 
-export interface PaymentInstallmentSerialized {
-	id:                string
-	installmentNumber: number
-	expectedAmount:    number
-	paidAmount:        number | null
-	paidAt:            string | null
-	notes:             string | null
+export interface BalancePaymentSerialized {
+	id:             string
+	expectedAmount: number
+	paidAmount:     number | null
+	paidAt:         string | null
+	notes:          string | null
 }
 
 export interface PaymentTrackerProps {
@@ -43,7 +36,7 @@ export interface PaymentTrackerProps {
 	totalPrice:        number
 	installmentType:   'FULL' | 'THREE_TIMES' | 'FOUR_TIMES'
 	reservationStatus: string
-	installments:      PaymentInstallmentSerialized[]
+	balancePayment:    BalancePaymentSerialized | null
 }
 
 const INSTALLMENT_LABEL: Record<string, string> = {
@@ -52,131 +45,9 @@ const INSTALLMENT_LABEL: Record<string, string> = {
 	FOUR_TIMES:  'Paiement en 4 fois',
 }
 
-interface InstallmentRowProps {
-	installment:       PaymentInstallmentSerialized
-	totalInstallments: number
-	permissions:       InstallmentPermissions
-	globalDisabled:    boolean
-	disabledReason:    string | null
-	onAction:          (inst: PaymentInstallmentSerialized) => void
-	onReset:           (inst: PaymentInstallmentSerialized) => void
-}
-
-function InstallmentRow({
-	installment,
-	totalInstallments,
-	permissions,
-	globalDisabled,
-	disabledReason,
-	onAction,
-	onReset,
-}: InstallmentRowProps) {
-	const isPaid    = permissions.isPaid
-	const isLocked  = isPaid && !permissions.isLastPaid
-	const isBlocked = !isPaid && !permissions.isNextPayable
-
-	const canEdit  = !globalDisabled && permissions.canEnterOrEdit
-	const canReset = !globalDisabled && permissions.canReset
-
-	const editTitle = globalDisabled
-		? (disabledReason ?? 'Action indisponible')
-		: isPaid
-			? (permissions.isLastPaid
-				? 'Modifier cette tranche'
-				: 'Verrouillée — seule la dernière tranche réglée est modifiable')
-			: (permissions.isNextPayable
-				? 'Saisir le paiement'
-				: 'La tranche précédente doit d\'abord être réglée')
-
-	const resetTitle = globalDisabled
-		? (disabledReason ?? 'Action indisponible')
-		: !isPaid
-			? 'Tranche non réglée'
-			: (permissions.isLastPaid
-				? 'Remettre cette tranche à impayée'
-				: 'Verrouillée — seule la dernière tranche réglée peut être remise à impayée')
-
-	return (
-		<tr
-			className={`border-b border-dark-800 last:border-0 transition-colors
-				${isPaid ? '' : 'bg-amber-500/3'} ${isBlocked ? 'opacity-60' : ''}`}
-		>
-			<td className="px-4 py-3.5 w-10">
-				<div
-					className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold
-						${isPaid
-							? 'bg-emerald-500/20 text-emerald-400'
-							: 'bg-amber-500/10 text-amber-400'}`}
-				>
-					{installment.installmentNumber}
-				</div>
-			</td>
-
-			<td className="px-4 py-3.5">
-				<p className="text-sm font-medium text-white">
-					{totalInstallments === 1
-						? 'Solde à régler'
-						: `Paiement ${installment.installmentNumber} / ${totalInstallments}`}
-				</p>
-				{installment.notes && (
-					<p className="text-xs text-dark-400 mt-0.5 truncate max-w-[180px]">{installment.notes}</p>
-				)}
-				{isLocked && (
-					<p className="text-xs text-dark-500 mt-0.5 inline-flex items-center gap-1">
-						<Lock className="w-3 h-3 shrink-0" /> Verrouillée
-					</p>
-				)}
-				{!isPaid && !isBlocked && (
-					<p className="text-xs text-amber-400/90 mt-0.5">En attente de saisie</p>
-				)}
-				{!isPaid && isBlocked && (
-					<p className="text-xs text-dark-500 mt-0.5">Tranche précédente à régler d&apos;abord</p>
-				)}
-			</td>
-
-			<td className="px-4 py-3.5 text-right">
-				{isPaid ? (
-					<span className="text-sm font-bold text-emerald-400">
-						{formatPrice(installment.paidAmount!)}
-					</span>
-				) : (
-					<span className="text-sm text-dark-600">—</span>
-				)}
-			</td>
-
-			<td className="px-4 py-3.5 text-center hidden md:table-cell">
-				{installment.paidAt ? (
-					<span className="text-xs text-dark-400">{formatDate(installment.paidAt)}</span>
-				) : (
-					<span className="text-xs text-dark-600">—</span>
-				)}
-			</td>
-
-			<td className="px-4 py-3.5">
-				<div className="flex items-center justify-center gap-1">
-					<ActionIconButton
-						as="button"
-						variant="edit"
-						title={editTitle}
-						disabled={!canEdit}
-						onClick={() => onAction(installment)}
-					>
-						{isPaid ? <Edit2 className="w-4 h-4" /> : <Banknote className="w-4 h-4" />}
-					</ActionIconButton>
-
-					<ActionIconButton
-						as="button"
-						variant="danger"
-						title={resetTitle}
-						disabled={!canReset}
-						onClick={() => onReset(installment)}
-					>
-						<RotateCcw className="w-4 h-4" />
-					</ActionIconButton>
-				</div>
-			</td>
-		</tr>
-	)
+interface ModalState {
+	formDate:  string
+	formNotes: string
 }
 
 export default function PaymentTracker({
@@ -186,31 +57,24 @@ export default function PaymentTracker({
 	totalPrice,
 	installmentType,
 	reservationStatus,
-	installments: initialInstallments,
+	balancePayment: initialBalancePayment,
 }: PaymentTrackerProps) {
 	const router = useRouter()
 
-	const [installments, setInstallments] = useState<PaymentInstallmentSerialized[]>(initialInstallments)
+	const [balance, setBalance]             = useState<BalancePaymentSerialized | null>(initialBalancePayment)
 	const [currentStatus, setCurrentStatus] = useState(reservationStatus)
 
-	const [modal, setModal] = useState<{
-		installment: PaymentInstallmentSerialized
-		formAmount:  string
-		formDate:    string
-		formNotes:   string
-	} | null>(null)
-
-	const [resetTarget, setResetTarget] = useState<PaymentInstallmentSerialized | null>(null)
+	const [modal, setModal] = useState<ModalState | null>(null)
+	const [resetConfirmOpen, setResetConfirmOpen] = useState(false)
 
 	const [saving,    setSaving]    = useState(false)
 	const [resetting, setResetting] = useState(false)
 
-	const totalFromInstallments  = installments.reduce((s, i) => s + (i.paidAmount ?? 0), 0)
-	const totalPaid              = depositAmount + totalFromInstallments
+	const isPaid                 = balance?.paidAmount != null
+	const totalPaid              = depositAmount + (balance?.paidAmount ?? 0)
 	const remaining              = Math.max(0, totalPrice - totalPaid)
-	const progressPercent        = Math.min(100, Math.round((totalPaid / totalPrice) * 100))
+	const progressPercent        = totalPrice > 0 ? Math.min(100, Math.round((totalPaid / totalPrice) * 100)) : 0
 	const isFullyPaid            = totalPaid >= totalPrice
-	const paidCount              = installments.filter((i) => i.paidAmount !== null).length
 	const isCompleted            = currentStatus === 'COMPLETED'
 	const isCancelled            = ['CANCELLED', 'EXPIRED'].includes(currentStatus)
 	const isAwaitingConfirmation = ['PENDING', 'PAID'].includes(currentStatus)
@@ -224,60 +88,29 @@ export default function PaymentTracker({
 				: 'En attente de confirmation par un admin')
 			: null
 
-	const openModal = useCallback((inst: PaymentInstallmentSerialized) => {
-		const today   = new Date().toISOString().slice(0, 10)
-		const isFinal = isFinalInstallment(inst, installments.length)
-
-		const forcedAmount = computeMaxAllowedForInstallment(inst.id, installments, totalPrice, depositAmount)
-
+	const openModal = useCallback(() => {
+		if (!balance) return
+		const today = new Date().toISOString().slice(0, 10)
 		setModal({
-			installment: inst,
-			formAmount:  isFinal
-				? String(forcedAmount)
-				: (inst.paidAmount !== null ? String(inst.paidAmount) : String(inst.expectedAmount)),
-			formDate:    inst.paidAt ? inst.paidAt.slice(0, 10) : today,
-			formNotes:   inst.notes ?? '',
+			formDate:  balance.paidAt ? balance.paidAt.slice(0, 10) : today,
+			formNotes: balance.notes ?? '',
 		})
-	}, [installments, totalPrice, depositAmount])
+	}, [balance])
 
 	const closeModal = useCallback(() => setModal(null), [])
 
-	const isModalFinal = modal ? isFinalInstallment(modal.installment, installments.length) : false
-
-	const modalMaxAllowed = modal
-		? computeMaxAllowedForInstallment(modal.installment.id, installments, totalPrice, depositAmount)
-		: 0
-
 	const handleSave = useCallback(async () => {
-		if (!modal) return
-
-		const isFinal    = isFinalInstallment(modal.installment, installments.length)
-		const maxAllowed = computeMaxAllowedForInstallment(modal.installment.id, installments, totalPrice, depositAmount)
-
-		const amount = isFinal ? maxAllowed : parseFloat(modal.formAmount)
-
-		if (isNaN(amount) || amount <= 0) {
-			toast.error('Montant invalide')
-			return
-		}
-
-		if (!isFinal && Math.round(amount * 100) > Math.round(maxAllowed * 100)) {
-			toast.error(
-				`Montant trop élevé. Maximum autorisé : ${formatPrice(maxAllowed)} ` +
-				`pour ne pas dépasser le prix total.`
-			)
-			return
-		}
+		if (!modal || !balance) return
 
 		setSaving(true)
 		try {
 			const res = await fetch(
-				`/api/reservations/${reservationId}/installments/${modal.installment.id}`,
+				`/api/reservations/${reservationId}/balance`,
 				{
 					method:  'PUT',
 					headers: { 'Content-Type': 'application/json' },
 					body:    JSON.stringify({
-						paidAmount: amount,
+						paidAmount: balance.expectedAmount,
 						paidAt:     modal.formDate ? new Date(modal.formDate).toISOString() : null,
 						notes:      modal.formNotes || null,
 					}),
@@ -287,7 +120,7 @@ export default function PaymentTracker({
 			const json = await res.json()
 			if (!res.ok) throw new Error(json.error ?? 'Erreur serveur')
 
-			setInstallments(json.data.installments)
+			setBalance(json.data.balancePayment)
 
 			if (json.data?.autoCompleted) {
 				setCurrentStatus('COMPLETED')
@@ -313,61 +146,48 @@ export default function PaymentTracker({
 		} finally {
 			setSaving(false)
 		}
-	}, [modal, reservationId, installments, depositAmount, totalPrice, closeModal, router])
-
-	const closeResetConfirm = useCallback(() => setResetTarget(null), [])
+	}, [modal, balance, reservationId, closeModal, router])
 
 	const handleConfirmReset = useCallback(async () => {
-		if (!resetTarget) return
+		if (!balance) return
 
 		setResetting(true)
 		try {
 			const res = await fetch(
-				`/api/reservations/${reservationId}/installments/${resetTarget.id}`,
+				`/api/reservations/${reservationId}/balance`,
 				{
 					method:  'PUT',
 					headers: { 'Content-Type': 'application/json' },
-					body:    JSON.stringify({ paidAmount: null, notes: resetTarget.notes ?? null }),
+					body:    JSON.stringify({ paidAmount: null, notes: balance.notes ?? null }),
 				},
 			)
 
 			const json = await res.json()
 			if (!res.ok) throw new Error(json.error ?? 'Erreur serveur')
 
-			setInstallments(json.data.installments)
+			setBalance(json.data.balancePayment)
 
 			if (json.data?.autoReverted) {
 				setCurrentStatus('CONFIRMED')
 				toast.success(
-					'Tranche remise à « impayée » — réservation revenue à Confirmée, ' +
+					'Solde remis à « impayé » — réservation revenue à Confirmée, ' +
 					'véhicule à Réservé.',
 					{ duration: 6000 }
 				)
 			} else {
-				toast.success('Tranche remise à « impayée »')
+				toast.success('Solde remis à « impayé »')
 			}
 
-			setResetTarget(null)
+			setResetConfirmOpen(false)
 			router.refresh()
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Erreur')
 		} finally {
 			setResetting(false)
 		}
-	}, [resetTarget, reservationId, router])
+	}, [balance, reservationId, router])
 
-	const modalWillComplete = modal
-		? (() => {
-				const newAmount  = parseFloat(modal.formAmount) || 0
-				const currentSum = installments.reduce((s, i) => {
-					if (i.id === modal.installment.id) return s
-					return s + (i.paidAmount ?? 0)
-				}, 0)
-				return depositAmount + currentSum + newAmount >= totalPrice
-			})()
-		: false
-
-	if (installments.length === 0) {
+	if (!balance) {
 		if (isFullyCoveredByDeposit(depositAmount, totalPrice)) {
 			return (
 				<div className="card p-6 flex items-start gap-3 border border-brand-500/20 bg-brand-500/5">
@@ -376,7 +196,7 @@ export default function PaymentTracker({
 						<p className="text-sm text-white font-medium">Véhicule réglé intégralement à la réservation</p>
 						<p className="text-xs text-dark-400 mt-1">
 							L&apos;acompte de {formatPrice(depositAmount)} couvrait déjà la totalité du prix de vente
-							({formatPrice(totalPrice)}) — aucune tranche de paiement n&apos;était nécessaire.
+							({formatPrice(totalPrice)}) — aucun reste n&apos;était à régler.
 						</p>
 					</div>
 				</div>
@@ -388,7 +208,7 @@ export default function PaymentTracker({
 				<div>
 					<p className="text-sm text-white font-medium">Suivi des paiements non disponible</p>
 					<p className="text-xs text-dark-400 mt-1">
-						Cette réservation a été créée avant la mise en place du suivi des tranches de paiement.
+						Cette réservation a été créée avant la mise en place du suivi du paiement du reste.
 						Aucune ligne de paiement n&apos;est disponible pour elle.
 					</p>
 				</div>
@@ -427,7 +247,7 @@ export default function PaymentTracker({
 							) : (
 								<span className="badge bg-amber-500/10 text-amber-400 border-amber-500/20">
 									<Clock className="w-3.5 h-3.5" />
-									{paidCount}/{installments.length} tranche{installments.length > 1 ? 's' : ''}
+									Reste à régler
 								</span>
 							)}
 							{!isCompleted && !isFullyPaid && (
@@ -456,7 +276,7 @@ export default function PaymentTracker({
 							<thead>
 								<tr className="border-b border-dark-800 text-xs text-dark-500 uppercase tracking-wider">
 									<th className="text-left px-4 py-2.5 font-medium w-10" />
-									<th className="text-left px-4 py-2.5 font-medium">Tranche</th>
+									<th className="text-left px-4 py-2.5 font-medium">Paiement</th>
 									<th className="text-right px-4 py-2.5 font-medium">Encaissé</th>
 									<th className="text-center px-4 py-2.5 font-medium hidden md:table-cell">Date</th>
 									<th className="text-center px-4 py-2.5 font-medium w-28">Actions</th>
@@ -484,18 +304,70 @@ export default function PaymentTracker({
 									</td>
 								</tr>
 
-								{installments.map((inst) => (
-									<InstallmentRow
-										key={inst.id}
-										installment={inst}
-										totalInstallments={installments.length}
-										permissions={getInstallmentPermissions(inst, installments)}
-										globalDisabled={globalDisabled}
-										disabledReason={disabledReason}
-										onAction={openModal}
-										onReset={(i) => setResetTarget(i)}
-									/>
-								))}
+								<tr className={`last:border-0 transition-colors ${isPaid ? '' : 'bg-amber-500/3'}`}>
+									<td className="px-4 py-3.5 w-10">
+										<div className={`w-7 h-7 rounded-full flex items-center justify-center
+											${isPaid ? 'bg-emerald-500/20' : 'bg-amber-500/10'}`}>
+											<span className={`text-xs font-bold ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>R</span>
+										</div>
+									</td>
+
+									<td className="px-4 py-3.5">
+										<p className="text-sm font-medium text-white">Solde restant</p>
+										{balance.notes && (
+											<p className="text-xs text-dark-400 mt-0.5 truncate max-w-[180px]">{balance.notes}</p>
+										)}
+										{!isPaid && (
+											<p className="text-xs text-amber-400/90 mt-0.5">En attente de règlement</p>
+										)}
+									</td>
+
+									<td className="px-4 py-3.5 text-right">
+										{isPaid ? (
+											<span className="text-sm font-bold text-emerald-400">
+												{formatPrice(balance.paidAmount!)}
+											</span>
+										) : (
+											<span className="text-sm text-dark-600">—</span>
+										)}
+									</td>
+
+									<td className="px-4 py-3.5 text-center hidden md:table-cell">
+										{balance.paidAt ? (
+											<span className="text-xs text-dark-400">{formatDate(balance.paidAt)}</span>
+										) : (
+											<span className="text-xs text-dark-600">—</span>
+										)}
+									</td>
+
+									<td className="px-4 py-3.5">
+										<div className="flex items-center justify-center gap-1">
+											<ActionIconButton
+												as="button"
+												variant="edit"
+												title={globalDisabled
+													? (disabledReason ?? 'Action indisponible')
+													: (isPaid ? 'Modifier ce paiement' : 'Saisir le paiement du reste')}
+												disabled={globalDisabled}
+												onClick={openModal}
+											>
+												{isPaid ? <Edit2 className="w-4 h-4" /> : <Banknote className="w-4 h-4" />}
+											</ActionIconButton>
+
+											<ActionIconButton
+												as="button"
+												variant="danger"
+												title={globalDisabled
+													? (disabledReason ?? 'Action indisponible')
+													: (isPaid ? 'Remettre à impayé' : 'Solde non réglé')}
+												disabled={globalDisabled || !isPaid}
+												onClick={() => setResetConfirmOpen(true)}
+											>
+												<RotateCcw className="w-4 h-4" />
+											</ActionIconButton>
+										</div>
+									</td>
+								</tr>
 							</tbody>
 						</table>
 					</div>
@@ -504,7 +376,7 @@ export default function PaymentTracker({
 						<div className="px-4 py-3 border-t border-dark-800 flex items-center gap-2">
 							<CheckCircle2 className="w-4 h-4 text-brand-400 shrink-0" />
 							<p className="text-xs text-dark-400">
-								Réservation finalisée — les montants restent éditables pour correction comptable.
+								Réservation finalisée — le montant reste éditable pour correction comptable.
 								Si le total n&apos;est plus atteint après modification, la réservation reviendra automatiquement à Confirmée.
 							</p>
 						</div>
@@ -515,8 +387,8 @@ export default function PaymentTracker({
 							<Lock className="w-4 h-4 text-amber-400 shrink-0" />
 							<p className="text-xs text-dark-400">
 								{currentStatus === 'PENDING'
-									? 'En attente du paiement de l\'acompte en ligne — les tranches ne pourront être saisies qu\'une fois la réservation confirmée.'
-									: 'Réservation payée, en attente de confirmation par un admin (présentation en agence) — les tranches ne peuvent pas encore être saisies.'}
+									? 'En attente du paiement de l\'acompte en ligne — le reste ne pourra être saisi qu\'une fois la réservation confirmée.'
+									: 'Réservation payée, en attente de confirmation par un admin (présentation en agence) — le reste ne peut pas encore être saisi.'}
 							</p>
 						</div>
 					)}
@@ -544,24 +416,21 @@ export default function PaymentTracker({
 			{modal && (
 				<div
 					className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-sm"
-					onClick={(e) => { if (e.target === e.currentTarget) closeModal() }}
+					onClick={(e) => { if (e.target === e.currentTarget && !saving) closeModal() }}
 				>
 					<div className="bg-dark-900 border border-dark-700 rounded-2xl w-full max-w-md shadow-2xl">
 						<div className="flex items-start justify-between p-6 pb-4">
 							<div>
 								<h3 className="text-base font-semibold text-white">
-									{modal.installment.paidAmount !== null
-										? `Modifier le paiement ${modal.installment.installmentNumber}`
-										: `Saisir le paiement ${modal.installment.installmentNumber}${installments.length > 1 ? ` / ${installments.length}` : ''}`}
+									{isPaid ? 'Modifier le paiement du reste' : 'Saisir le paiement du reste'}
 								</h3>
 								<p className="text-xs text-dark-400 mt-0.5">
-									{isModalFinal
-										? `Montant à régler : ${formatPrice(modalMaxAllowed)}`
-										: `Montant suggéré : ${formatPrice(modal.installment.expectedAmount)}`}
+									Montant à régler : {formatPrice(balance.expectedAmount)}
 								</p>
 							</div>
 							<button
 								onClick={closeModal}
+								disabled={saving}
 								className="p-1.5 text-dark-400 hover:text-white hover:bg-dark-700 rounded-lg transition-all"
 							>
 								<X className="w-4 h-4" />
@@ -576,50 +445,20 @@ export default function PaymentTracker({
 								<div className="relative">
 									<input
 										type="number"
-										min="0.01"
-										max={modalMaxAllowed}
-										step="0.01"
-										value={modal.formAmount}
-										onChange={(e) => setModal((m) => m ? { ...m, formAmount: e.target.value } : m)}
-										disabled={isModalFinal}
-										className={`input-base w-full pr-8 ${isModalFinal ? 'opacity-60 cursor-not-allowed' : ''}`}
-										placeholder={String(modal.installment.expectedAmount)}
-										autoFocus={!isModalFinal}
+										value={balance.expectedAmount}
+										onChange={() => {}}
+										disabled
+										readOnly
+										className="input-base w-full pr-8 opacity-60 cursor-not-allowed"
 									/>
 									<span className="absolute right-3 top-1/2 -translate-y-1/2 text-dark-500 text-sm">€</span>
 								</div>
-
-								{isModalFinal ? (
-									<div className="mt-1.5 flex items-start gap-1.5">
-										<Lock className="w-3.5 h-3.5 text-dark-500 mt-0.5 shrink-0" />
-										<p className="text-xs text-dark-400">
-											Dernière tranche : le montant solde automatiquement le reste dû, il n&apos;est pas modifiable.
-										</p>
-									</div>
-								) : (
-									<div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-										<p className="text-xs text-dark-500">
-											Peut différer du montant suggéré.
-										</p>
-										<p className="text-xs text-dark-400">
-											Solde restant :{' '}
-											<span className="text-white font-medium">{formatPrice(modalMaxAllowed)}</span>
-										</p>
-										{modalMaxAllowed > 0 && (
-											<button
-												type="button"
-												onClick={() =>
-													setModal((m) =>
-														m ? { ...m, formAmount: String(modalMaxAllowed) } : m
-													)
-												}
-												className="text-xs text-brand-400 hover:text-brand-300 transition-colors"
-											>
-												Tout régler
-											</button>
-										)}
-									</div>
-								)}
+								<div className="mt-1.5 flex items-start gap-1.5">
+									<Lock className="w-3.5 h-3.5 text-dark-500 mt-0.5 shrink-0" />
+									<p className="text-xs text-dark-400">
+										Le montant correspond automatiquement au solde restant ; il n&apos;est pas modifiable.
+									</p>
+								</div>
 							</div>
 
 							<div>
@@ -643,11 +482,11 @@ export default function PaymentTracker({
 									value={modal.formNotes}
 									onChange={(e) => setModal((m) => m ? { ...m, formNotes: e.target.value } : m)}
 									className="input-base w-full resize-none"
-									placeholder="Ex : virement reçu, solde partiel en espèces…"
+									placeholder="Ex : virement reçu, solde réglé en espèces…"
 								/>
 							</div>
 
-							{modalWillComplete && !isCompleted && (
+							{!isPaid && (
 								<div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
 									<p className="text-xs text-emerald-300 flex items-start gap-2">
 										<TrendingUp className="w-4 h-4 mt-0.5 shrink-0" />
@@ -684,25 +523,21 @@ export default function PaymentTracker({
 			)}
 
 			<ConfirmModal
-				open={resetTarget !== null}
-				title="Remettre cette tranche à « impayée » ?"
+				open={resetConfirmOpen}
+				title="Remettre ce solde à « impayé » ?"
 				description={
-					resetTarget ? (
-						<>
-							Le paiement de la tranche{' '}
-							<span className="text-white font-medium">{resetTarget.installmentNumber}</span>{' '}
-							sera annulé et redeviendra à saisir. Si la réservation avait été finalisée
-							automatiquement grâce à ce paiement, elle repassera au statut{' '}
-							<span className="text-white font-medium">Confirmée</span> et le véhicule à{' '}
-							<span className="text-white font-medium">Réservé</span>.
-						</>
-					) : ''
+					<>
+						Le paiement du reste sera annulé et redeviendra à saisir. Si la réservation avait été finalisée
+						automatiquement grâce à ce paiement, elle repassera au statut{' '}
+						<span className="text-white font-medium">Confirmée</span> et le véhicule à{' '}
+						<span className="text-white font-medium">Réservé</span>.
+					</>
 				}
 				confirmLabel="Remettre"
 				confirmVariant="danger"
 				loading={resetting}
 				onConfirm={handleConfirmReset}
-				onCancel={closeResetConfirm}
+				onCancel={() => setResetConfirmOpen(false)}
 			/>
 		</>
 	)

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { AlertCircle, Loader2, Info, Car as CarIcon, Tag, CheckCircle2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cn, formatPrice } from '@/lib/utils'
-import { isFullyCoveredByDeposit } from '@/lib/installments'
+import { isFullyCoveredByDeposit } from '@/lib/balance'
 
 interface CarOfferInfo {
 	id: string
@@ -155,7 +155,7 @@ export default function ReservationForm({ mode, availableCars, defaultExpiresAt,
 					<Info className="w-4 h-4 text-brand-400 mt-0.5 shrink-0" />
 					<p className="text-sm text-brand-200/90">
 						À utiliser quand un client réserve <strong>directement en agence</strong> (acompte déjà réglé sur place,
-						client physiquement présent). Les paiements de tranche (comptant, 3x ou 4x) pourront être saisis immédiatement.
+						client physiquement présent). Le paiement du reste pourra être saisi immédiatement.
 					</p>
 				</div>
 			)}
@@ -274,8 +274,8 @@ export default function ReservationForm({ mode, availableCars, defaultExpiresAt,
 						<p className="text-sm text-emerald-200/90">
 							L'acompte couvre déjà la totalité du prix de vente — il n'y a plus de solde à échelonner.
 							{mode === 'create'
-								? ' Cette réservation sera directement créée au statut « Finalisée » et le véhicule marqué « Vendu », sans aucune tranche de paiement à saisir.'
-								: ' Après enregistrement, cette réservation passera directement au statut « Finalisée » et le véhicule sera marqué « Vendu », sans aucune tranche de paiement à saisir.'}
+								? ' Cette réservation sera directement créée au statut « Finalisée » et le véhicule marqué « Vendu », sans aucun reste à régler.'
+								: ' Après enregistrement, cette réservation passera directement au statut « Finalisée » et le véhicule sera marqué « Vendu », sans aucun reste à régler.'}
 						</p>
 					</div>
 				) : (
