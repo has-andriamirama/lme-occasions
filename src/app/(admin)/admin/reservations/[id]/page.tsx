@@ -285,6 +285,8 @@ export default async function ReservationDetailPage({
 				installmentType={(reservation.installmentType ?? 'FULL') as 'FULL' | 'THREE_TIMES' | 'FOUR_TIMES'}
 				reservationStatus={reservation.status}
 				balancePayment={balancePaymentSerialized}
+				depositInvoiceUrl={reservation.depositInvoiceUrl}
+				fullInvoiceUrl={reservation.fullInvoiceUrl}
 			/>
 
 			{reservation.notes && (

@@ -1,7 +1,7 @@
 // src/lib/mail.ts
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+const resend = new Resend(process.env.RESEND_API_KEY || 're_12345678')
 
 const FROM     = process.env.EMAIL_FROM          ?? 'LME Occasions <onboarding@resend.dev>'
 const ADMIN_TO = process.env.ADMIN_EMAIL         ?? 'hasandriamirama@hotmail.com'
@@ -101,6 +101,7 @@ export async function sendPaymentReceivedToClient(data: {
 	totalPrice: number
 	reservationId: string
 	expiresAt: Date
+	depositInvoiceUrl?: string
 }) {
 	const expiryStr = data.expiresAt.toLocaleDateString('fr-FR', {
 		weekday:'long', day:'2-digit', month:'long', year:'numeric'
@@ -123,6 +124,12 @@ export async function sendPaymentReceivedToClient(data: {
 				<span class="info-value" style="color:#10B981;font-weight:700;">${data.depositAmount.toLocaleString('fr-FR')} €</span></div>
 			<div class="info-row"><span class="info-label">Solde restant</span>
 				<span class="info-value">${(data.totalPrice - data.depositAmount).toLocaleString('fr-FR')} €</span></div>
+			
+			${data.depositInvoiceUrl ? `
+			<div style="text-align:center; margin-top: 15px; margin-bottom: 5px;">
+				<a href="${data.depositInvoiceUrl}" class="btn" style="background:linear-gradient(135deg,#1E1E26,#2D2D3A); color:#D4AF37; border: 1px solid #D4AF37; margin:0; padding:10px 20px; font-size:13px; text-decoration:none; display:inline-block; font-weight:700; border-radius:8px;">Télécharger votre facture d'acompte (PDF)</a>
+			</div>
+			` : ''}
 		</div>
 
 		<div class="alert">

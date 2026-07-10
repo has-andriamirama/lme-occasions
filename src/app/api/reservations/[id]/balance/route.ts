@@ -142,6 +142,13 @@ export async function PUT(
 				})
 			})
 
+			try {
+				const { generateAndUploadInvoice } = await import('@/lib/invoice')
+				await generateAndUploadInvoice(params.id, 'FULL')
+			} catch (invErr) {
+				console.error('[Balance Payment] Échec de génération de la facture de totalité :', invErr)
+			}
+
 			await safePusher(async () => {
 				await broadcastCarUpdated({ id: reservation.carId, status: 'SOLD', title: reservation.car.title })
 				await broadcastReservationUpdated({
@@ -177,6 +184,23 @@ export async function PUT(
 					data:  { status: 'RESERVED' },
 				})
 			})
+
+			try {
+				const currentRes = await prisma.reservation.findUnique({
+					where: { id: params.id },
+					select: { fullInvoiceUrl: true },
+				})
+				if (currentRes?.fullInvoiceUrl) {
+					const { deleteInvoiceFromCloudinary } = await import('@/lib/invoice')
+					await deleteInvoiceFromCloudinary(currentRes.fullInvoiceUrl)
+					await prisma.reservation.update({
+						where: { id: params.id },
+						data:  { fullInvoiceUrl: null },
+					})
+				}
+			} catch (invErr) {
+				console.error('[Balance Payment] Échec de suppression de la facture de totalité :', invErr)
+			}
 
 			await safePusher(async () => {
 				await broadcastCarUpdated({ id: reservation.carId, status: 'RESERVED', title: reservation.car.title })
