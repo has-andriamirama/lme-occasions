@@ -116,40 +116,6 @@ export async function PUT(
 			return reservation
 		})
 
-		try {
-			const { generateAndUploadInvoice, deleteInvoiceFromCloudinary } = await import('@/lib/invoice')
-			
-			if (wasFullyCoveredByDeposit !== willBeFullyCoveredByDeposit) {
-				if (willBeFullyCoveredByDeposit) {
-					await generateAndUploadInvoice(params.id, 'FULL')
-					if (existing.depositInvoiceUrl) {
-						await deleteInvoiceFromCloudinary(existing.depositInvoiceUrl)
-						await prisma.reservation.update({
-							where: { id: params.id },
-							data:  { depositInvoiceUrl: null },
-						})
-					}
-				} else {
-					await generateAndUploadInvoice(params.id, 'DEPOSIT')
-					if (existing.fullInvoiceUrl) {
-						await deleteInvoiceFromCloudinary(existing.fullInvoiceUrl)
-						await prisma.reservation.update({
-							where: { id: params.id },
-							data:  { fullInvoiceUrl: null },
-						})
-					}
-				}
-			} else if (data.totalPrice !== undefined || data.depositAmount !== undefined) {
-				if (willBeFullyCoveredByDeposit) {
-					await generateAndUploadInvoice(params.id, 'FULL')
-				} else {
-					await generateAndUploadInvoice(params.id, 'DEPOSIT')
-				}
-			}
-		} catch (invErr) {
-			console.error('[PUT /api/reservations/:id] Échec de gestion des factures lors de la mise à jour :', invErr)
-		}
-
 		await createAuditLog(session.user.id, 'UPDATE', 'Reservation', params.id, {
 			changes: data,
 			fullyCoveredTransition: wasFullyCoveredByDeposit !== willBeFullyCoveredByDeposit
@@ -230,16 +196,6 @@ export async function PATCH(
 				})
 			}
 		})
-
-		if (action === 'COMPLETE') {
-			try {
-				const { generateAndUploadInvoice } = await import('@/lib/invoice')
-				await generateAndUploadInvoice(params.id, 'FULL')
-				console.log('[PATCH /api/reservations/:id] Facture de totalité générée après finalisation manuelle.')
-			} catch (invErr) {
-				console.error('[PATCH /api/reservations/:id] Échec de génération de la facture de totalité :', invErr)
-			}
-		}
 
 		await safePusher(async () => {
 			if (action === 'CONFIRM') {

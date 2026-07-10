@@ -69,15 +69,6 @@ export async function POST(req: NextRequest) {
 				})
 				if (!paid) { console.log('[Webhook] Réservation payée introuvable après transaction'); break }
 
-				let depositInvoiceUrl: string | undefined = undefined
-				try {
-					const { generateAndUploadInvoice } = await import('@/lib/invoice')
-					depositInvoiceUrl = await generateAndUploadInvoice(paid.id, 'DEPOSIT')
-					console.log('[Webhook] Facture d\'acompte générée avec succès :', depositInvoiceUrl)
-				} catch (invErr) {
-					console.error('[Webhook] Échec de génération de la facture d\'acompte :', invErr)
-				}
-
 				await safePusher(async () => {
 					await broadcastCarUpdated({ id: carId, status: 'RESERVED', title: paid.car.title })
 					await broadcastReservationCreated({
@@ -109,7 +100,6 @@ export async function POST(req: NextRequest) {
 						totalPrice:    paid.totalPrice,
 						reservationId: paid.id,
 						expiresAt:     paid.expiresAt,
-						depositInvoiceUrl,
 					}).then(() =>
 						prisma.reservation.update({ where: { id: paid.id }, data: { emailSentToClient: true } })
 					),

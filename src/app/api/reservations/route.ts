@@ -82,13 +82,6 @@ export async function POST(req: NextRequest) {
 
 		const { car, reservation } = result
 
-		try {
-			const { generateAndUploadInvoice } = await import('@/lib/invoice')
-			await generateAndUploadInvoice(reservation.id, fullyCoveredByDeposit ? 'FULL' : 'DEPOSIT')
-		} catch (invErr) {
-			console.error('[POST /api/reservations] Échec de génération de la facture d\'admin :', invErr)
-		}
-
 		await createAuditLog(session.user.id, 'CREATE', 'Reservation', reservation.id, {
 			carId, clientName, depositAmount, totalPrice, installmentType, manual: true,
 			fullyCoveredByDeposit,

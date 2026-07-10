@@ -15,7 +15,6 @@ import {
 	TrendingUp,
 	Info,
 	Lock,
-	Download,
 } from 'lucide-react'
 import { formatPrice, formatDate } from '@/lib/utils'
 import { isFullyCoveredByDeposit } from '@/lib/balance'
@@ -38,8 +37,6 @@ export interface PaymentTrackerProps {
 	installmentType:   'FULL' | 'THREE_TIMES' | 'FOUR_TIMES'
 	reservationStatus: string
 	balancePayment:    BalancePaymentSerialized | null
-	depositInvoiceUrl?: string | null
-	fullInvoiceUrl?:    string | null
 }
 
 const INSTALLMENT_LABEL: Record<string, string> = {
@@ -61,8 +58,6 @@ export default function PaymentTracker({
 	installmentType,
 	reservationStatus,
 	balancePayment: initialBalancePayment,
-	depositInvoiceUrl,
-	fullInvoiceUrl,
 }: PaymentTrackerProps) {
 	const router = useRouter()
 
@@ -304,22 +299,8 @@ export default function PaymentTracker({
 									<td className="px-4 py-3.5 text-center hidden md:table-cell">
 										<span className="text-xs text-dark-400">{formatDate(depositDate)}</span>
 									</td>
-									<td className="px-4 py-3.5 text-center">
-										{depositInvoiceUrl ? (
-											<div className="flex items-center justify-center">
-												<ActionIconButton
-													as="link"
-													href={depositInvoiceUrl}
-													target="_blank"
-													variant="default"
-													title="Télécharger la facture d'acompte"
-												>
-													<Download className="w-4 h-4" />
-												</ActionIconButton>
-											</div>
-										) : (
-											<span className="text-xs text-dark-600">—</span>
-										)}
+									<td className="px-4 py-3.5 text-right">
+										<span className="text-xs text-dark-600">—</span>
 									</td>
 								</tr>
 
@@ -361,18 +342,6 @@ export default function PaymentTracker({
 
 									<td className="px-4 py-3.5">
 										<div className="flex items-center justify-center gap-1">
-											{isPaid && fullInvoiceUrl && (
-												<ActionIconButton
-													as="link"
-													href={fullInvoiceUrl}
-													target="_blank"
-													variant="default"
-													title="Télécharger la facture de totalité"
-												>
-													<Download className="w-4 h-4" />
-												</ActionIconButton>
-											)}
-
 											<ActionIconButton
 												as="button"
 												variant="edit"

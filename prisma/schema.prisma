@@ -139,8 +139,6 @@ model Reservation {
 	emailSentToAdmin    Boolean           @default(false)
 	emailSentToClient   Boolean           @default(false)
 	expiredEmailSent    Boolean           @default(false)
-	depositInvoiceUrl   String?
-	fullInvoiceUrl      String?
 	notes               String?           @db.Text
 
 	car                 Car               @relation(fields: [carId], references: [id])
