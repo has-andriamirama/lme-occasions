@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
 import { broadcastCarUpdated, broadcastReservationUpdated, broadcastReservationCancelled } from '@/lib/pusher'
-import { sendReservationConfirmedToClient } from '@/lib/mail'
+import { sendReservationConfirmedToClient, sendBalancePaidToClient } from '@/lib/mail'
 import {
 	recreateBalancePayment,
 	calculateUpdatedExpectedAmount,
@@ -148,7 +148,24 @@ export async function PUT(
 
 		if (!wasFullyCoveredByDeposit && willBeFullyCoveredByDeposit) {
 			await deleteInvoice(params.id, 'DEPOSIT')
-			await upsertInvoice(buildInvoiceContext(updated, existing.car, 'TOTAL'))
+			const invoiceResult = await upsertInvoice(buildInvoiceContext(updated, existing.car, 'TOTAL'))
+
+			if (invoiceResult?.url) {
+				sendBalancePaidToClient({
+					clientName:    updated.clientName,
+					clientEmail:   updated.clientEmail,
+					carTitle:      existing.car.title,
+					carBrand:      existing.car.brand,
+					carModel:      existing.car.model,
+					carYear:       existing.car.year,
+					depositAmount: updated.depositAmount,
+					totalPrice:    updated.totalPrice,
+					reservationId: updated.id,
+					invoiceUrl:    invoiceResult.url,
+				}).catch((mailErr) =>
+					console.error('[PUT /api/reservations/:id] Email de finalisation de solde échoué (via acompte total) :', mailErr)
+				)
+			}
 		} else if (wasFullyCoveredByDeposit && !willBeFullyCoveredByDeposit) {
 			await deleteInvoice(params.id, 'TOTAL')
 			await upsertInvoice(buildInvoiceContext(updated, existing.car, 'DEPOSIT'))
@@ -238,7 +255,24 @@ export async function PATCH(
 		})
 
 		if (action === 'COMPLETE') {
-			await upsertInvoice(buildInvoiceContext(reservation, reservation.car, 'TOTAL'))
+			const invoice = await upsertInvoice(buildInvoiceContext(reservation, reservation.car, 'TOTAL'))
+
+			if (invoice?.url) {
+				sendBalancePaidToClient({
+					clientName:      reservation.clientName,
+					clientEmail:     reservation.clientEmail,
+					carTitle:        reservation.car.title,
+					carBrand:        reservation.car.brand,
+					carModel:        reservation.car.model,
+					carYear:         reservation.car.year,
+					depositAmount:   reservation.depositAmount,
+					totalPrice:      reservation.totalPrice,
+					reservationId:   reservation.id,
+					invoiceUrl:      invoice.url,
+				}).catch((mailErr) =>
+					console.error('[PATCH /api/reservations/:id] Email de finalisation de solde échoué :', mailErr)
+				)
+			}
 		}
 
 		await safePusher(async () => {
@@ -285,6 +319,10 @@ export async function PATCH(
 		}, 'PATCH /api/reservations/:id')
 
 		if (action === 'CONFIRM') {
+			const depositInvoice = await prisma.invoice.findFirst({
+				where: { reservationId: reservation.id, type: 'DEPOSIT' }
+			})
+
 			sendReservationConfirmedToClient({
 				clientName:      reservation.clientName,
 				clientEmail:     reservation.clientEmail,
@@ -296,8 +334,9 @@ export async function PATCH(
 				totalPrice:      reservation.totalPrice,
 				reservationId:   reservation.id,
 				installmentType: reservation.installmentType,
+				invoiceUrl:      depositInvoice?.url ?? null,
 			}).catch((mailErr) =>
-				console.error('[PATCH /api/reservations/:id] Email de confirmation échoué (non-critique) :', mailErr)
+				console.error('[PATCH /api/reservations/:id] Email de confirmation échoué (non-critique) : ', mailErr)
 			)
 		}
 
