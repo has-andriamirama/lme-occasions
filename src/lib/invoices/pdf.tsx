@@ -223,7 +223,7 @@ function InvoiceDocument({ ctx, number, issuedAt }: InvoiceDocumentProps) {
 			<Page size="A4" style={styles.page}>
 				<View style={styles.headerRow}>
 					<View>
-						<Text style={styles.brand}>COMPANY.name</Text>
+						<Text style={styles.brand}>{COMPANY.name}</Text>
 						<Text style={styles.tagline}>{COMPANY.tagline}</Text>
 						{COMPANY.addressLine1 || COMPANY.email || COMPANY.phone ? (
 							<View style={styles.companyBlock}>
