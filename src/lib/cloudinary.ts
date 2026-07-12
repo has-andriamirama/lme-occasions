@@ -39,9 +39,7 @@ export async function uploadRawFile(
 		stream.end(buffer)
 	})
 
-	const url = cloudinary.url(result.public_id, { resource_type: 'raw', secure: true })
-
-	return { url, cloudinaryId: result.public_id }
+	return { url: result.secure_url, cloudinaryId: result.public_id }
 }
 
 export async function deleteRawFile(cloudinaryId: string): Promise<void> {
