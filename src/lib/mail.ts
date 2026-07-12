@@ -42,7 +42,7 @@ function wrap(content: string): string {
 							<tr>
 								<td align="center" bgcolor="#0A0A0B" style="background-color: #0A0A0B; border: 1px solid rgba(255,255,255,0.04); border-top: none; border-radius: 0 0 12px 12px; padding: 24px; text-align: center;">
 									<p style="margin: 0; line-height: 1.7; color: #555560; font-size: 12px; text-align: center;">© ${new Date().getFullYear()} LME Occasions. Tous droits réservés.</p>
-									<p style="margin: 8px 0 0 0; line-height: 1.7; color: #555560; font-size: 12px; text-align: center;">
+									<p style="margin: 6px 0 0; line-height: 1.7; color: #555560; font-size: 12px; text-align: center;">
 										<a href="${APP_URL}/cgv" style="color: #D4AF37; text-decoration: none;">CGV</a> &nbsp;·&nbsp;
 										<a href="${APP_URL}/confidentialite" style="color: #D4AF37; text-decoration: none;">Confidentialité</a> &nbsp;·&nbsp;
 										<a href="${APP_URL}/contact" style="color: #D4AF37; text-decoration: none;">Contact</a>
@@ -103,31 +103,31 @@ export async function sendPaymentReceivedToClient(data: {
 		<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #1E1E26; border: 1px solid rgba(212,175,55,0.2); border-radius: 8px; padding: 20px; margin: 20px 0; width: 100%; border-collapse: collapse;">
 			<tr>
 				<td style="padding-bottom: 12px; text-align: left;">
-					<div style="font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 8px;">${data.carTitle}</div>
+					<div style="font-size: 14px; font-weight: 700; color: #fff;">${data.carTitle}</div>
 				</td>
 			</tr>
 			<tr>
 				<td>
 					<table border="0" cellpadding="0" cellspacing="0" width="100%">
 						<tr>
-							<td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Référence réservation</td>
-							<td align="right" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">#${data.reservationId.slice(-8).toUpperCase()}</td>
+							<td style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Référence réservation</td>
+							<td align="right" style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">#${data.reservationId.slice(-8).toUpperCase()}</td>
 						</tr>
 						<tr>
-							<td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Véhicule</td>
-							<td align="right" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.carBrand} ${data.carModel} ${data.carYear}</td>
+							<td style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Véhicule</td>
+							<td align="right" style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.carBrand} ${data.carModel} ${data.carYear}</td>
 						</tr>
 						<tr>
-							<td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Prix total du véhicule</td>
-							<td align="right" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 22px; color: #D4AF37; font-weight: 700; text-align: right;">${data.totalPrice.toLocaleString('fr-FR')} €</td>
+							<td style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Prix total du véhicule</td>
+							<td align="right" style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 22px; color: #D4AF37; font-weight: 700; text-align: right;">${data.totalPrice.toLocaleString('fr-FR')} €</td>
 						</tr>
 						<tr>
-							<td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Acompte versé (30%)</td>
-							<td align="right" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #10B981; font-weight: 700; text-align: right;">${data.depositAmount.toLocaleString('fr-FR')} €</td>
+							<td style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Acompte versé (30%)</td>
+							<td align="right" style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #10B981; font-weight: 700; text-align: right;">${data.depositAmount.toLocaleString('fr-FR')} €</td>
 						</tr>
 						<tr>
-							<td style="padding: 8px 0; font-size: 14px; color: #9C9CA3; text-align: left;">Solde restant</td>
-							<td align="right" style="padding: 8px 0; font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${(data.totalPrice - data.depositAmount).toLocaleString('fr-FR')} €</td>
+							<td style="padding: 6px; font-size: 14px; color: #9C9CA3; text-align: left;">Solde restant</td>
+							<td align="right" style="padding: 6px; font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${(data.totalPrice - data.depositAmount).toLocaleString('fr-FR')} €</td>
 						</tr>
 					</table>
 				</td>
@@ -216,31 +216,31 @@ export async function sendReservationConfirmedToClient(data: {
 		<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #1E1E26; border: 1px solid rgba(212,175,55,0.2); border-radius: 8px; padding: 20px; margin: 20px 0; width: 100%; border-collapse: collapse;">
 			<tr>
 				<td style="padding-bottom: 12px; text-align: left;">
-					<div style="font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 8px;">${data.carTitle}</div>
+					<div style="font-size: 14px; font-weight: 700; color: #fff;">${data.carTitle}</div>
 				</td>
 			</tr>
 			<tr>
 				<td>
 					<table border="0" cellpadding="0" cellspacing="0" width="100%">
 						<tr>
-							<td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Référence réservation</td>
-							<td align="right" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">#${data.reservationId.slice(-8).toUpperCase()}</td>
+							<td style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Référence réservation</td>
+							<td align="right" style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">#${data.reservationId.slice(-8).toUpperCase()}</td>
 						</tr>
 						<tr>
-							<td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Véhicule</td>
-							<td align="right" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.carBrand} ${data.carModel} ${data.carYear}</td>
+							<td style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Véhicule</td>
+							<td align="right" style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.carBrand} ${data.carModel} ${data.carYear}</td>
 						</tr>
 						<tr>
-							<td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Prix total du véhicule</td>
-							<td align="right" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 22px; color: #D4AF37; font-weight: 700; text-align: right;">${data.totalPrice.toLocaleString('fr-FR')} €</td>
+							<td style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Prix total du véhicule</td>
+							<td align="right" style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 22px; color: #D4AF37; font-weight: 700; text-align: right;">${data.totalPrice.toLocaleString('fr-FR')} €</td>
 						</tr>
 						<tr>
-							<td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Acompte versé</td>
-							<td align="right" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #10B981; font-weight: 700; text-align: right;">${data.depositAmount.toLocaleString('fr-FR')} €</td>
+							<td style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Acompte versé</td>
+							<td align="right" style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #10B981; font-weight: 700; text-align: right;">${data.depositAmount.toLocaleString('fr-FR')} €</td>
 						</tr>
 						<tr>
-							<td style="padding: 8px 0; font-size: 14px; color: #9C9CA3; text-align: left;">Solde restant</td>
-							<td align="right" style="padding: 8px 0; font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${balance.toLocaleString('fr-FR')} €</td>
+							<td style="padding: 6px; font-size: 14px; color: #9C9CA3; text-align: left;">Solde restant</td>
+							<td align="right" style="padding: 6px; font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${balance.toLocaleString('fr-FR')} €</td>
 						</tr>
 					</table>
 				</td>
@@ -309,39 +309,39 @@ export async function sendReservationNotificationToAdmin(data: {
 		<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #1E1E26; border: 1px solid rgba(212,175,55,0.2); border-radius: 8px; padding: 20px; margin: 20px 0; width: 100%; border-collapse: collapse;">
 			<tr>
 				<td style="padding-bottom: 12px; text-align: left;">
-					<div style="font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 8px;">Réservation #${data.reservationId.slice(-8).toUpperCase()}</div>
+					<div style="font-size: 14px; font-weight: 700; color: #fff;">Réservation #${data.reservationId.slice(-8).toUpperCase()}</div>
 				</td>
 			</tr>
 			<tr>
 				<td>
 					<table border="0" cellpadding="0" cellspacing="0" width="100%">
 						<tr>
-							<td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Client</td>
-							<td align="right" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.clientName}</td>
+							<td style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Client</td>
+							<td align="right" style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.clientName}</td>
 						</tr>
 						<tr>
-							<td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Email</td>
-							<td align="right" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.clientEmail}</td>
+							<td style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Email</td>
+							<td align="right" style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.clientEmail}</td>
 						</tr>
 						<tr>
-							<td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Téléphone</td>
-							<td align="right" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.clientPhone}</td>
+							<td style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Téléphone</td>
+							<td align="right" style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.clientPhone}</td>
 						</tr>
 						<tr>
-							<td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Véhicule</td>
-							<td align="right" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.carTitle}</td>
+							<td style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Véhicule</td>
+							<td align="right" style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.carTitle}</td>
 						</tr>
 						<tr>
-							<td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Acompte reçu</td>
-							<td align="right" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 22px; color: #D4AF37; font-weight: 700; text-align: right;">${data.depositAmount.toLocaleString('fr-FR')} €</td>
+							<td style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Acompte reçu</td>
+							<td align="right" style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 22px; color: #D4AF37; font-weight: 700; text-align: right;">${data.depositAmount.toLocaleString('fr-FR')} €</td>
 						</tr>
 						<tr>
-							<td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Prix total</td>
-							<td align="right" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.totalPrice.toLocaleString('fr-FR')} €</td>
+							<td style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Prix total</td>
+							<td align="right" style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.totalPrice.toLocaleString('fr-FR')} €</td>
 						</tr>
 						<tr>
-							<td style="padding: 8px 0; font-size: 14px; color: #9C9CA3; text-align: left;">Expire le</td>
-							<td align="right" style="padding: 8px 0; font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.expiresAt.toLocaleDateString('fr-FR')}</td>
+							<td style="padding: 6px; font-size: 14px; color: #9C9CA3; text-align: left;">Expire le</td>
+							<td align="right" style="padding: 6px; font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.expiresAt.toLocaleDateString('fr-FR')}</td>
 						</tr>
 					</table>
 				</td>
@@ -420,16 +420,16 @@ export async function sendReservationExpiredToAdmin(data: {
 				<td>
 					<table border="0" cellpadding="0" cellspacing="0" width="100%">
 						<tr>
-							<td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Réservation</td>
-							<td align="right" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">#${data.reservationId.slice(-8).toUpperCase()}</td>
+							<td style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Réservation</td>
+							<td align="right" style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">#${data.reservationId.slice(-8).toUpperCase()}</td>
 						</tr>
 						<tr>
-							<td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Client</td>
-							<td align="right" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.clientName} (${data.clientEmail})</td>
+							<td style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Client</td>
+							<td align="right" style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.clientName} (${data.clientEmail})</td>
 						</tr>
 						<tr>
-							<td style="padding: 8px 0; font-size: 14px; color: #9C9CA3; text-align: left;">Véhicule</td>
-							<td align="right" style="padding: 8px 0; font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.carTitle}</td>
+							<td style="padding: 6px; font-size: 14px; color: #9C9CA3; text-align: left;">Véhicule</td>
+							<td align="right" style="padding: 6px; font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.carTitle}</td>
 						</tr>
 					</table>
 				</td>
@@ -468,22 +468,22 @@ export async function sendContactEmail(data: {
 				<td>
 					<table border="0" cellpadding="0" cellspacing="0" width="100%">
 						<tr>
-							<td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Nom</td>
-							<td align="right" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.name}</td>
+							<td style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Nom</td>
+							<td align="right" style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.name}</td>
 						</tr>
 						<tr>
-							<td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Email</td>
-							<td align="right" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.email}</td>
+							<td style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Email</td>
+							<td align="right" style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.email}</td>
 						</tr>
 						${data.phone ? `
 						<tr>
-							<td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Téléphone</td>
-							<td align="right" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.phone}</td>
+							<td style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Téléphone</td>
+							<td align="right" style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.phone}</td>
 						</tr>` : ''}
 						${data.subject ? `
 						<tr>
-							<td style="padding: 8px 0; font-size: 14px; color: #9C9CA3; text-align: left;">Sujet</td>
-							<td align="right" style="padding: 8px 0; font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.subject}</td>
+							<td style="padding: 6px; font-size: 14px; color: #9C9CA3; text-align: left;">Sujet</td>
+							<td align="right" style="padding: 6px; font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.subject}</td>
 						</tr>` : ''}
 					</table>
 				</td>
@@ -537,31 +537,31 @@ export async function sendBalancePaidToClient(data: {
 		<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #1E1E26; border: 1px solid rgba(212,175,55,0.2); border-radius: 8px; padding: 20px; margin: 20px 0; width: 100%; border-collapse: collapse;">
 			<tr>
 				<td style="padding-bottom: 12px; text-align: left;">
-					<div style="font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 8px;">${data.carTitle}</div>
+					<div style="font-size: 14px; font-weight: 700; color: #fff;">${data.carTitle}</div>
 				</td>
 			</tr>
 			<tr>
 				<td>
 					<table border="0" cellpadding="0" cellspacing="0" width="100%">
 						<tr>
-							<td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Référence réservation</td>
-							<td align="right" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">#${data.reservationId.slice(-8).toUpperCase()}</td>
+							<td style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Référence réservation</td>
+							<td align="right" style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">#${data.reservationId.slice(-8).toUpperCase()}</td>
 						</tr>
 						<tr>
-							<td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Véhicule</td>
-							<td align="right" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.carBrand} ${data.carModel} ${data.carYear}</td>
+							<td style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Véhicule</td>
+							<td align="right" style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">${data.carBrand} ${data.carModel} ${data.carYear}</td>
 						</tr>
 						<tr>
-							<td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Prix total</td>
-							<td align="right" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 22px; color: #D4AF37; font-weight: 700; text-align: right;">${data.totalPrice.toLocaleString('fr-FR')} €</td>
+							<td style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Prix total</td>
+							<td align="right" style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 22px; color: #D4AF37; font-weight: 700; text-align: right;">${data.totalPrice.toLocaleString('fr-FR')} €</td>
 						</tr>
 						<tr>
-							<td style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Acompte versé</td>
-							<td align="right" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #10B981; font-weight: 700; text-align: right;">${data.depositAmount.toLocaleString('fr-FR')} €</td>
+							<td style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #9C9CA3; text-align: left;">Acompte versé</td>
+							<td align="right" style="padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; color: #10B981; font-weight: 700; text-align: right;">${data.depositAmount.toLocaleString('fr-FR')} €</td>
 						</tr>
 						<tr>
-							<td style="padding: 8px 0; font-size: 14px; color: #9C9CA3; text-align: left;">Solde restant</td>
-							<td align="right" style="padding: 8px 0; font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">0 € (Entièrement réglé)</td>
+							<td style="padding: 6px; font-size: 14px; color: #9C9CA3; text-align: left;">Solde restant</td>
+							<td align="right" style="padding: 6px; font-size: 14px; color: #E4E4E6; font-weight: 500; text-align: right;">0 € (Entièrement réglé)</td>
 						</tr>
 					</table>
 				</td>
