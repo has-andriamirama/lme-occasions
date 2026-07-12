@@ -24,6 +24,7 @@ export async function uploadRawFile(
 			{
 				resource_type: 'raw',
 				public_id: fullPublicId,
+				asset_folder: folder,
 				overwrite: true,
 				invalidate: true,
 			},
