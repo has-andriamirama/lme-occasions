@@ -6,7 +6,6 @@ import { requireSession, apiError, validationError, createAuditLog, safePusher }
 import { computePaymentSummary } from '@/lib/queries'
 import { computeBalanceExpectedAmount } from '@/lib/balance'
 import { upsertInvoice, deleteInvoice, depositPaymentMethodLabel } from '@/lib/invoices'
-import { sendBalancePaidToClient } from '@/lib/mail'
 import { z } from 'zod'
 
 export async function GET(
@@ -220,7 +219,7 @@ export async function PUT(
 				: reservation.status
 
 		if (effectiveStatus === 'COMPLETED') {
-			const invoice = await upsertInvoice({
+			await upsertInvoice({
 				reservationId:  reservation.id,
 				reservationRef: reservation.id.slice(-8).toUpperCase(),
 				type:           'TOTAL',
@@ -241,23 +240,6 @@ export async function PUT(
 				paymentMethodBalance: 'Réglé en agence',
 				balancePaidAt:        updatedBalance.paidAt,
 			})
-
-			if (invoice?.url) {
-				sendBalancePaidToClient({
-					clientName:      reservation.clientName,
-					clientEmail:     reservation.clientEmail,
-					carTitle:        reservation.car.title,
-					carBrand:        reservation.car.brand,
-					carModel:        reservation.car.model,
-					carYear:         reservation.car.year,
-					depositAmount:   reservation.depositAmount,
-					totalPrice:      reservation.totalPrice,
-					reservationId:   reservation.id,
-					invoiceUrl:      invoice.url,
-				}).catch((mailErr) =>
-					console.error('[PUT /api/reservations/:id/balance] Email de finalisation de solde échoué :', mailErr)
-				)
-			}
 		} else if (autoReverted) {
 			await deleteInvoice(reservation.id, 'TOTAL')
 		}
