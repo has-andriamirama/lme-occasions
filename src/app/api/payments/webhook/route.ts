@@ -4,6 +4,7 @@ import { constructWebhookEvent } from '@/lib/stripe'
 import prisma from '@/lib/db'
 import { broadcastCarUpdated, broadcastReservationCreated } from '@/lib/pusher'
 import { sendPaymentReceivedToClient, sendReservationNotificationToAdmin } from '@/lib/mail'
+import { upsertInvoice, depositPaymentMethodLabel } from '@/lib/invoices'
 import { safePusher } from '@/lib/api'
 
 export async function POST(req: NextRequest) {
@@ -89,6 +90,18 @@ export async function POST(req: NextRequest) {
 					})
 				}, 'Webhook')
 
+				// Facture d'acompte pour le paiement en ligne qui vient d'être confirmé.
+				const invoice = await upsertInvoice({
+					reservationId:  paid.id,
+					reservationRef: paid.id.slice(-8).toUpperCase(),
+					type:           'DEPOSIT',
+					vehicle:        { title: paid.car.title, brand: paid.car.brand, model: paid.car.model, year: paid.car.year },
+					client:         { name: clientName, email: clientEmail, phone: clientPhone },
+					totalPrice:            paid.totalPrice,
+					depositAmount:         paid.depositAmount,
+					paymentMethodDeposit:  depositPaymentMethodLabel(true),
+				})
+
 				await Promise.all([
 					sendPaymentReceivedToClient({
 						clientName, clientEmail,
@@ -100,6 +113,7 @@ export async function POST(req: NextRequest) {
 						totalPrice:    paid.totalPrice,
 						reservationId: paid.id,
 						expiresAt:     paid.expiresAt,
+						invoiceUrl:    invoice?.url ?? null,
 					}).then(() =>
 						prisma.reservation.update({ where: { id: paid.id }, data: { emailSentToClient: true } })
 					),

@@ -15,6 +15,7 @@ import {
 	TrendingUp,
 	Info,
 	Lock,
+	Download,
 } from 'lucide-react'
 import { formatPrice, formatDate } from '@/lib/utils'
 import { isFullyCoveredByDeposit } from '@/lib/balance'
@@ -37,6 +38,8 @@ export interface PaymentTrackerProps {
 	installmentType:   'FULL' | 'THREE_TIMES' | 'FOUR_TIMES'
 	reservationStatus: string
 	balancePayment:    BalancePaymentSerialized | null
+	depositInvoiceUrl: string | null
+	finalInvoiceUrl:   string | null
 }
 
 const INSTALLMENT_LABEL: Record<string, string> = {
@@ -58,6 +61,8 @@ export default function PaymentTracker({
 	installmentType,
 	reservationStatus,
 	balancePayment: initialBalancePayment,
+	depositInvoiceUrl,
+	finalInvoiceUrl,
 }: PaymentTrackerProps) {
 	const router = useRouter()
 
@@ -198,6 +203,19 @@ export default function PaymentTracker({
 							L&apos;acompte de {formatPrice(depositAmount)} couvrait déjà la totalité du prix de vente
 							({formatPrice(totalPrice)}) — aucun reste n&apos;était à régler.
 						</p>
+						{finalInvoiceUrl ? (
+							<a
+								href={finalInvoiceUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-400 hover:text-brand-300 transition-colors mt-3"
+							>
+								<Download className="w-3.5 h-3.5" />
+								Télécharger la facture
+							</a>
+						) : (
+							<p className="text-xs text-dark-500 mt-3 italic">Facture indisponible</p>
+						)}
 					</div>
 				</div>
 			)
@@ -279,7 +297,7 @@ export default function PaymentTracker({
 									<th className="text-left px-4 py-2.5 font-medium">Paiement</th>
 									<th className="text-right px-4 py-2.5 font-medium">Encaissé</th>
 									<th className="text-center px-4 py-2.5 font-medium hidden md:table-cell">Date</th>
-									<th className="text-center px-4 py-2.5 font-medium w-28">Actions</th>
+									<th className="text-center px-4 py-2.5 font-medium w-36">Actions</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -299,8 +317,29 @@ export default function PaymentTracker({
 									<td className="px-4 py-3.5 text-center hidden md:table-cell">
 										<span className="text-xs text-dark-400">{formatDate(depositDate)}</span>
 									</td>
-									<td className="px-4 py-3.5 text-right">
-										<span className="text-xs text-dark-600">—</span>
+									<td className="px-4 py-3.5">
+										<div className="flex items-center justify-center">
+											{depositInvoiceUrl ? (
+												<ActionIconButton
+													as="link"
+													href={depositInvoiceUrl}
+													target="_blank"
+													variant="success"
+													title="Télécharger la facture d'acompte"
+												>
+													<Download className="w-4 h-4" />
+												</ActionIconButton>
+											) : (
+												<ActionIconButton
+													as="button"
+													variant="default"
+													disabled
+													title="Facture d'acompte indisponible"
+												>
+													<Download className="w-4 h-4" />
+												</ActionIconButton>
+											)}
+										</div>
 									</td>
 								</tr>
 
@@ -342,6 +381,27 @@ export default function PaymentTracker({
 
 									<td className="px-4 py-3.5">
 										<div className="flex items-center justify-center gap-1">
+											{finalInvoiceUrl ? (
+												<ActionIconButton
+													as="link"
+													href={finalInvoiceUrl}
+													target="_blank"
+													variant="success"
+													title="Télécharger la facture"
+												>
+													<Download className="w-4 h-4" />
+												</ActionIconButton>
+											) : (
+												<ActionIconButton
+													as="button"
+													variant="default"
+													disabled
+													title={isCompleted ? 'Facture indisponible' : 'Facture disponible une fois le solde réglé'}
+												>
+													<Download className="w-4 h-4" />
+												</ActionIconButton>
+											)}
+
 											<ActionIconButton
 												as="button"
 												variant="edit"

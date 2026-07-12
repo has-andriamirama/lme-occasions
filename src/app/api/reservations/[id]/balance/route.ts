@@ -5,6 +5,7 @@ import { broadcastCarUpdated, broadcastReservationUpdated } from '@/lib/pusher'
 import { requireSession, apiError, validationError, createAuditLog, safePusher } from '@/lib/api'
 import { computePaymentSummary } from '@/lib/queries'
 import { computeBalanceExpectedAmount } from '@/lib/balance'
+import { upsertInvoice, deleteInvoice, depositPaymentMethodLabel } from '@/lib/invoices'
 import { z } from 'zod'
 
 export async function GET(
@@ -73,7 +74,7 @@ export async function PUT(
 		const reservation = await prisma.reservation.findUnique({
 			where:   { id: params.id },
 			include: {
-				car:            { select: { id: true, title: true } },
+				car:            { select: { id: true, title: true, brand: true, model: true, year: true } },
 				balancePayment: true,
 			},
 		})
@@ -216,6 +217,32 @@ export async function PUT(
 			: autoReverted
 				? 'CONFIRMED'
 				: reservation.status
+
+		if (effectiveStatus === 'COMPLETED') {
+			await upsertInvoice({
+				reservationId:  reservation.id,
+				reservationRef: reservation.id.slice(-8).toUpperCase(),
+				type:           'TOTAL',
+				vehicle: {
+					title: reservation.car.title,
+					brand: reservation.car.brand,
+					model: reservation.car.model,
+					year:  reservation.car.year,
+				},
+				client: {
+					name:  reservation.clientName,
+					email: reservation.clientEmail,
+					phone: reservation.clientPhone,
+				},
+				totalPrice:           reservation.totalPrice,
+				depositAmount:        reservation.depositAmount,
+				paymentMethodDeposit: depositPaymentMethodLabel(!!reservation.paymentIntentId),
+				paymentMethodBalance: 'Réglé en agence',
+				balancePaidAt:        updatedBalance.paidAt,
+			})
+		} else if (autoReverted) {
+			await deleteInvoice(reservation.id, 'TOTAL')
+		}
 
 		return NextResponse.json({
 			success: true,

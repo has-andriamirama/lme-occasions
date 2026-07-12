@@ -144,6 +144,7 @@ model Reservation {
 	car                 Car               @relation(fields: [carId], references: [id])
 	
 	balancePayment      BalancePayment?
+	invoices            Invoice[]
 
 	@@map("reservations")
 }
@@ -176,6 +177,39 @@ model BalancePayment {
 	reservation    Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
 
 	@@map("balance_payments")
+}
+
+model Invoice {
+	id             String      @id @default(cuid())
+	reservationId  String
+	type           InvoiceType
+	number         String      @unique
+	amount         Float
+	url            String
+	cloudinaryId   String
+	issuedAt       DateTime    @default(now())
+	createdAt      DateTime    @default(now())
+	updatedAt      DateTime    @updatedAt
+
+	reservation    Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+	@@unique([reservationId, type])
+	@@map("invoices")
+}
+
+enum InvoiceType {
+	DEPOSIT
+	TOTAL
+}
+
+model InvoiceCounter {
+	id      String      @id @default(cuid())
+	year    Int
+	type    InvoiceType
+	lastSeq Int         @default(0)
+
+	@@unique([year, type])
+	@@map("invoice_counters")
 }
 
 model Contact {

@@ -36,7 +36,10 @@ function wrap(content: string): string {
 				.highlight  { color:#D4AF37; font-weight:700; font-size:22px; }
 				.btn { display:inline-block; background:linear-gradient(135deg,#D4AF37,#B8962B);
 							 color:#0A0A0B; font-weight:700; padding:14px 28px; border-radius:8px;
-							 text-decoration:none; margin:16px 0; }
+							 text-decoration:none; margin:16px 8px 16px 0; }
+				.btn-outline { display:inline-block; background:transparent; color:#D4AF37;
+							 font-weight:700; padding:12.5px 26px; border-radius:8px; border:1.5px solid rgba(212,175,55,0.5);
+							 text-decoration:none; margin:16px 8px 16px 0; }
 				.alert { background:rgba(212,175,55,0.1); border:1px solid rgba(212,175,55,0.3);
 								 border-radius:8px; padding:16px; margin:20px 0; color:#D4AF37; font-size:14px; }
 				.warning { background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3);
@@ -101,6 +104,7 @@ export async function sendPaymentReceivedToClient(data: {
 	totalPrice: number
 	reservationId: string
 	expiresAt: Date
+	invoiceUrl?: string | null
 }) {
 	const expiryStr = data.expiresAt.toLocaleDateString('fr-FR', {
 		weekday:'long', day:'2-digit', month:'long', year:'numeric'
@@ -124,6 +128,8 @@ export async function sendPaymentReceivedToClient(data: {
 			<div class="info-row"><span class="info-label">Solde restant</span>
 				<span class="info-value">${(data.totalPrice - data.depositAmount).toLocaleString('fr-FR')} €</span></div>
 		</div>
+
+		${data.invoiceUrl ? `<a href="${data.invoiceUrl}" class="btn-outline">📄 Télécharger la facture d'acompte (PDF)</a>` : ''}
 
 		<div class="alert">
 			<strong>Important :</strong> Votre réservation n'est pas encore définitive.
@@ -163,6 +169,7 @@ export async function sendReservationConfirmedToClient(data: {
 	totalPrice: number
 	reservationId: string
 	installmentType?: 'FULL' | 'THREE_TIMES' | 'FOUR_TIMES' | null
+	invoiceUrl?: string | null
 }) {
 	const balance = Math.max(0, data.totalPrice - data.depositAmount)
 	const isPaidInFull = balance <= 0
@@ -173,6 +180,7 @@ export async function sendReservationConfirmedToClient(data: {
 		FOUR_TIMES:  `le règlement du solde en 4 fois (soit environ ${(balance / 4).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} € par échéance)`,
 	}
 	const nextStep = installmentLabel[data.installmentType ?? 'FULL']
+	const invoiceButtonLabel = isPaidInFull ? '📄 Télécharger la facture (PDF)' : "📄 Télécharger la facture d'acompte (PDF)"
 
 	const html = wrap(`
 		<h2>Votre réservation est confirmée !</h2>
@@ -192,6 +200,8 @@ export async function sendReservationConfirmedToClient(data: {
 			<div class="info-row"><span class="info-label">Solde restant</span>
 				<span class="info-value">${balance.toLocaleString('fr-FR')} €</span></div>
 		</div>
+
+		${data.invoiceUrl ? `<a href="${data.invoiceUrl}" class="btn-outline">${invoiceButtonLabel}</a>` : ''}
 
 		${isPaidInFull ? `
 		<div class="alert">

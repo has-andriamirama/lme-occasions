@@ -1,13 +1,7 @@
 // src/app/api/upload/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { v2 as cloudinary } from 'cloudinary'
+import cloudinary from '@/lib/cloudinary'
 import { requireSession, apiError } from '@/lib/api'
-
-cloudinary.config({
-	cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-	api_key:    process.env.CLOUDINARY_API_KEY,
-	api_secret: process.env.CLOUDINARY_API_SECRET,
-})
 
 const MAX_FILE_SIZE  = 5 * 1024 * 1024
 const ALLOWED_TYPES  = ['image/jpeg', 'image/png', 'image/webp', 'image/avif']

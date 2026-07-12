@@ -40,6 +40,7 @@ Site web complet de vente de voitures d'occasion avec espace admin sécurisé, p
 - 🚗 CRUD complet véhicules (galerie, équipements dynamiques, statuts)
 - 🏷️ Gestion offres/promotions (% ou montant fixe, dates, véhicules ciblés)
 - 📅 Gestion réservations (finaliser vente / annuler, countdown 5 jours)
+- 🧾 Facturation PDF automatique (acompte / totalité), stockée sur Cloudinary et téléchargeable depuis la fiche réservation
 - 💬 Gestion messages contact (lu/non-lu, répondre)
 - 👥 Gestion administrateurs (SUPER_ADMIN uniquement, dernier admin protégé)
 - 📋 Journal d'audit de toutes les actions admin
@@ -266,6 +267,12 @@ lme-occasions/
 │   │   ├── stripe.ts
 │   │   ├── mail.ts
 │   │   ├── pusher.ts
+│   │   ├── cloudinary.ts
+│   │   ├── invoices/          # Génération des factures PDF (acompte / totalité)
+│   │   │   ├── pdf.tsx        # Gabarit unique (react-pdf)
+│   │   │   ├── service.ts     # Numérotation, upsert, suppression
+│   │   │   ├── types.ts
+│   │   │   └── fonts/
 │   │   └── utils.ts
 │   ├── styles/
 │   │   └── globals.css
@@ -298,6 +305,15 @@ Le cron `/api/cron/check-reservations` tourne toutes les heures :
 2. Les passe en `EXPIRED` + remet le véhicule en `AVAILABLE`
 3. Envoie les emails d'expiration admin + client
 4. Broadcast Pusher pour mise à jour temps réel
+
+### Facturation (acompte / totalité)
+Une facture PDF (gabarit unique, `src/lib/invoices/pdf.tsx`) est générée automatiquement et stockée sur Cloudinary (`lme-occasions/invoices`) :
+- **Facture d'acompte** : à la création d'une réservation par l'admin (si l'acompte ne couvre pas le prix total) et au paiement en ligne par le client.
+- **Facture de totalité** : si l'acompte couvre déjà tout le prix à la création, ou au règlement du solde dans l'espace admin.
+- Toute modification de l'acompte/prix, ou toute remise à impayé du solde, **met à jour ou supprime** la facture correspondante (même numéro conservé en cas de simple correction — un nouveau numéro n'est alloué qu'à la création d'une facture).
+- Numérotation séquentielle par année et par type (`AC-2026-0001`, `FT-2026-0001`, …), gérée par le modèle `InvoiceCounter`.
+- Les liens de téléchargement apparaissent dans la fiche réservation (espace admin) et dans les emails envoyés au client après paiement de l'acompte.
+- L'en-tête (adresse, SIRET…) est personnalisable via les variables `COMPANY_*` du `.env` (voir `.env.example`) ; toute variable non renseignée est simplement omise de la facture.
 
 ---
 

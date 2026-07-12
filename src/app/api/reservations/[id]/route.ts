@@ -10,6 +10,7 @@ import {
 	isEditableReservationStatus,
 } from '@/lib/balance'
 import { requireSession, apiError, validationError, createAuditLog, safePusher } from '@/lib/api'
+import { upsertInvoice, deleteInvoice, depositPaymentMethodLabel, type InvoiceContext, type InvoiceType } from '@/lib/invoices'
 import { z } from 'zod'
 
 const patchSchema = z.object({
@@ -28,6 +29,31 @@ const updateReservationSchema = z.object({
 	notes:           z.string().max(2000).optional().nullable(),
 }).strict()
 
+function buildInvoiceContext(
+	reservation: {
+		id: string
+		clientName: string
+		clientEmail: string
+		clientPhone: string
+		totalPrice: number
+		depositAmount: number
+		paymentIntentId: string | null
+	},
+	car: { title: string; brand: string; model: string; year: number },
+	type: InvoiceType,
+): InvoiceContext {
+	return {
+		reservationId:        reservation.id,
+		reservationRef:       reservation.id.slice(-8).toUpperCase(),
+		type,
+		vehicle:              { title: car.title, brand: car.brand, model: car.model, year: car.year },
+		client:               { name: reservation.clientName, email: reservation.clientEmail, phone: reservation.clientPhone },
+		totalPrice:           reservation.totalPrice,
+		depositAmount:        reservation.depositAmount,
+		paymentMethodDeposit: depositPaymentMethodLabel(!!reservation.paymentIntentId),
+	}
+}
+
 export async function PUT(
 	req: NextRequest,
 	{ params }: { params: { id: string } }
@@ -43,7 +69,7 @@ export async function PUT(
 		const existing = await prisma.reservation.findUnique({
 			where:   { id: params.id },
 			include: {
-				car:            { select: { id: true, title: true } },
+				car:            { select: { id: true, title: true, brand: true, model: true, year: true } },
 				balancePayment: { select: { id: true, paidAmount: true } },
 			},
 		})
@@ -62,6 +88,10 @@ export async function PUT(
 
 		const wasFullyCoveredByDeposit    = existing.status === 'COMPLETED'
 		const willBeFullyCoveredByDeposit = isFullyCoveredByDeposit(nextDeposit, nextTotalPrice)
+
+		const invoiceContentChanged =
+			data.clientName !== undefined || data.clientEmail !== undefined || data.clientPhone !== undefined ||
+			data.totalPrice !== undefined || data.depositAmount !== undefined
 
 		const now = new Date()
 
@@ -115,6 +145,16 @@ export async function PUT(
 
 			return reservation
 		})
+
+		if (!wasFullyCoveredByDeposit && willBeFullyCoveredByDeposit) {
+			await deleteInvoice(params.id, 'DEPOSIT')
+			await upsertInvoice(buildInvoiceContext(updated, existing.car, 'TOTAL'))
+		} else if (wasFullyCoveredByDeposit && !willBeFullyCoveredByDeposit) {
+			await deleteInvoice(params.id, 'TOTAL')
+			await upsertInvoice(buildInvoiceContext(updated, existing.car, 'DEPOSIT'))
+		} else if (invoiceContentChanged) {
+			await upsertInvoice(buildInvoiceContext(updated, existing.car, willBeFullyCoveredByDeposit ? 'TOTAL' : 'DEPOSIT'))
+		}
 
 		await createAuditLog(session.user.id, 'UPDATE', 'Reservation', params.id, {
 			changes: data,
@@ -196,6 +236,10 @@ export async function PATCH(
 				})
 			}
 		})
+
+		if (action === 'COMPLETE') {
+			await upsertInvoice(buildInvoiceContext(reservation, reservation.car, 'TOTAL'))
+		}
 
 		await safePusher(async () => {
 			if (action === 'CONFIRM') {

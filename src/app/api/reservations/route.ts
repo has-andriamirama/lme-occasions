@@ -5,6 +5,7 @@ import { broadcastCarUpdated, broadcastReservationCreated } from '@/lib/pusher'
 import { sendReservationConfirmedToClient, sendReservationNotificationToAdmin } from '@/lib/mail'
 import { createBalancePayment, isFullyCoveredByDeposit } from '@/lib/balance'
 import { requireSession, apiError, validationError, parsePagination, createAuditLog, safePusher } from '@/lib/api'
+import { upsertInvoice, depositPaymentMethodLabel } from '@/lib/invoices'
 import { z } from 'zod'
 
 const createReservationSchema = z.object({
@@ -112,11 +113,23 @@ export async function POST(req: NextRequest) {
 			})
 		}, 'POST /api/reservations')
 
+		const invoice = await upsertInvoice({
+			reservationId:  reservation.id,
+			reservationRef: reservation.id.slice(-8).toUpperCase(),
+			type:           fullyCoveredByDeposit ? 'TOTAL' : 'DEPOSIT',
+			vehicle:        { title: car.title, brand: car.brand, model: car.model, year: car.year },
+			client:         { name: clientName, email: clientEmail, phone: clientPhone },
+			totalPrice,
+			depositAmount,
+			paymentMethodDeposit: depositPaymentMethodLabel(false),
+		})
+
 		await Promise.all([
 			sendReservationConfirmedToClient({
 				clientName, clientEmail,
 				carTitle: car.title, carBrand: car.brand, carModel: car.model, carYear: car.year,
 				depositAmount, totalPrice, reservationId: reservation.id, installmentType,
+				invoiceUrl: invoice?.url ?? null,
 			}).then(() =>
 				prisma.reservation.update({ where: { id: reservation.id }, data: { emailSentToClient: true } })
 			),

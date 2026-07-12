@@ -47,6 +47,7 @@ export default async function ReservationDetailPage({
 		include: {
 			car: true,
 			balancePayment: true,
+			invoices: true,
 		},
 	})
 
@@ -54,6 +55,9 @@ export default async function ReservationDetailPage({
 
 	const statusMeta = STATUS_META[reservation.status] ?? STATUS_META.CANCELLED
 	const isEditable = isEditableReservationStatus(reservation.status, !!reservation.balancePayment)
+
+	const depositInvoiceUrl = reservation.invoices.find((inv: { type: string; url: string }) => inv.type === 'DEPOSIT')?.url ?? null
+	const finalInvoiceUrl   = reservation.invoices.find((inv: { type: string; url: string }) => inv.type === 'TOTAL')?.url ?? null
 
 	const balancePaymentSerialized = reservation.balancePayment ? {
 		id:             reservation.balancePayment.id,
@@ -285,6 +289,8 @@ export default async function ReservationDetailPage({
 				installmentType={(reservation.installmentType ?? 'FULL') as 'FULL' | 'THREE_TIMES' | 'FOUR_TIMES'}
 				reservationStatus={reservation.status}
 				balancePayment={balancePaymentSerialized}
+				depositInvoiceUrl={depositInvoiceUrl}
+				finalInvoiceUrl={finalInvoiceUrl}
 			/>
 
 			{reservation.notes && (
