@@ -54,11 +54,6 @@ const COMPANY = {
 	legalMention: process.env.INVOICE_LEGAL_MENTION ?? '',
 }
 
-const hasCompanyContactBlock = Boolean(COMPANY.addressLine1 || COMPANY.email || COMPANY.phone)
-
-const COMPANY_NAME_FIRST_WORD = COMPANY.name.split(' ')[0] ?? COMPANY.name
-const COMPANY_NAME_REST = COMPANY.name.split(' ').slice(1).join(' ')
-
 const COLOR = {
 	gold:        '#B8962B',
 	goldLight:   '#D4AF37',
@@ -170,7 +165,7 @@ const styles = StyleSheet.create({
 	},
 	settledText: { fontSize: 9, fontWeight: 700, color: COLOR.successText, textAlign: 'center' },
 
-	// Mode de règlement
+	// Payment method
 	paymentBlock: { marginTop: 22 },
 	paymentTitle: {
 		fontSize: 7.5, color: COLOR.gold, fontWeight: 600,
@@ -178,7 +173,7 @@ const styles = StyleSheet.create({
 	},
 	paymentLine: { fontSize: 8.5, color: COLOR.gray, lineHeight: 1.6 },
 
-	// Note légale
+	// Legal notice
 	noteBlock: { marginTop: 20, paddingTop: 14, borderTopWidth: 1, borderTopColor: COLOR.border },
 	noteText:  { fontSize: 7.5, color: COLOR.grayLight, lineHeight: 1.6 },
 
@@ -228,12 +223,9 @@ function InvoiceDocument({ ctx, number, issuedAt }: InvoiceDocumentProps) {
 			<Page size="A4" style={styles.page}>
 				<View style={styles.headerRow}>
 					<View>
-						<Text style={styles.brand}>
-							{COMPANY_NAME_FIRST_WORD}
-							{COMPANY_NAME_REST ? <Text style={styles.brandGold}> {COMPANY_NAME_REST}</Text> : null}
-						</Text>
+						<Text style={styles.brand}>COMPANY.name</Text>
 						<Text style={styles.tagline}>{COMPANY.tagline}</Text>
-						{hasCompanyContactBlock ? (
+						{COMPANY.addressLine1 || COMPANY.email || COMPANY.phone ? (
 							<View style={styles.companyBlock}>
 								{COMPANY.addressLine1 ? <Text>{COMPANY.addressLine1}</Text> : null}
 								{COMPANY.addressLine2 ? <Text>{COMPANY.addressLine2}</Text> : null}
