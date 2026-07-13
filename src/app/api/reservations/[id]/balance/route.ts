@@ -6,6 +6,7 @@ import { requireSession, apiError, validationError, createAuditLog, safePusher }
 import { computePaymentSummary } from '@/lib/queries'
 import { computeBalanceExpectedAmount } from '@/lib/balance'
 import { upsertInvoice, deleteInvoice, depositPaymentMethodLabel } from '@/lib/invoices'
+import { sendBalancePaidToClient } from '@/lib/mail'
 import { z } from 'zod'
 
 export async function GET(
@@ -219,7 +220,7 @@ export async function PUT(
 				: reservation.status
 
 		if (effectiveStatus === 'COMPLETED') {
-			await upsertInvoice({
+			const invoice = await upsertInvoice({
 				reservationId:  reservation.id,
 				reservationRef: reservation.id.slice(-8).toUpperCase(),
 				type:           'TOTAL',
@@ -240,6 +241,24 @@ export async function PUT(
 				paymentMethodBalance: 'Réglé en agence',
 				balancePaidAt:        updatedBalance.paidAt,
 			})
+
+			if (autoCompleted) {
+				await sendBalancePaidToClient({
+					clientName:    reservation.clientName,
+					clientEmail:   reservation.clientEmail,
+					carTitle:      reservation.car.title,
+					carBrand:      reservation.car.brand,
+					carModel:      reservation.car.model,
+					carYear:       reservation.car.year,
+					depositAmount: reservation.depositAmount,
+					balanceAmount: updatedBalance.paidAmount ?? 0,
+					totalPrice:    reservation.totalPrice,
+					reservationId: reservation.id,
+					invoiceUrl:    invoice?.url ?? null,
+				}).catch((mailErr) =>
+					console.error('[PUT /api/reservations/:id/balance] Email "solde réglé" échoué (non-critique) :', mailErr)
+				)
+			}
 		} else if (autoReverted) {
 			await deleteInvoice(reservation.id, 'TOTAL')
 		}
