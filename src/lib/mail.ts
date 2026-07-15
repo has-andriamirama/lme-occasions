@@ -279,60 +279,6 @@ export async function sendPaymentReceivedToClient(data: {
 	})
 }
 
-export async function sendReservationConfirmedToClient(data: {
-	clientName: string
-	clientEmail: string
-	carTitle: string
-	carBrand: string
-	carModel: string
-	carYear: number
-	depositAmount: number
-	totalPrice: number
-	reservationId: string
-	installmentType?: 'FULL' | 'THREE_TIMES' | 'FOUR_TIMES' | null
-	invoiceUrl?: string | null
-}) {
-	const balance      = Math.max(0, data.totalPrice - data.depositAmount)
-	const isPaidInFull = balance <= 0
-
-	const installmentLabel: Record<string, string> = {
-		FULL:        `le règlement comptant du solde restant (${balance.toLocaleString('fr-FR')} €)`,
-		THREE_TIMES: `le règlement du solde en 3 fois (soit environ ${(balance / 3).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} € par échéance)`,
-		FOUR_TIMES:  `le règlement du solde en 4 fois (soit environ ${(balance / 4).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} € par échéance)`,
-	}
-	const nextStep           = installmentLabel[data.installmentType ?? 'FULL']
-	const invoiceButtonLabel = isPaidInFull ? `📄 Télécharger la facture (PDF)` : `📄 Télécharger la facture d'acompte (PDF)`
-
-	const rows = [
-		infoRow(`Référence réservation`, `#${data.reservationId.slice(-8).toUpperCase()}`),
-		infoRow(`Véhicule`, `${escapeHtml(data.carBrand)} ${escapeHtml(data.carModel)} ${data.carYear}`),
-		infoRow(`Prix total du véhicule`, `${data.totalPrice.toLocaleString('fr-FR')} €`, { highlight: true }),
-		infoRow(`Acompte versé`, `${data.depositAmount.toLocaleString('fr-FR')} €`, { color: COLORS.green }),
-		infoRow(`Solde restant`, `${balance.toLocaleString('fr-FR')} €`),
-	].join('')
-
-	const content = `
-		${heading(`Votre réservation est confirmée !`)}
-		${paragraph(`Bonjour <strong>${escapeHtml(data.clientName)}</strong>, votre réservation a été confirmée par notre équipe. Voici le récapitulatif :`)}
-		${carCard(data.carTitle, rows)}
-		${data.invoiceUrl ? emailButton(data.invoiceUrl, invoiceButtonLabel, 'outline') : ''}
-		${isPaidInFull
-			? alertBox(`<strong>Véhicule réglé intégralement !</strong> Votre acompte couvre la totalité du prix de vente. Notre équipe vous contactera pour organiser la remise des clés et les démarches administratives.`)
-			: alertBox(`<strong>Prochaine étape :</strong> ${nextStep}. Notre équipe reste à votre disposition en agence pour organiser ce règlement.`)}
-		${emailButton(`${APP_URL}/contact`, `Nous contacter`)}
-	`
-
-	const preheader = isPaidInFull
-		? `Votre véhicule ${data.carTitle} est réglé intégralement.`
-		: `Votre réservation pour ${data.carTitle} est confirmée — solde restant : ${balance.toLocaleString('fr-FR')} €.`
-
-	return sendEmail({
-		to:      data.clientEmail,
-		subject: `Réservation confirmée — ${data.carTitle}`,
-		html:    wrap(content, preheader),
-	})
-}
-
 export async function sendBalancePaidToClient(data: {
 	clientName: string
 	clientEmail: string

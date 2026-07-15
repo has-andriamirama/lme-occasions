@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
 import { broadcastCarUpdated, broadcastReservationUpdated, broadcastReservationCancelled } from '@/lib/pusher'
-import { sendReservationConfirmedToClient, sendBalancePaidToClient } from '@/lib/mail'
+import { sendBalancePaidToClient } from '@/lib/mail'
 import {
 	recreateBalancePayment,
 	calculateUpdatedExpectedAmount,
@@ -286,22 +286,7 @@ export async function PATCH(
 			}
 		}, 'PATCH /api/reservations/:id')
 
-		if (action === 'CONFIRM') {
-			sendReservationConfirmedToClient({
-				clientName:      reservation.clientName,
-				clientEmail:     reservation.clientEmail,
-				carTitle:        reservation.car.title,
-				carBrand:        reservation.car.brand,
-				carModel:        reservation.car.model,
-				carYear:         reservation.car.year,
-				depositAmount:   reservation.depositAmount,
-				totalPrice:      reservation.totalPrice,
-				reservationId:   reservation.id,
-				installmentType: reservation.installmentType,
-			}).catch((mailErr) =>
-				console.error('[PATCH /api/reservations/:id] Email de confirmation échoué (non-critique) :', mailErr)
-			)
-		} else if (action === 'COMPLETE') {
+		if (action === 'COMPLETE') {
 			sendBalancePaidToClient({
 				clientName:    reservation.clientName,
 				clientEmail:   reservation.clientEmail,

@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
 import { broadcastCarUpdated, broadcastReservationCreated } from '@/lib/pusher'
-import { sendReservationConfirmedToClient, sendReservationNotificationToAdmin } from '@/lib/mail'
 import { createBalancePayment, isFullyCoveredByDeposit } from '@/lib/balance'
 import { requireSession, apiError, validationError, parsePagination, createAuditLog, safePusher } from '@/lib/api'
 import { upsertInvoice, depositPaymentMethodLabel } from '@/lib/invoices'
@@ -113,7 +112,7 @@ export async function POST(req: NextRequest) {
 			})
 		}, 'POST /api/reservations')
 
-		const invoice = await upsertInvoice({
+		await upsertInvoice({
 			reservationId:  reservation.id,
 			reservationRef: reservation.id.slice(-8).toUpperCase(),
 			type:           fullyCoveredByDeposit ? 'TOTAL' : 'DEPOSIT',
@@ -123,26 +122,6 @@ export async function POST(req: NextRequest) {
 			depositAmount,
 			paymentMethodDeposit: depositPaymentMethodLabel(false),
 		})
-
-		await Promise.all([
-			sendReservationConfirmedToClient({
-				clientName, clientEmail,
-				carTitle: car.title, carBrand: car.brand, carModel: car.model, carYear: car.year,
-				depositAmount, totalPrice, reservationId: reservation.id, installmentType,
-				invoiceUrl: invoice?.url ?? null,
-			}).then(() =>
-				prisma.reservation.update({ where: { id: reservation.id }, data: { emailSentToClient: true } })
-			),
-			sendReservationNotificationToAdmin({
-				clientName, clientEmail, clientPhone,
-				carTitle: car.title, depositAmount, totalPrice,
-				reservationId: reservation.id, expiresAt: reservation.expiresAt,
-			}).then(() =>
-				prisma.reservation.update({ where: { id: reservation.id }, data: { emailSentToAdmin: true } })
-			),
-		]).catch((mailErr) =>
-			console.error('[POST /api/reservations] Email échoué (non-critique) :', mailErr)
-		)
 
 		return NextResponse.json({ success: true, data: reservation }, { status: 201 })
 	} catch (err) {
