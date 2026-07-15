@@ -265,7 +265,7 @@ export async function sendPaymentReceivedToClient(data: {
 		${heading(`Prochaines étapes`)}
 		${paragraph(`1. Présentez-vous à notre agence avec une pièce d'identité valide.`)}
 		${paragraph(`2. Notre équipe confirme votre réservation sur place.`)}
-		${paragraph(`3. Réglez le solde de <strong>${balance.toLocaleString('fr-FR')} €</strong> (comptant ou en plusieurs fois selon votre choix), signez le contrat de vente et repartez avec votre véhicule !`)}
+		${paragraph(`3. Réglez le solde de <strong>${balance.toLocaleString('fr-FR')} €</strong>, signez le contrat de vente et repartez avec votre véhicule !`)}
 		${alertBox(`<strong>Délai de 5 jours :</strong> En cas de non-présentation avant le ${expiryStr}, la réservation expirera automatiquement et l'acompte versé ne sera pas remboursé. Pour toute question, contactez-nous immédiatement.`, 'warning')}
 		${emailButton(`${APP_URL}/contact`, `Nous contacter`)}
 	`

@@ -10,6 +10,7 @@ import {
 	Font,
 	renderToBuffer,
 } from '@react-pdf/renderer'
+import { splitTtc, VAT_RATE } from './types'
 import type { InvoiceContext } from './types'
 
 const FONT_DIR = path.join(process.cwd(), 'src', 'lib', 'invoices', 'fonts')
@@ -129,9 +130,10 @@ const styles = StyleSheet.create({
 		flexDirection: 'row', paddingVertical: 11, paddingHorizontal: 10,
 		borderBottomWidth: 1, borderBottomColor: COLOR.border, backgroundColor: COLOR.bgSoft,
 	},
-	colDesc:   { width: '58%' },
-	colQty:    { width: '12%', textAlign: 'center' },
-	colAmount: { width: '30%', textAlign: 'right' },
+	colDesc:   { width: '42%' },
+	colQty:    { width: '9%', textAlign: 'center' },
+	colHt:     { width: '22%', textAlign: 'right' },
+	colAmount: { width: '27%', textAlign: 'right' },
 	cellTitle: { fontSize: 9, fontWeight: 500, color: COLOR.dark },
 	cellSub:   { fontSize: 7.5, color: COLOR.grayLight, marginTop: 2 },
 	cellAmount:{ fontSize: 9.5, fontWeight: 600, color: COLOR.dark },
@@ -150,6 +152,10 @@ const styles = StyleSheet.create({
 	},
 	grandTotalLabel: { fontSize: 10, fontWeight: 600, color: COLOR.white },
 	grandTotalValue: { fontSize: 12, fontWeight: 700, color: COLOR.goldLight },
+
+	vatRecapRow:   { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3, paddingHorizontal: 12 },
+	vatRecapLabel: { fontSize: 7.5, color: COLOR.grayLight },
+	vatRecapValue: { fontSize: 7.5, color: COLOR.gray, fontWeight: 500 },
 
 	dueRow: {
 		flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 9, paddingHorizontal: 12,
@@ -213,6 +219,9 @@ function InvoiceDocument({ ctx, number, issuedAt }: InvoiceDocumentProps) {
 		: `Vente véhicule — ${ctx.vehicle.brand} ${ctx.vehicle.model} ${ctx.vehicle.year}`
 	const lineAmount  = isDeposit ? ctx.depositAmount : ctx.totalPrice
 	const paidNow     = isDeposit ? ctx.depositAmount : ctx.totalPrice
+	
+	const invoicedVat   = splitTtc(lineAmount)
+	const vatRateLabel  = `${(VAT_RATE * 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} %`
 
 	const noteText = isDeposit
 		? "Cette facture atteste du versement de l'acompte mentionné ci-dessus dans le cadre de la réservation du véhicule désigné. Le solde restant est exigible selon les conditions générales de vente en vigueur. Conformément à ces conditions, cet acompte reste acquis en cas de non-présentation dans le délai imparti."
@@ -275,7 +284,8 @@ function InvoiceDocument({ ctx, number, issuedAt }: InvoiceDocumentProps) {
 					<View style={styles.tableHeader}>
 						<Text style={[styles.tableHeaderCell, styles.colDesc]}>Désignation</Text>
 						<Text style={[styles.tableHeaderCell, styles.colQty]}>Qté</Text>
-						<Text style={[styles.tableHeaderCell, styles.colAmount]}>Montant</Text>
+						<Text style={[styles.tableHeaderCell, styles.colHt]}>Prix HT</Text>
+						<Text style={[styles.tableHeaderCell, styles.colAmount]}>Montant TTC</Text>
 					</View>
 					<View style={styles.tableRow}>
 						<View style={styles.colDesc}>
@@ -283,6 +293,7 @@ function InvoiceDocument({ ctx, number, issuedAt }: InvoiceDocumentProps) {
 							<Text style={styles.cellSub}>{ctx.vehicle.title}</Text>
 						</View>
 						<Text style={[styles.cellTitle, styles.colQty]}>1</Text>
+						<Text style={[styles.cellTitle, styles.colHt]}>{eur(invoicedVat.ht)}</Text>
 						<Text style={[styles.cellAmount, styles.colAmount]}>{eur(lineAmount)}</Text>
 					</View>
 				</View>
@@ -323,6 +334,15 @@ function InvoiceDocument({ ctx, number, issuedAt }: InvoiceDocumentProps) {
 							<Text style={styles.grandTotalValue}>{eur(paidNow)}</Text>
 						</View>
 
+						<View style={styles.vatRecapRow}>
+							<Text style={styles.vatRecapLabel}>Montant HT</Text>
+							<Text style={styles.vatRecapValue}>{eur(invoicedVat.ht)}</Text>
+						</View>
+						<View style={styles.vatRecapRow}>
+							<Text style={styles.vatRecapLabel}>dont TVA ({vatRateLabel})</Text>
+							<Text style={styles.vatRecapValue}>{eur(invoicedVat.vat)}</Text>
+						</View>
+
 						{isDeposit ? (
 							<View style={styles.dueRow}>
 								<Text style={styles.dueLabel}>Solde restant dû</Text>
@@ -348,6 +368,9 @@ function InvoiceDocument({ ctx, number, issuedAt }: InvoiceDocumentProps) {
 
 				<View style={styles.noteBlock}>
 					<Text style={styles.noteText}>{noteText}</Text>
+					<Text style={styles.noteText}>
+						Prix exprimés toutes taxes comprises (TTC). Le montant hors taxes (HT) est calculé sur la base d'un taux de TVA de {vatRateLabel}.
+					</Text>
 					{COMPANY.legalMention ? <Text style={styles.noteText}>{COMPANY.legalMention}</Text> : null}
 				</View>
 

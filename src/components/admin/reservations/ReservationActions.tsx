@@ -17,9 +17,9 @@ interface Props {
 type ModalType = 'confirm' | 'cancel' | null
 
 export default function ReservationActions({ reservationId, status, hasBalancePayment }: Props) {
-	const router                        = useRouter()
-	const [modal,   setModal]           = useState<ModalType>(null)
-	const [loading, setLoading]         = useState(false)
+	const router                = useRouter()
+	const [modal,   setModal]   = useState<ModalType>(null)
+	const [loading, setLoading] = useState(false)
 
 	const canConfirm = status === 'PAID'
 	const canEdit    = isEditableReservationStatus(status, hasBalancePayment)
