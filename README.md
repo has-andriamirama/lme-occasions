@@ -314,7 +314,6 @@ Une facture PDF (gabarit unique, `src/lib/invoices/pdf.tsx`) est générée auto
 - Numérotation séquentielle par année et par type (`AC-2026-0001`, `FT-2026-0001`, …), gérée par le modèle `InvoiceCounter`.
 - Les liens de téléchargement apparaissent dans la fiche réservation (espace admin) et dans les emails envoyés au client après paiement de l'acompte.
 - L'en-tête (adresse, SIRET…) est personnalisable via les variables `COMPANY_*` du `.env` (voir `.env.example`) ; toute variable non renseignée est simplement omise de la facture.
-- Les prix véhicules (`Car.price`) sont saisis **TTC**. Chaque facture recalcule et affiche automatiquement le **prix HT** correspondant (ligne de désignation + récapitulatif sous le total réglé), sur la base du taux de TVA défini par `INVOICE_VAT_RATE` (par défaut **8,5 %**). Le calcul est centralisé dans `splitTtc()` (`src/lib/invoices/types.ts`).
 
 ---
 
