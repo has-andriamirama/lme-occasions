@@ -17,8 +17,8 @@ const contactSchema = z.object({
 const recentSubmits = new Map<string, number[]>()
 
 function isRateLimited(ip: string): boolean {
-	const now       = Date.now()
-	const windowMs  = 60 * 60 * 1000
+	const now = Date.now()
+	const windowMs = 60 * 60 * 1000
 	const maxSubmits = 5
 	const submissions = (recentSubmits.get(ip) ?? []).filter((t) => now - t < windowMs)
 	if (submissions.length >= maxSubmits) return true

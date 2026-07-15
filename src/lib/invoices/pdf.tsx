@@ -44,13 +44,13 @@ function registerInvoiceFont(): string {
 const FONT_FAMILY = registerInvoiceFont()
 
 const COMPANY = {
-	name:         process.env.COMPANY_NAME     ?? 'LME Occasions',
-	tagline:      process.env.COMPANY_TAGLINE  ?? "Véhicules d'occasion premium",
+	name:         process.env.COMPANY_NAME ?? 'LME Occasions',
+	tagline:      process.env.COMPANY_TAGLINE ?? "Véhicules d'occasion premium",
 	addressLine1: process.env.COMPANY_ADDRESS_LINE1 ?? '',
 	addressLine2: process.env.COMPANY_ADDRESS_LINE2 ?? '',
-	email:        process.env.COMPANY_EMAIL    ?? '',
-	phone:        process.env.COMPANY_PHONE    ?? '',
-	siret:        process.env.COMPANY_SIRET    ?? '',
+	email:        process.env.COMPANY_EMAIL ?? '',
+	phone:        process.env.COMPANY_PHONE ?? '',
+	siret:        process.env.COMPANY_SIRET ?? '',
 	legalMention: process.env.INVOICE_LEGAL_MENTION ?? '',
 }
 
@@ -72,11 +72,11 @@ const COLOR = {
 
 const styles = StyleSheet.create({
 	page: {
-		fontFamily:      FONT_FAMILY,
-		fontSize:        9.5,
-		color:           COLOR.dark,
-		paddingTop:      42,
-		paddingBottom:   56,
+		fontFamily:        FONT_FAMILY,
+		fontSize:          9.5,
+		color:             COLOR.dark,
+		paddingTop:        42,
+		paddingBottom:     56,
 		paddingHorizontal: 44,
 	},
 
@@ -107,9 +107,9 @@ const styles = StyleSheet.create({
 	divider: { borderBottomWidth: 1.5, borderBottomColor: COLOR.gold, marginBottom: 22 },
 
 	// Parties
-	partiesRow:  { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 22 },
-	partyBlock:  { width: '47%' },
-	partyLabel:  {
+	partiesRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 22 },
+	partyBlock: { width: '47%' },
+	partyLabel: {
 		fontSize: 7.5, color: COLOR.gold, fontWeight: 600,
 		textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6,
 	},
@@ -197,22 +197,22 @@ const dateFr = (d: Date) =>
 	d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
 interface InvoiceDocumentProps {
-	ctx:    InvoiceContext
-	number: string
+	ctx:      InvoiceContext
+	number:   string
 	issuedAt: Date
 }
 
 function InvoiceDocument({ ctx, number, issuedAt }: InvoiceDocumentProps) {
-	const isDeposit   = ctx.type === 'DEPOSIT'
-	const balanceDue  = Math.max(0, ctx.totalPrice - ctx.depositAmount)
-	const hadBalance  = balanceDue > 0.005 || !!ctx.paymentMethodBalance
+	const isDeposit  = ctx.type === 'DEPOSIT'
+	const balanceDue = Math.max(0, ctx.totalPrice - ctx.depositAmount)
+	const hadBalance = balanceDue > 0.005 || !!ctx.paymentMethodBalance
 
-	const title       = isDeposit ? "FACTURE D'ACOMPTE" : 'FACTURE'
-	const lineTitle   = isDeposit
+	const title      = isDeposit ? "FACTURE D'ACOMPTE" : 'FACTURE'
+	const lineTitle  = isDeposit
 		? `Acompte véhicule — ${ctx.vehicle.brand} ${ctx.vehicle.model} ${ctx.vehicle.year}`
 		: `Vente véhicule — ${ctx.vehicle.brand} ${ctx.vehicle.model} ${ctx.vehicle.year}`
-	const lineAmount  = isDeposit ? ctx.depositAmount : ctx.totalPrice
-	const paidNow     = isDeposit ? ctx.depositAmount : ctx.totalPrice
+	const lineAmount = isDeposit ? ctx.depositAmount : ctx.totalPrice
+	const paidNow    = isDeposit ? ctx.depositAmount : ctx.totalPrice
 
 	const noteText = isDeposit
 		? "Cette facture atteste du versement de l'acompte mentionné ci-dessus dans le cadre de la réservation du véhicule désigné. Le solde restant est exigible selon les conditions générales de vente en vigueur. Conformément à ces conditions, cet acompte reste acquis en cas de non-présentation dans le délai imparti."
@@ -230,7 +230,7 @@ function InvoiceDocument({ ctx, number, issuedAt }: InvoiceDocumentProps) {
 								{COMPANY.addressLine1 ? <Text>{COMPANY.addressLine1}</Text> : null}
 								{COMPANY.addressLine2 ? <Text>{COMPANY.addressLine2}</Text> : null}
 								{COMPANY.email || COMPANY.phone ? (
-									<Text>{[COMPANY.email, COMPANY.phone].filter(Boolean).join('  ·  ')}</Text>
+									<Text>{[COMPANY.email, COMPANY.phone].filter(Boolean).join(' · ')}</Text>
 								) : null}
 							</View>
 						) : null}

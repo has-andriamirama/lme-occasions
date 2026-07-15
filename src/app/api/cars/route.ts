@@ -58,11 +58,11 @@ export async function GET(req: NextRequest) {
 				{ description: { contains: search, mode: 'insensitive' } },
 			]
 		}
-		if (brand)                   where.brand        = { equals: brand, mode: 'insensitive' }
-		if (status && status !== 'ALL') where.status    = status
-		if (fuelType)                where.fuelType     = fuelType
-		if (transmission)            where.transmission = transmission
-		if (isFeatured !== undefined) where.isFeatured  = isFeatured
+		if (brand) where.brand = { equals: brand, mode: 'insensitive' }
+		if (status && status !== 'ALL') where.status = status
+		if (fuelType) where.fuelType = fuelType
+		if (transmission) where.transmission = transmission
+		if (isFeatured !== undefined) where.isFeatured = isFeatured
 
 		if (offerId) {
 			where.offers = { some: { offerId, offer: getActiveOfferFilter() } }

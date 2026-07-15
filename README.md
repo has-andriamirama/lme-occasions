@@ -202,4 +202,4 @@ curl -H "Authorization: Bearer votre_secret_cron" http://localhost:3000/api/cron
 
 ## Licence
 
-Propriété exclusive de LME Occasions. Tous droits réservés.
+Propriété exclusive de EXXE. Tous droits réservés.

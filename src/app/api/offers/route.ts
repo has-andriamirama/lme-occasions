@@ -47,9 +47,9 @@ export async function GET(req: NextRequest) {
 		if (type) where.type = type
 
 		const orderByMap: Record<string, Record<string, 'asc' | 'desc'>> = {
-			ending:     { endDate:   'asc'  },
-			value_desc: { value:     'desc' },
-			value_asc:  { value:     'asc'  },
+			ending:     { endDate: 'asc' },
+			value_desc: { value: 'desc' },
+			value_asc:  { value: 'asc' },
 			newest:     { createdAt: 'desc' },
 		}
 

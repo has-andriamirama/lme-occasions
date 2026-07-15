@@ -117,11 +117,11 @@ function emailButton(href: string, label: string, variant: 'solid' | 'outline' =
 }
 
 function alertBox(html: string, variant: 'info' | 'warning' = 'info'): string {
-	const isWarning = variant === 'warning'
+	const isWarning  = variant === 'warning'
 	const bgFallback = isWarning ? COLORS.warningBgFallback : COLORS.alertBgFallback
-	const bgCss       = isWarning ? COLORS.warningBg         : COLORS.alertBg
-	const border      = isWarning ? COLORS.warningBorder     : COLORS.alertBorder
-	const color        = isWarning ? COLORS.red               : COLORS.gold
+	const bgCss      = isWarning ? COLORS.warningBg         : COLORS.alertBg
+	const border     = isWarning ? COLORS.warningBorder     : COLORS.alertBorder
+	const color      = isWarning ? COLORS.red               : COLORS.gold
 
 	return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${bgFallback}" style="background-color:${bgCss};border:1px solid ${border};border-radius:8px;margin:20px 0;">
 		<tr>

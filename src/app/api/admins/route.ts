@@ -49,10 +49,10 @@ export async function POST(req: NextRequest) {
 
 		const admin = await prisma.admin.create({
 			data: {
-				username:           parsed.data.username,
-				email:              parsed.data.email,
-				password:           await hashPassword(parsed.data.password),
-				role:               'ADMIN',
+				username: parsed.data.username,
+				email: parsed.data.email,
+				password: await hashPassword(parsed.data.password),
+				role: 'ADMIN',
 				mustChangePassword: true,
 			},
 			select: { id: true, username: true, email: true, role: true, isActive: true, createdAt: true },
