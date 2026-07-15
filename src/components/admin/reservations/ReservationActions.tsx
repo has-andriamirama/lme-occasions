@@ -101,7 +101,7 @@ export default function ReservationActions({ reservationId, status, hasBalancePa
 						du reste pourra être enregistré.
 					</>
 				}
-				confirmLabel="Confirmer la réservation"
+				confirmLabel="Confirmer"
 				confirmVariant="primary"
 				loading={loading}
 				onConfirm={() => handleAction('CONFIRM')}
