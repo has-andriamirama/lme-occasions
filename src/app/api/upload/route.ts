@@ -1,10 +1,25 @@
 // src/app/api/upload/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import cloudinary from '@/lib/cloudinary'
+import { uploadImage, CAR_IMAGES_FOLDER } from '@/lib/cloudinary'
 import { requireSession, apiError } from '@/lib/api'
 
-const MAX_FILE_SIZE  = 5 * 1024 * 1024
-const ALLOWED_TYPES  = ['image/jpeg', 'image/png', 'image/webp', 'image/avif']
+type UploadKind = 'car'
+
+interface UploadKindConfig {
+	folder:       string
+	maxFileSize:  number
+	allowedTypes: string[]
+	formatsLabel: string
+}
+
+const UPLOAD_KINDS: Record<UploadKind, UploadKindConfig> = {
+	car: {
+		folder:       CAR_IMAGES_FOLDER,
+		maxFileSize:  5 * 1024 * 1024,
+		allowedTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/avif'],
+		formatsLabel: 'JPEG, PNG, WebP, AVIF',
+	},
+}
 
 export async function POST(req: NextRequest) {
 	try {
@@ -12,26 +27,22 @@ export async function POST(req: NextRequest) {
 		if (!session) return apiError('Non autorisé', 401)
 
 		const formData = await req.formData()
-		const file     = formData.get('file') as File | null
-		const folder   = (formData.get('folder') as string) ?? 'lme-occasions/cars'
+		const file = formData.get('file') as File | null
+		const kind = (formData.get('type') as string | null) ?? 'car'
 
-		if (!file)                              return apiError('Fichier manquant', 400)
-		if (!ALLOWED_TYPES.includes(file.type)) return apiError('Format non supporté (JPEG, PNG, WebP uniquement)', 400)
-		if (file.size > MAX_FILE_SIZE)          return apiError('Fichier trop volumineux (max 5 Mo)', 400)
+		const config = UPLOAD_KINDS[kind as UploadKind]
+		if (!config) return apiError("Type d'upload inconnu", 400)
+
+		if (!file)                                    return apiError('Fichier manquant', 400)
+		if (!config.allowedTypes.includes(file.type)) return apiError(`Format non supporté (${config.formatsLabel} uniquement)`, 400)
+		if (file.size > config.maxFileSize)           return apiError(`Fichier trop volumineux (max ${Math.round(config.maxFileSize / 1024 / 1024)} Mo)`, 400)
 
 		const bytes  = await file.arrayBuffer()
 		const buffer = Buffer.from(bytes)
 
-		const result = await new Promise<{ secure_url: string; public_id: string }>((resolve, reject) => {
-			cloudinary.uploader
-				.upload_stream(
-					{ folder, resource_type: 'image', transformation: [{ quality: 'auto', fetch_format: 'auto' }] },
-					(err, res) => (err ? reject(err) : resolve(res as any))
-				)
-				.end(buffer)
-		})
+		const { url, publicId } = await uploadImage(buffer, config.folder)
 
-		return NextResponse.json({ success: true, data: { url: result.secure_url, publicId: result.public_id } })
+		return NextResponse.json({ success: true, data: { url, publicId } })
 	} catch (err) {
 		console.error('[POST /api/upload]', err)
 		return apiError("Erreur lors de l'upload")

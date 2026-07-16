@@ -72,7 +72,7 @@ export default function CarForm({ initialData, mode }: Props) {
   async function uploadImage(file: File): Promise<string | null> {
     const fd = new FormData()
     fd.append('file', file)
-    fd.append('folder', 'lme-occasions/cars')
+    fd.append('type', 'car')
     const res = await fetch('/api/upload', { method: 'POST', body: fd })
     const data = await res.json()
     if (!data.success) { toast.error(data.error); return null }
